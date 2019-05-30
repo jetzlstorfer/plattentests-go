@@ -12,3 +12,4 @@
 *.out
 
 creds.sh
+bin/
