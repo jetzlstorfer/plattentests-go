@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/plattentests-go/crawler"
 	"github.com/zmb3/spotify"
@@ -26,7 +27,7 @@ const redirectURI = "http://localhost:8080/callback"
 var (
 	auth  = spotify.NewAuthenticator(redirectURI, spotify.ScopePlaylistModifyPrivate)
 	ch    = make(chan *spotify.Client)
-	state = "abc123"
+	state = "myCrazyState"
 )
 
 var playlistID spotify.ID
@@ -52,7 +53,7 @@ func main() {
 			break
 		}
 	}
-	log.Println(len(highlights))
+	log.Println("Size of records of the week: ", len(highlights))
 
 	// for _, record := range highlights {
 	// 	log.Println(record.Name + ": " + strconv.Itoa(record.Score))
@@ -81,16 +82,30 @@ func main() {
 	client.ReplacePlaylistTracks(playlistID)
 
 	log.Println("Adding highlights of the week to playlist....")
+	total := 0
+	var notFound []string
 	for _, record := range highlights {
-		log.Println(record)
+		log.Println(record.Name + ": " + record.Link)
 		for _, track := range record.Tracks {
-			searchAndAddSong(client, track)
+			searchTerm := sanitizeTrackname(track)
+			if !searchAndAddSong(client, searchTerm) {
+				notFound = append(notFound, searchTerm+" /// "+track)
+			}
+			total++
 		}
+	}
+	log.Println()
+	log.Println("total tracks:     ", total)
+	//log.Println("found tracks:     ", foundTracks)
+	log.Println("not found tracks: ", len(notFound))
+	log.Println("Not found search terms: ")
+	for _, track := range notFound {
+		log.Println(track)
 	}
 
 }
 
-func searchAndAddSong(client *spotify.Client, searchTerm string) {
+func searchAndAddSong(client *spotify.Client, searchTerm string) bool {
 	//results, err := client.Search(searchTerm, spotify.SearchTypeTrack|spotify.SearchTypePlaylist|spotify.SearchTypeAlbum)
 	results, err := client.Search(searchTerm, spotify.SearchTypeTrack)
 	if err != nil {
@@ -111,16 +126,17 @@ func searchAndAddSong(client *spotify.Client, searchTerm string) {
 
 	// handle track results
 	if results.Tracks != nil && results.Tracks.Tracks != nil && len(results.Tracks.Tracks) > 0 {
-		log.Println("Track:")
 		item := results.Tracks.Tracks[0]
-		log.Println("   ", item.Name)
+		log.Println(" ", item.Name)
 		log.Println("add item to playlist...")
 		_, err := client.AddTracksToPlaylist(playlistID, item.ID)
 		if err != nil {
 			log.Fatalf("could not add track to playlist: %v", err)
 		}
-
+		return true
 	}
+	return false
+
 }
 
 func completeAuth(w http.ResponseWriter, r *http.Request) {
@@ -137,4 +153,11 @@ func completeAuth(w http.ResponseWriter, r *http.Request) {
 	client := auth.NewClient(tok)
 	fmt.Fprintf(w, "Login Completed!")
 	ch <- &client
+}
+
+func sanitizeTrackname(trackname string) string {
+	sanitizedName := trackname
+	sanitizedName = strings.Split(sanitizedName, "(feat. ")[0]
+	sanitizedName = strings.Split(sanitizedName, "(Bonus)")[0]
+	return sanitizedName
 }

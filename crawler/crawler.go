@@ -39,23 +39,18 @@ func GetRecordsOfTheWeek() []Record {
 	}
 	//log.Printf(doc.Find("body").Text())
 
-	var recordsOfTheWeek []string
+	var highlights []Record
 	// Find the review items
 	doc.Find(".neuerezis li").Each(func(i int, s *goquery.Selection) {
 		// For each item found, get the band and title
-		//band := s.Find("a").Text()
+		recordTitle := s.Find("a").Text()
 		link, _ := s.Find("a").Attr("href")
 		//log.Printf("Review %d: %s - %s\n", i, band, link)
-		recordsOfTheWeek = append(recordsOfTheWeek, baseurl+link)
+		log.Println(recordTitle)
+		highlights = append(highlights, getHighlights(baseurl+link))
 
 	})
 
-	var highlights []Record
-	log.Println("Size of recordsOfTheWeek: ", len(recordsOfTheWeek))
-	for _, recordLink := range recordsOfTheWeek {
-		log.Println(recordLink)
-		highlights = append(highlights, getHighlights(recordLink))
-	}
 	return highlights
 
 }
@@ -84,11 +79,11 @@ func getHighlights(recordLink string) Record {
 	doc.Find("#rezihighlights li").Each(func(i int, s *goquery.Selection) {
 		// For each item found, get the band and title
 		track := s.Text()
-		log.Printf("Track %d: %s\n", i, bandname+" "+track)
+		log.Printf(" Track %d: %s\n", i+1, bandname+" "+track)
 		tracks = append(tracks, bandname+" "+track)
 	})
 	record.Tracks = tracks
-	log.Println(len(record.Tracks), " highlights found for", record.Name)
+	//log.Println(len(record.Tracks), " highlights found for", record.Name)
 	return record
 }
 
