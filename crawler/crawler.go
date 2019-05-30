@@ -1,7 +1,6 @@
 package crawler
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -21,8 +20,8 @@ type Record struct {
 	Tracks []string
 }
 
-// GetTracksOfTheWeek return array of names for highlights of the week
-func GetTracksOfTheWeek() []Record {
+// GetRecordsOfTheWeek return array of names for highlights of the week
+func GetRecordsOfTheWeek() []Record {
 	// Request the HTML page.
 	res, err := http.Get(url)
 	if err != nil {
@@ -38,23 +37,23 @@ func GetTracksOfTheWeek() []Record {
 	if err != nil {
 		log.Fatal(err)
 	}
-	//fmt.Printf(doc.Find("body").Text())
+	//log.Printf(doc.Find("body").Text())
 
 	var recordsOfTheWeek []string
 	// Find the review items
 	doc.Find(".neuerezis li").Each(func(i int, s *goquery.Selection) {
 		// For each item found, get the band and title
-		band := s.Find("a").Text()
+		//band := s.Find("a").Text()
 		link, _ := s.Find("a").Attr("href")
-		fmt.Printf("Review %d: %s - %s\n", i, band, link)
+		//log.Printf("Review %d: %s - %s\n", i, band, link)
 		recordsOfTheWeek = append(recordsOfTheWeek, baseurl+link)
 
 	})
 
 	var highlights []Record
-	fmt.Println("Size of recordsOfTheWeek: ", len(recordsOfTheWeek))
+	log.Println("Size of recordsOfTheWeek: ", len(recordsOfTheWeek))
 	for _, recordLink := range recordsOfTheWeek {
-		fmt.Println(recordLink)
+		log.Println(recordLink)
 		highlights = append(highlights, getHighlights(recordLink))
 	}
 	return highlights
@@ -85,10 +84,31 @@ func getHighlights(recordLink string) Record {
 	doc.Find("#rezihighlights li").Each(func(i int, s *goquery.Selection) {
 		// For each item found, get the band and title
 		track := s.Text()
-		fmt.Printf("Track %d: %s\n", i, bandname+" "+track)
+		log.Printf("Track %d: %s\n", i, bandname+" "+track)
 		tracks = append(tracks, bandname+" "+track)
 	})
 	record.Tracks = tracks
-	fmt.Println(len(record.Tracks), " highlights found for", record.Name)
+	log.Println(len(record.Tracks), " highlights found for", record.Name)
 	return record
+}
+
+// GetRecordOfTheWeek return name of record of the week
+func GetRecordOfTheWeek() string {
+	// Request the HTML page.
+	res, err := http.Get(url)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+	}
+
+	// Load the HTML document
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return strings.Split(doc.Find("div.adw h3 a").Text(), " - ")[0]
 }

@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"os"
 	"sort"
-	"strconv"
 
 	"github.com/plattentests-go/crawler"
 	"github.com/zmb3/spotify"
@@ -36,22 +35,28 @@ func main() {
 
 	playlistID = spotify.ID(os.Getenv("PLAYLIST_ID"))
 
-	fmt.Println("Getting tracks of the week...")
-	highlights := crawler.GetTracksOfTheWeek()
-	fmt.Println("size of highlights in total: ", len(highlights))
+	log.Println("Getting tracks of the week...")
+	highlights := crawler.GetRecordsOfTheWeek()
 
-	for _, record := range highlights {
-		fmt.Println(record.Name + ": " + strconv.Itoa(record.Score))
-	}
-
-	fmt.Println("sorting record collection")
+	// sort record collection
 	sort.Slice(highlights[:], func(i, j int) bool {
 		return highlights[i].Score > highlights[j].Score
 	})
 
-	for _, record := range highlights {
-		fmt.Println(record.Name + ": " + strconv.Itoa(record.Score))
+	// put record of the week on top
+	recordOfTheWeek := crawler.GetRecordOfTheWeek()
+	for i, record := range highlights {
+		if record.Name == recordOfTheWeek {
+			highlights = append(highlights[:i], highlights[i+1:]...)
+			highlights = append([]crawler.Record{record}, highlights...)
+			break
+		}
 	}
+	log.Println(len(highlights))
+
+	// for _, record := range highlights {
+	// 	log.Println(record.Name + ": " + strconv.Itoa(record.Score))
+	// }
 
 	// first start an HTTP server
 	http.HandleFunc("/callback", completeAuth)
@@ -61,7 +66,7 @@ func main() {
 	go http.ListenAndServe(":8080", nil)
 
 	url := auth.AuthURL(state)
-	fmt.Println("Please log in to Spotify by visiting the following page in your browser:", url)
+	log.Println("Please log in to Spotify by visiting the following page in your browser:", url)
 
 	// wait for auth to complete
 	client := <-ch
@@ -71,13 +76,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("You are logged in as:", user.ID)
-	fmt.Println("Empying playlist...")
+	log.Println("You are logged in as:", user.ID)
+	log.Println("Empying playlist...")
 	client.ReplacePlaylistTracks(playlistID)
 
-	fmt.Println("Adding highlights of the week to playlist....")
+	log.Println("Adding highlights of the week to playlist....")
 	for _, record := range highlights {
-		fmt.Println(record)
+		log.Println(record)
 		for _, track := range record.Tracks {
 			searchAndAddSong(client, track)
 		}
@@ -93,10 +98,10 @@ func searchAndAddSong(client *spotify.Client, searchTerm string) {
 	}
 	// handle track results
 	// if results.Tracks != nil {
-	// 	fmt.Println("Tracks:")
+	// 	log.Println("Tracks:")
 	// 	for _, item := range results.Tracks.Tracks {
-	// 		fmt.Println("   ", item.Name)
-	// 		fmt.Println("add item to playlist...")
+	// 		log.Println("   ", item.Name)
+	// 		log.Println("add item to playlist...")
 	// 		_, err := client.AddTracksToPlaylist(PlaylistID, item.ID)
 	// 		if err != nil {
 	// 			log.Fatalf("could not add track to playlist: %v", err)
@@ -106,10 +111,10 @@ func searchAndAddSong(client *spotify.Client, searchTerm string) {
 
 	// handle track results
 	if results.Tracks != nil && results.Tracks.Tracks != nil && len(results.Tracks.Tracks) > 0 {
-		fmt.Println("Track:")
+		log.Println("Track:")
 		item := results.Tracks.Tracks[0]
-		fmt.Println("   ", item.Name)
-		fmt.Println("add item to playlist...")
+		log.Println("   ", item.Name)
+		log.Println("add item to playlist...")
 		_, err := client.AddTracksToPlaylist(playlistID, item.ID)
 		if err != nil {
 			log.Fatalf("could not add track to playlist: %v", err)
