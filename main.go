@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/plattentests-go/crawler"
 	"github.com/zmb3/spotify"
@@ -21,16 +22,18 @@ import (
 // and enter this value.
 const redirectURI = "http://localhost:8080/callback"
 
-// PlaylistID is
-const PlaylistID = "2Gs8cKE9wSHo1t5iJEjTG1"
-
 var (
 	auth  = spotify.NewAuthenticator(redirectURI, spotify.ScopePlaylistModifyPrivate)
 	ch    = make(chan *spotify.Client)
 	state = "abc123"
 )
 
+var playlistID spotify.ID
+
 func main() {
+
+	playlistID = spotify.ID(os.Getenv("PLAYLIST_ID"))
+
 	// first start an HTTP server
 	http.HandleFunc("/callback", completeAuth)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -56,7 +59,7 @@ func main() {
 	fmt.Println("size of highlights in total: ", len(highlights))
 
 	fmt.Println("Empying playlist...")
-	client.ReplacePlaylistTracks(PlaylistID)
+	client.ReplacePlaylistTracks(playlistID)
 
 	fmt.Println("Adding highlights of the week to playlist....")
 	for _, track := range highlights {
@@ -91,7 +94,7 @@ func searchAndAddSong(client *spotify.Client, searchTerm string) {
 		item := results.Tracks.Tracks[0]
 		fmt.Println("   ", item.Name)
 		fmt.Println("add item to playlist...")
-		_, err := client.AddTracksToPlaylist(PlaylistID, item.ID)
+		_, err := client.AddTracksToPlaylist(playlistID, item.ID)
 		if err != nil {
 			log.Fatalf("could not add track to playlist: %v", err)
 		}
