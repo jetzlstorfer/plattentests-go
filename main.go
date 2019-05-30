@@ -8,6 +8,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -31,10 +32,20 @@ var (
 )
 
 var playlistID spotify.ID
+var plID = flag.String("playlistid", "", "The id of the playlist to be modified")
 
 func main() {
-
 	playlistID = spotify.ID(os.Getenv("PLAYLIST_ID"))
+
+	flag.Parse()
+
+	if *plID != "" {
+		playlistID = spotify.ID(*plID)
+	} else if playlistID == "" && *plID == "" {
+		fmt.Fprintf(os.Stderr, "Error: missing playlst ID. Either use CLI flag or env variabble PLAYLIST_ID\n")
+		flag.Usage()
+		return
+	}
 
 	if playlistID == "" || os.Getenv("SPOTIFY_ID") == "" || os.Getenv("SPOTIFY_SECRET") == "" {
 		log.Fatalln("PLAYLIST_ID, SPOTIFY_ID, or SPOTIFY_SECRET missing")
