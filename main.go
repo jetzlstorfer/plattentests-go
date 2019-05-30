@@ -15,7 +15,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/plattentests-go/crawler"
+	"github.com/jetzlstorfer/plattentests-go/crawler"
 	"github.com/zmb3/spotify"
 )
 
