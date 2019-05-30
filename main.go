@@ -12,6 +12,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
+	"strconv"
 
 	"github.com/plattentests-go/crawler"
 	"github.com/zmb3/spotify"
@@ -34,6 +36,23 @@ func main() {
 
 	playlistID = spotify.ID(os.Getenv("PLAYLIST_ID"))
 
+	fmt.Println("Getting tracks of the week...")
+	highlights := crawler.GetTracksOfTheWeek()
+	fmt.Println("size of highlights in total: ", len(highlights))
+
+	for _, record := range highlights {
+		fmt.Println(record.Name + ": " + strconv.Itoa(record.Score))
+	}
+
+	fmt.Println("sorting record collection")
+	sort.Slice(highlights[:], func(i, j int) bool {
+		return highlights[i].Score > highlights[j].Score
+	})
+
+	for _, record := range highlights {
+		fmt.Println(record.Name + ": " + strconv.Itoa(record.Score))
+	}
+
 	// first start an HTTP server
 	http.HandleFunc("/callback", completeAuth)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -53,18 +72,15 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Println("You are logged in as:", user.ID)
-
-	fmt.Println("Getting tracks of the week...")
-	highlights := crawler.GetTracksOfTheWeek()
-	fmt.Println("size of highlights in total: ", len(highlights))
-
 	fmt.Println("Empying playlist...")
 	client.ReplacePlaylistTracks(playlistID)
 
 	fmt.Println("Adding highlights of the week to playlist....")
-	for _, track := range highlights {
-		fmt.Println(track)
-		searchAndAddSong(client, track)
+	for _, record := range highlights {
+		fmt.Println(record)
+		for _, track := range record.Tracks {
+			searchAndAddSong(client, track)
+		}
 	}
 
 }
