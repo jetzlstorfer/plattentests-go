@@ -127,8 +127,8 @@ func searchAndAddSong(client *spotify.Client, searchTerm string) bool {
 	// handle track results
 	if results.Tracks != nil && results.Tracks.Tracks != nil && len(results.Tracks.Tracks) > 0 {
 		item := results.Tracks.Tracks[0]
-		log.Println(" ", item.Name)
-		log.Println("add item to playlist...")
+		log.Println("", item.Name)
+		//log.Println("add item to playlist...")
 		_, err := client.AddTracksToPlaylist(playlistID, item.ID)
 		if err != nil {
 			log.Fatalf("could not add track to playlist: %v", err)
