@@ -36,6 +36,10 @@ func main() {
 
 	playlistID = spotify.ID(os.Getenv("PLAYLIST_ID"))
 
+	if playlistID == "" || os.Getenv("SPOTIFY_ID") == "" || os.Getenv("SPOTIFY_SECRET") == "" {
+		log.Fatalln("PLAYLIST_ID, SPOTIFY_ID, or SPOTIFY_SECRET missing")
+	}
+
 	log.Println("Getting tracks of the week...")
 	highlights := crawler.GetRecordsOfTheWeek()
 
