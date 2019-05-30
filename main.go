@@ -42,7 +42,7 @@ func main() {
 	if *plID != "" {
 		playlistID = spotify.ID(*plID)
 	} else if playlistID == "" && *plID == "" {
-		fmt.Fprintf(os.Stderr, "Error: missing playlst ID. Either use CLI flag or env variabble PLAYLIST_ID\n")
+		fmt.Fprintf(os.Stderr, "Error: missing playlist ID. Either use CLI flag or env variabble PLAYLIST_ID\n")
 		flag.Usage()
 		return
 	}
@@ -127,28 +127,18 @@ func searchAndAddSong(client *spotify.Client, searchTerm string) bool {
 		log.Fatal(err)
 	}
 	// handle track results
-	// if results.Tracks != nil {
-	// 	log.Println("Tracks:")
-	// 	for _, item := range results.Tracks.Tracks {
-	// 		log.Println("   ", item.Name)
-	// 		log.Println("add item to playlist...")
-	// 		_, err := client.AddTracksToPlaylist(PlaylistID, item.ID)
-	// 		if err != nil {
-	// 			log.Fatalf("could not add track to playlist: %v", err)
-	// 		}
-	// 	}
-	// }
-
-	// handle track results
 	if results.Tracks != nil && results.Tracks.Tracks != nil && len(results.Tracks.Tracks) > 0 {
 		item := results.Tracks.Tracks[0]
 		log.Println("", item.Name)
 		//log.Println("add item to playlist...")
-		_, err := client.AddTracksToPlaylist(playlistID, item.ID)
-		if err != nil {
-			log.Fatalf("could not add track to playlist: %v", err)
+		if item.ID != "" {
+			_, err := client.AddTracksToPlaylist(playlistID, item.ID)
+			if err != nil {
+				log.Fatalf("could not add track %v to playlist: %v", item.Name, err)
+			}
+			return true
 		}
-		return true
+		return false
 	}
 	return false
 
@@ -173,6 +163,7 @@ func completeAuth(w http.ResponseWriter, r *http.Request) {
 func sanitizeTrackname(trackname string) string {
 	sanitizedName := trackname
 	sanitizedName = strings.Split(sanitizedName, "(feat. ")[0]
+	sanitizedName = strings.Split(sanitizedName, "(with ")[0]
 	sanitizedName = strings.Split(sanitizedName, "(Bonus)")[0]
 	return sanitizedName
 }

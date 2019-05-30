@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"golang.org/x/text/encoding/charmap"
 )
 
 const url = "https://www.plattentests.de/index.php"
@@ -44,6 +45,7 @@ func GetRecordsOfTheWeek() []Record {
 	doc.Find(".neuerezis li").Each(func(i int, s *goquery.Selection) {
 		// For each item found, get the band and title
 		recordTitle := s.Find("a").Text()
+		recordTitle, _ = charmap.ISO8859_1.NewDecoder().String(recordTitle)
 		link, _ := s.Find("a").Attr("href")
 		//log.Printf("Review %d: %s - %s\n", i, band, link)
 		log.Println(recordTitle)
@@ -79,6 +81,7 @@ func getHighlights(recordLink string) Record {
 	doc.Find("#rezihighlights li").Each(func(i int, s *goquery.Selection) {
 		// For each item found, get the band and title
 		track := s.Text()
+		track, _ = charmap.ISO8859_1.NewDecoder().String(track)
 		log.Printf(" Track %d: %s\n", i+1, bandname+" "+track)
 		tracks = append(tracks, bandname+" "+track)
 	})
