@@ -30,11 +30,19 @@ var (
 	ch    = make(chan *spotify.Client)
 	state = "myCrazyState"
 )
+var (
+	version string
+	date    string
+)
 
 var playlistID spotify.ID
 var plID = flag.String("playlistid", "", "The id of the playlist to be modified")
 
 func main() {
+	fmt.Println("Plattentests.de Highlights of the week playlist generator")
+	fmt.Printf("version=%s, date=%s\n", version, date)
+	fmt.Println()
+
 	playlistID = spotify.ID(os.Getenv("PLAYLIST_ID"))
 
 	flag.Parse()
