@@ -16,6 +16,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/pkg/browser"
+
 	"github.com/jetzlstorfer/plattentests-go/crawler"
 	"github.com/zmb3/spotify"
 )
@@ -91,6 +93,10 @@ func main() {
 
 	url := auth.AuthURL(state)
 	log.Println("Please log in to Spotify by visiting the following page in your browser:", url)
+	err := browser.OpenURL(url)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
 
 	// wait for auth to complete
 	client := <-ch
