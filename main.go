@@ -10,6 +10,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -41,9 +42,15 @@ var playlistID spotify.ID
 var plID = flag.String("playlistid", "", "The id of the playlist to be modified")
 
 func main() {
-	fmt.Println("Plattentests.de Highlights of the week playlist generator")
-	fmt.Printf("version=%s, date=%s\n", version, date)
-	fmt.Println()
+	logFile, err := os.OpenFile("log.txt", os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
+	if err != nil {
+		panic(err)
+	}
+	mw := io.MultiWriter(os.Stdout, logFile)
+	log.SetOutput(mw)
+	log.Println("Plattentests.de Highlights of the week playlist generator")
+	log.Printf("version=%s, date=%s\n", version, date)
+	log.Println()
 
 	playlistID = spotify.ID(os.Getenv("PLAYLIST_ID"))
 
@@ -58,7 +65,7 @@ func main() {
 	}
 
 	if playlistID == "" || os.Getenv("SPOTIFY_ID") == "" || os.Getenv("SPOTIFY_SECRET") == "" {
-		log.Fatalln("PLAYLIST_ID, SPOTIFY_ID, or SPOTIFY_SECRET missing")
+		log.Fatalln("PLAYLIST_ID, SPOTIFY_ID, or SPOTIFY_SECRET missing.")
 	}
 
 	log.Println("Getting tracks of the week...")
@@ -93,7 +100,7 @@ func main() {
 
 	url := auth.AuthURL(state)
 	log.Println("Please log in to Spotify by visiting the following page in your browser:", url)
-	err := browser.OpenURL(url)
+	err = browser.OpenURL(url)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
