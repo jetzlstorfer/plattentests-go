@@ -27,6 +27,7 @@ import (
 // You must register an application at Spotify's developer portal
 // and enter this value.
 const redirectURI = "http://localhost:8080/callback"
+const logFile = "log.txt"
 
 var (
 	auth  = spotify.NewAuthenticator(redirectURI, spotify.ScopePlaylistModifyPrivate)
@@ -42,7 +43,7 @@ var playlistID spotify.ID
 var plID = flag.String("playlistid", "", "The id of the playlist to be modified")
 
 func main() {
-	logFile, err := os.OpenFile("log.txt", os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
+	logFile, err := os.OpenFile(logFile, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
 	if err != nil {
 		panic(err)
 	}
