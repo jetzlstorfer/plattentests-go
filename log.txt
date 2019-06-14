@@ -1,0 +1,19 @@
+2019/06/14 16:50:18 Plattentests.de Highlights of the week playlist generator
+2019/06/14 16:50:18 version=, date=
+2019/06/14 16:50:18 
+2019/06/14 16:50:18 Getting tracks of the week...
+2019/06/14 16:50:19 Baroness - Gold & grey
+2019/06/14 16:50:19  Track 1: Baroness Front toward enemy
+2019/06/14 16:50:19  Track 2: Baroness Seasons
+2019/06/14 16:50:19  Track 3: Baroness Cold-blooded angels
+2019/06/14 16:50:19  Track 4: Baroness Borderlines
+2019/06/14 16:50:19 Bastille - Doom days
+2019/06/14 16:50:19  Track 1: Bastille 4AM
+2019/06/14 16:50:19 Denzel Curry - Zuu
+2019/06/14 16:50:20  Track 1: Denzel Curry Zuu
+2019/06/14 16:50:20  Track 2: Denzel Curry Ricky
+2019/06/14 16:50:20  Track 3: Denzel Curry Birdz (feat. Rick Ross)
+2019/06/14 16:50:20 Darkthrone - Old star
+2019/06/14 16:50:20  Track 1: Darkthrone The hardship of the Scots
+2019/06/14 16:50:20  Track 2: Darkthrone Duke of gloat
+2019/06/14 16:50:20 Hot Chip - A bath full of ecs...
