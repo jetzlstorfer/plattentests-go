@@ -26,7 +26,7 @@ import (
 // redirectURI is the OAuth redirect URI for the application.
 // You must register an application at Spotify's developer portal
 // and enter this value.
-const redirectURI = "http://localhost:8080/callback"
+const redirectURI = "http://localhost:8888/callback"
 const logFile = "log.txt"
 
 var (
@@ -97,7 +97,7 @@ func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.Println("Got request for:", r.URL.String())
 	})
-	go http.ListenAndServe(":8080", nil)
+	go http.ListenAndServe(":8888", nil)
 
 	url := auth.AuthURL(state)
 	log.Println("Please log in to Spotify by visiting the following page in your browser:", url)
@@ -114,8 +114,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("You are logged in as:", user.ID)
-	log.Println("Empying playlist...")
+	log.Println("You are logged in as: ", user.ID)
+	log.Println("Emptying playlist...")
 	client.ReplacePlaylistTracks(playlistID)
 
 	log.Println("Adding highlights of the week to playlist....")
