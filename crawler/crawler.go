@@ -74,6 +74,7 @@ func getHighlights(recordLink string) Record {
 	}
 
 	bandname := strings.Split(doc.Find("h1").Text(), " - ")[0]
+	bandname, _ = charmap.ISO8859_1.NewDecoder().String(bandname)
 	score, _ := strconv.Atoi(strings.Split(doc.Find("p.bewertung strong").First().Text(), "/")[0])
 
 	var tracks []string
