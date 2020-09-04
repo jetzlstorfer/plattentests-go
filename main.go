@@ -8,18 +8,24 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"log"
-	"net/http"
 	"os"
 	"sort"
 	"strings"
 
-	"github.com/pkg/browser"
+	"golang.org/x/oauth2"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/jetzlstorfer/plattentests-go/crawler"
+	"github.com/kelseyhightower/envconfig"
 	"github.com/zmb3/spotify"
 )
 
@@ -30,9 +36,12 @@ const redirectURI = "http://localhost:8888/callback"
 const logFile = "log.txt"
 
 var (
-	auth  = spotify.NewAuthenticator(redirectURI, spotify.ScopePlaylistModifyPrivate)
-	ch    = make(chan *spotify.Client)
-	state = "myCrazyState"
+	config struct {
+		TargetPlaylist string `envconfig:"PLAYLIST_ID" required:"true"`
+		Bucket         string `required:"true"`
+		TokenFile      string `envconfig:"TOKEN_FILE" required:"true"`
+		Region         string `required:"true"`
+	}
 )
 var (
 	version string
@@ -43,6 +52,11 @@ var playlistID spotify.ID
 var plID = flag.String("playlistid", "", "The id of the playlist to be modified")
 
 func main() {
+	err := envconfig.Process("", &config)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
 	logFile, err := os.OpenFile(logFile, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
 	if err != nil {
 		panic(err)
@@ -92,22 +106,61 @@ func main() {
 	// 	log.Println(record.Name + ": " + strconv.Itoa(record.Score))
 	// }
 
-	// first start an HTTP server
-	http.HandleFunc("/callback", completeAuth)
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Got request for:", r.URL.String())
-	})
-	go http.ListenAndServe(":8888", nil)
+	// local file option
+	// buff, err := ioutil.ReadFile("mytoken.txt")
+	// if err != nil {
+	// 	log.Fatalf("could not read token file: %v", err)
+	// }
+	log.Println()
+	log.Println("Connecting to AWS to download token")
+	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(config.Region)}))
+	s3dl := s3manager.NewDownloader(sess)
+	s3ul := s3manager.NewUploader(sess)
 
-	url := auth.AuthURL(state)
-	log.Println("Please log in to Spotify by visiting the following page in your browser:", url)
-	err = browser.OpenURL(url)
-	if err != nil {
-		log.Fatalln(err.Error())
+	// Download the token file from S3.
+	buff := &aws.WriteAtBuffer{}
+	if _, err = s3dl.Download(buff, &s3.GetObjectInput{
+		Bucket: aws.String(config.Bucket),
+		Key:    aws.String(config.TokenFile),
+	}); err != nil {
+		log.Fatalf("failed to download token file from S3: %v", err)
+	}
+	log.Println("Token downloaded from S3: ", config.TokenFile)
+
+	tok := new(oauth2.Token)
+	if err := json.Unmarshal(buff.Bytes(), tok); err != nil {
+		log.Fatalf("could not unmarshal token: %v", err)
 	}
 
-	// wait for auth to complete
-	client := <-ch
+	// Create a Spotify authenticator with the oauth2 token.
+	// If the token is expired, the oauth2 package will automatically refresh
+	// so the new token is checked against the old one to see if it should be updated.
+	client := spotify.NewAuthenticator("").NewClient(tok)
+
+	newToken, err := client.Token()
+	if err != nil {
+		log.Fatalf("could not retrieve token from client: %v", err)
+	}
+	if newToken.AccessToken != tok.AccessToken {
+		log.Println("got refreshed token, saving it")
+	}
+
+	btys, err := json.Marshal(newToken)
+	if err != nil {
+		log.Fatalf("could not marshal token: %v", err)
+	}
+
+	if _, err := s3ul.Upload(&s3manager.UploadInput{
+		Bucket: aws.String(config.Bucket),
+		Key:    aws.String(config.TokenFile),
+		Body:   bytes.NewReader(btys),
+	}); err != nil {
+		log.Fatalf("could not write token to s3: %v", err)
+	}
+
+	log.Println("---")
+	log.Println("Connecting to Spotify")
+	log.Println("---")
 
 	// use the client to make calls that require authorization
 	user, err := client.CurrentUser()
@@ -115,6 +168,7 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Println("You are logged in as: ", user.ID)
+
 	log.Println("Emptying playlist...")
 	client.ReplacePlaylistTracks(playlistID)
 
@@ -133,7 +187,7 @@ func main() {
 	}
 	log.Println()
 	log.Println("total tracks:     ", total)
-	//log.Println("found tracks:     ", foundTracks)
+	log.Println("found tracks:     ", total-len(notFound))
 	log.Println("not found tracks: ", len(notFound))
 	log.Println("Not found search terms: ")
 	for _, track := range notFound {
@@ -142,7 +196,7 @@ func main() {
 
 }
 
-func searchAndAddSong(client *spotify.Client, searchTerm string) bool {
+func searchAndAddSong(client spotify.Client, searchTerm string) bool {
 	//results, err := client.Search(searchTerm, spotify.SearchTypeTrack|spotify.SearchTypePlaylist|spotify.SearchTypeAlbum)
 	results, err := client.Search(searchTerm, spotify.SearchTypeTrack)
 	if err != nil {
@@ -164,22 +218,6 @@ func searchAndAddSong(client *spotify.Client, searchTerm string) bool {
 	}
 	return false
 
-}
-
-func completeAuth(w http.ResponseWriter, r *http.Request) {
-	tok, err := auth.Token(state, r)
-	if err != nil {
-		http.Error(w, "Couldn't get token", http.StatusForbidden)
-		log.Fatal(err)
-	}
-	if st := r.FormValue("state"); st != state {
-		http.NotFound(w, r)
-		log.Fatalf("State mismatch: %s != %s\n", st, state)
-	}
-	// use the token to get an authenticated client
-	client := auth.NewClient(tok)
-	fmt.Fprintf(w, "Login Completed!")
-	ch <- &client
 }
 
 func sanitizeTrackname(trackname string) string {
