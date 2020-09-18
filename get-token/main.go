@@ -38,6 +38,7 @@ func main() {
 	}
 
 	// will read credentials automatically from ENV variables
+	log.Println("Region: ", config.Region)
 	s3 = s3manager.NewUploader(session.Must(session.NewSession(&aws.Config{Region: aws.String(config.Region)})))
 
 	// start an HTTP server
