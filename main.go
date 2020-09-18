@@ -20,6 +20,7 @@ import (
 
 	"golang.org/x/oauth2"
 
+	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -41,6 +42,7 @@ var (
 		Bucket         string `required:"true"`
 		TokenFile      string `envconfig:"TOKEN_FILE" required:"true"`
 		Region         string `required:"true"`
+		LogFile        string `required:"false"`
 	}
 )
 var (
@@ -52,17 +54,23 @@ var playlistID spotify.ID
 var plID = flag.String("playlistid", "", "The id of the playlist to be modified")
 
 func main() {
+	lambda.Start(handler)
+}
+
+func handler() {
 	err := envconfig.Process("", &config)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
-	logFile, err := os.OpenFile(logFile, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
-	if err != nil {
-		panic(err)
+	if config.LogFile == "true" {
+		logFile, err := os.OpenFile(logFile, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
+		if err != nil {
+			panic(err)
+		}
+		mw := io.MultiWriter(os.Stdout, logFile)
+		log.SetOutput(mw)
 	}
-	mw := io.MultiWriter(os.Stdout, logFile)
-	log.SetOutput(mw)
 	log.Println("Plattentests.de Highlights of the week playlist generator")
 	log.Printf("version=%s, date=%s\n", version, date)
 	log.Println()
