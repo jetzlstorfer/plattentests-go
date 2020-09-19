@@ -15,6 +15,7 @@ const baseurl = "https://www.plattentests.de/"
 
 // Record holds all information for a record
 type Record struct {
+	Band   string
 	Name   string
 	Link   string
 	Score  int
@@ -75,10 +76,13 @@ func getHighlights(recordLink string) Record {
 
 	bandname := strings.Split(doc.Find("h1").Text(), " - ")[0]
 	bandname, _ = charmap.ISO8859_1.NewDecoder().String(bandname)
+	recordname := strings.Split(doc.Find("h1").Text(), " - ")[1]
+	recordname, _ = charmap.ISO8859_1.NewDecoder().String(recordname)
+
 	score, _ := strconv.Atoi(strings.Split(doc.Find("p.bewertung strong").First().Text(), "/")[0])
 
 	var tracks []string
-	record := Record{bandname, recordLink, score, tracks}
+	record := Record{bandname, recordname, recordLink, score, tracks}
 	doc.Find("#rezihighlights li").Each(func(i int, s *goquery.Selection) {
 		// For each item found, get the band and title
 		track := s.Text()
