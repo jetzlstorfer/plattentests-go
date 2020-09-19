@@ -9,6 +9,7 @@ token:
 	go run get-token/main.go
 
 update:
+	export `cat .env | xargs`
 	env GOOS=linux go build .
 	zip plattentests-go.zip ./plattentests-go
 	aws lambda update-function-code \
