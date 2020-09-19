@@ -54,7 +54,13 @@ var playlistID spotify.ID
 var plID = flag.String("playlistid", "", "The id of the playlist to be modified")
 
 func main() {
-	lambda.Start(handler)
+	if os.Getenv("LOCAL_EXECUTION") == "true" {
+		log.Println("executing locally")
+		handler()
+	} else {
+		log.Println("executing as lambda function")
+		lambda.Start(handler)
+	}
 }
 
 func handler() {
@@ -102,17 +108,13 @@ func handler() {
 	// put record of the week on top
 	recordOfTheWeek := crawler.GetRecordOfTheWeek()
 	for i, record := range highlights {
-		if record.Name == recordOfTheWeek {
+		if record.Band == recordOfTheWeek {
 			highlights = append(highlights[:i], highlights[i+1:]...)
 			highlights = append([]crawler.Record{record}, highlights...)
 			break
 		}
 	}
 	log.Println("Size of records of the week: ", len(highlights))
-
-	// for _, record := range highlights {
-	// 	log.Println(record.Name + ": " + strconv.Itoa(record.Score))
-	// }
 
 	// local file option
 	// buff, err := ioutil.ReadFile("mytoken.txt")
@@ -184,19 +186,26 @@ func handler() {
 	total := 0
 	var notFound []string
 	for _, record := range highlights {
-		log.Println(record.Name + ": " + record.Link)
+		log.Println(record.Band + record.Name + ": " + record.Link)
+		var itemsToAdd []spotify.ID
 		for _, track := range record.Tracks {
-			searchTerm := sanitizeTrackname(track)
-			if !searchAndAddSong(client, searchTerm) {
-				notFound = append(notFound, searchTerm+" /// "+track)
+
+			itemID := searchSong(client, track, record)
+			if itemID != "" {
+				log.Println("adding item to collection to be added: " + itemID)
+				itemsToAdd = append(itemsToAdd, itemID)
+			} else {
+				notFound = append(notFound, track)
 			}
 			total++
 		}
+		addTracks(client, itemsToAdd...)
 	}
 	log.Println()
 	log.Println("total tracks:     ", total)
 	log.Println("found tracks:     ", total-len(notFound))
 	log.Println("not found tracks: ", len(notFound))
+	log.Println()
 	log.Println("Not found search terms: ")
 	for _, track := range notFound {
 		log.Println(track)
@@ -204,27 +213,48 @@ func handler() {
 
 }
 
-func searchAndAddSong(client spotify.Client, searchTerm string) bool {
-	//results, err := client.Search(searchTerm, spotify.SearchTypeTrack|spotify.SearchTypePlaylist|spotify.SearchTypeAlbum)
+func searchSong(client spotify.Client, track string, record crawler.Record) spotify.ID {
+	searchTerm := sanitizeTrackname(track)
+	searchTerm = searchTerm + " " + record.Name
+	log.Printf(" searching term: %s", searchTerm)
 	results, err := client.Search(searchTerm, spotify.SearchTypeTrack)
 	if err != nil {
 		log.Fatal(err)
 	}
 	// handle track results
 	if results.Tracks != nil && results.Tracks.Tracks != nil && len(results.Tracks.Tracks) > 0 {
-		item := results.Tracks.Tracks[0]
-		log.Println("", item.Name)
-		//log.Println("add item to playlist...")
-		if item.ID != "" {
-			_, err := client.AddTracksToPlaylist(playlistID, item.ID)
-			if err != nil {
-				log.Fatalf("could not add track %v to playlist: %v", item.Name, err)
+		for i, item := range results.Tracks.Tracks {
+			log.Printf(" found item: %s - %s", item.Name, item.Album.Name)
+			if i >= 3 {
+				break
 			}
-			return true
 		}
+		item := results.Tracks.Tracks[0]
+		log.Printf(" using item: %s - %s", item.Name, item.Album.Name)
+		return item.ID
+
+	}
+
+	if record.Name == "" {
+		log.Printf(" nothing found for %s", searchTerm)
+		return ""
+	}
+	log.Println(" nothing found, removing recordname from search query")
+	return searchSong(client, track, crawler.Record{"", "", "", 0, nil})
+
+}
+
+func addTracks(client spotify.Client, trackids ...spotify.ID) bool {
+	if len(trackids) == 0 {
+		log.Println("no tracks to add")
 		return false
 	}
-	return false
+	_, err := client.AddTracksToPlaylist(playlistID, trackids...)
+	if err != nil {
+		log.Fatalf("could not add tracks to playlist: %s", err)
+		return false
+	}
+	return true
 
 }
 
