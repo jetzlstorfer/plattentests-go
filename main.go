@@ -20,6 +20,7 @@ import (
 
 	"golang.org/x/oauth2"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -39,6 +40,7 @@ const logFile = "log.txt"
 var (
 	config struct {
 		TargetPlaylist string `envconfig:"PLAYLIST_ID" required:"true"`
+		ProdPlaylist   string `envconfig:"PROD_PLAYLIST_ID"`
 		Bucket         string `required:"true"`
 		TokenFile      string `envconfig:"TOKEN_FILE" required:"true"`
 		Region         string `required:"true"`
@@ -52,18 +54,19 @@ var (
 
 var playlistID spotify.ID
 var plID = flag.String("playlistid", "", "The id of the playlist to be modified")
+var prod = flag.String("prod", "", "Set to true to create production playlist")
 
 func main() {
 	if os.Getenv("LOCAL_EXECUTION") == "true" {
 		log.Println("executing locally")
-		handler()
+		handler(events.APIGatewayProxyRequest{})
 	} else {
 		log.Println("executing as lambda function")
 		lambda.Start(handler)
 	}
 }
 
-func handler() {
+func handler(request events.APIGatewayProxyRequest) {
 	err := envconfig.Process("", &config)
 	if err != nil {
 		log.Fatal(err.Error())
@@ -77,13 +80,35 @@ func handler() {
 		mw := io.MultiWriter(os.Stdout, logFile)
 		log.SetOutput(mw)
 	}
-	log.Println("Plattentests.de Highlights of the week playlist generator")
-	log.Printf("version=%s, date=%s\n", version, date)
-	log.Println()
 
 	playlistID = spotify.ID(os.Getenv("PLAYLIST_ID"))
 
 	flag.Parse()
+
+	if request.Path == "prod" || *prod == "true" {
+		log.Println("Generating production playlist from testing playlist")
+		client, _ := verifyLogin()
+		log.Println("Getting tracks from testing playlist")
+		tracks, err := client.GetPlaylistTracks(playlistID)
+		if err != nil {
+			log.Println("Error fetching tracks from playlist")
+		}
+		log.Printf("Fetched %d tracks from testing playlist", len(tracks.Tracks))
+		var trackIDs []spotify.ID
+		for _, track := range tracks.Tracks {
+			trackIDs = append(trackIDs, track.Track.ID)
+		}
+		err = client.ReplacePlaylistTracks(spotify.ID(config.ProdPlaylist), trackIDs...)
+		if err != nil {
+			log.Printf("Could not populate production playlist: %s", err.Error())
+		}
+		log.Println("Copying from testing to production done.")
+		return
+	}
+
+	log.Println("Plattentests.de Highlights of the week playlist generator")
+	log.Printf("version=%s, date=%s\n", version, date)
+	log.Println()
 
 	if *plID != "" {
 		playlistID = spotify.ID(*plID)
@@ -121,7 +146,50 @@ func handler() {
 	// if err != nil {
 	// 	log.Fatalf("could not read token file: %v", err)
 	// }
+
+	log.Println("---")
+	log.Println("Connecting to Spotify")
+	log.Println("---")
+	client, _ := verifyLogin()
+
+	log.Println("Emptying playlist...")
+	client.ReplacePlaylistTracks(playlistID)
+
+	log.Println("Adding highlights of the week to playlist....")
+	total := 0
+	var newTracks []spotify.ID
+	var notFound []string
+	for _, record := range highlights {
+		log.Println(record.Band + record.Name + ": " + record.Link)
+		var itemsToAdd []spotify.ID
+		for _, track := range record.Tracks {
+
+			itemID := searchSong(client, track, record)
+			if itemID != "" {
+				log.Println("adding item to collection to be added: " + itemID)
+				itemsToAdd = append(itemsToAdd, itemID)
+				newTracks = append(newTracks, itemsToAdd...)
+			} else {
+				notFound = append(notFound, track)
+			}
+			total++
+		}
+		addTracks(client, itemsToAdd...)
+	}
 	log.Println()
+	log.Println("total tracks:     ", total)
+	log.Println("found tracks:     ", total-len(notFound))
+	log.Println("not found tracks: ", len(notFound))
+	log.Println()
+	log.Println("Not found search terms: ")
+
+	for _, track := range notFound {
+		log.Println(track)
+	}
+
+}
+
+func verifyLogin() (spotify.Client, error) {
 	log.Println("Connecting to AWS to download token")
 	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(config.Region)}))
 	s3dl := s3manager.NewDownloader(sess)
@@ -129,7 +197,7 @@ func handler() {
 
 	// Download the token file from S3.
 	buff := &aws.WriteAtBuffer{}
-	if _, err = s3dl.Download(buff, &s3.GetObjectInput{
+	if _, err := s3dl.Download(buff, &s3.GetObjectInput{
 		Bucket: aws.String(config.Bucket),
 		Key:    aws.String(config.TokenFile),
 	}); err != nil {
@@ -168,10 +236,6 @@ func handler() {
 		log.Fatalf("could not write token to s3: %v", err)
 	}
 
-	log.Println("---")
-	log.Println("Connecting to Spotify")
-	log.Println("---")
-
 	// use the client to make calls that require authorization
 	user, err := client.CurrentUser()
 	if err != nil {
@@ -179,38 +243,7 @@ func handler() {
 	}
 	log.Println("You are logged in as: ", user.ID)
 
-	log.Println("Emptying playlist...")
-	client.ReplacePlaylistTracks(playlistID)
-
-	log.Println("Adding highlights of the week to playlist....")
-	total := 0
-	var notFound []string
-	for _, record := range highlights {
-		log.Println(record.Band + record.Name + ": " + record.Link)
-		var itemsToAdd []spotify.ID
-		for _, track := range record.Tracks {
-
-			itemID := searchSong(client, track, record)
-			if itemID != "" {
-				log.Println("adding item to collection to be added: " + itemID)
-				itemsToAdd = append(itemsToAdd, itemID)
-			} else {
-				notFound = append(notFound, track)
-			}
-			total++
-		}
-		addTracks(client, itemsToAdd...)
-	}
-	log.Println()
-	log.Println("total tracks:     ", total)
-	log.Println("found tracks:     ", total-len(notFound))
-	log.Println("not found tracks: ", len(notFound))
-	log.Println()
-	log.Println("Not found search terms: ")
-	for _, track := range notFound {
-		log.Println(track)
-	}
-
+	return client, nil
 }
 
 func searchSong(client spotify.Client, track string, record crawler.Record) spotify.ID {

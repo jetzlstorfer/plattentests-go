@@ -1,5 +1,9 @@
 include .env
 
+run:
+	export `cat .env | xargs`
+	go run main.go
+
 token:
 	export `cat .env | xargs`
 	echo $$SPOTIFY_ID
