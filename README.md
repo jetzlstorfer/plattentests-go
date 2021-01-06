@@ -29,3 +29,5 @@ https://www.zachjohnsondev.com/posts/managing-spotify-library/
   make update
   ```
 
+## Configure Lambda function
+To set up the Lambda function to run on a predefined schedule, configure it in your AWS console.
