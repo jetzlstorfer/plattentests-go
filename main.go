@@ -85,6 +85,8 @@ func handler(request events.APIGatewayProxyRequest) {
 
 	flag.Parse()
 
+	// param, found := request.QueryStringParameters["prod"]
+
 	if request.Path == "prod" || *prod == "true" {
 		log.Println("Generating production playlist from testing playlist")
 		client, _ := verifyLogin()
@@ -98,6 +100,7 @@ func handler(request events.APIGatewayProxyRequest) {
 		for _, track := range tracks.Tracks {
 			trackIDs = append(trackIDs, track.Track.ID)
 		}
+		log.Printf("Copying tracks from testing to production playlist...")
 		err = client.ReplacePlaylistTracks(spotify.ID(config.ProdPlaylist), trackIDs...)
 		if err != nil {
 			log.Printf("Could not populate production playlist: %s", err.Error())

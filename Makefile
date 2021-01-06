@@ -1,4 +1,5 @@
 include .env
+export
 
 run:
 	export `cat .env | xargs`

@@ -1,3 +1,0 @@
-export SPOTIFY_ID=
-export SPOTIFY_SECRET=
-export PLAYLIST_ID=
