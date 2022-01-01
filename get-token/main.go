@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/pkg/browser"
-	"github.com/spotify"
+	"github.com/zmb3/spotify"
 )
 
 const redirectURI = "http://localhost:8888/callback"
