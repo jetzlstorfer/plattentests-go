@@ -15,6 +15,8 @@ import (
 const redirectURI = "http://localhost:8888/callback"
 const autologin = false
 
+//TODO maybe first test with local key storage and then move to AZ blog storage
+
 var (
 	auth  = spotify.NewAuthenticator(redirectURI, spotify.ScopePlaylistModifyPrivate)
 	ch    = make(chan *spotify.Client)

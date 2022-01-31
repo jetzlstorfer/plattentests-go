@@ -3,6 +3,7 @@ module plattentests-az
 go 1.13
 
 require (
+	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.2.0 // indirect
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/aws/aws-lambda-go v1.28.0
 	github.com/aws/aws-sdk-go v1.42.44
