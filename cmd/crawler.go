@@ -148,11 +148,8 @@ func get_port() string {
 
 func main() {
 	r := gin.Default()
-	//r.GET("/api/products", getProducts)
-	//r.GET("/api/products/:id", getProduct)
 	r.GET("/api/records/", printRecordsOfTheWeek)
 	r.GET("/api/records/:id", getRecord)
 	r.GET("/api/health/", getHealth)
-	//r.GET("/api/record", GetRecordOfTheWeek)
 	r.Run(get_port())
 }

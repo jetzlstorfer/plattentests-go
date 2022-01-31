@@ -13,7 +13,8 @@ This programm collects the current records of the week from http://plattentests.
 
 - Run locally with the [Azure functions core tools](https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local?tabs=v4%2Cwindows%2Ccsharp%2Cportal%2Cbash)
   ```
-  make run
+  go build .\cmd\crawler.go
+  func start
   ```
 
 - Create Lambda function

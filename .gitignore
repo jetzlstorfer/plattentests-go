@@ -25,4 +25,5 @@ bin/
 log.txt
 *token.txt
 .env
+crawler
 
