@@ -1,12 +1,14 @@
-package crawler
+package main
 
 import (
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/gin-gonic/gin"
 	"golang.org/x/text/encoding/charmap"
 )
 
@@ -56,6 +58,22 @@ func GetRecordsOfTheWeek() []Record {
 
 	return highlights
 
+}
+
+func printRecordsOfTheWeek(c *gin.Context) {
+	c.IndentedJSON(http.StatusOK, GetRecordsOfTheWeek())
+}
+
+func getRecord(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid record identifier")
+		return
+	}
+	recordUrl := "rezi.php?show="
+	recordLink := baseurl + recordUrl + strconv.Itoa(id)
+	c.IndentedJSON(http.StatusOK, getHighlights(recordLink))
 }
 
 func getHighlights(recordLink string) Record {
@@ -114,4 +132,27 @@ func GetRecordOfTheWeek() string {
 	}
 
 	return strings.Split(doc.Find("div.adw h3 a").Text(), " - ")[0]
+}
+
+func getHealth(c *gin.Context) {
+	c.IndentedJSON(http.StatusOK, "ok")
+}
+
+func get_port() string {
+	port := ":8080"
+	if val, ok := os.LookupEnv("FUNCTIONS_CUSTOMHANDLER_PORT"); ok {
+		port = ":" + val
+	}
+	return port
+}
+
+func main() {
+	r := gin.Default()
+	//r.GET("/api/products", getProducts)
+	//r.GET("/api/products/:id", getProduct)
+	r.GET("/api/records/", printRecordsOfTheWeek)
+	r.GET("/api/records/:id", getRecord)
+	r.GET("/api/health/", getHealth)
+	//r.GET("/api/record", GetRecordOfTheWeek)
+	r.Run(get_port())
 }

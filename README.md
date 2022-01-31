@@ -2,9 +2,7 @@
 
 :warning: readme has to be updated
 
-This programm collects the current records of the week from http://plattentests.de and updates a playlist with all highlights.
-
-🙏 Authentication is based on https://www.zachjohnsondev.com/posts/managing-spotify-library/ (kudos!)
+This programm collects the current records of the week from http://plattentests.de and updates a playlist with all highlights. Therefore we are going to use Azure functions. Please note the original version of this program was using AWS lambda (see branch)
 
 # Usage
 
@@ -13,7 +11,7 @@ This programm collects the current records of the week from http://plattentests.
   make token
   ```
 
-- Run locally
+- Run locally with the [Azure functions core tools](https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local?tabs=v4%2Cwindows%2Ccsharp%2Cportal%2Cbash)
   ```
   make run
   ```
