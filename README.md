@@ -6,9 +6,15 @@ This programm collects the current records of the week from http://plattentests.
 
 # Usage
 
-- Create the token first
+- Create the token first. Make sure you have the ENV variables set: `
   ```
-  make token
+  export TOKEN_FILE=
+  export SPOTIFY_ID=
+  export SPOTIFY_SECRET=
+  ```
+  Then run the file:
+  ```
+  go run cmd/token.go
   ```
 
 - Run locally with the [Azure functions core tools](https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local?tabs=v4%2Cwindows%2Ccsharp%2Cportal%2Cbash)
