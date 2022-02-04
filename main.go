@@ -11,7 +11,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -52,8 +51,6 @@ var (
 )
 
 var playlistID spotify.ID
-var plID = flag.String("playlistid", "", "The id of the playlist to be modified")
-var prod = flag.String("prod", "", "Set to true to create production playlist")
 
 func main() {
 
@@ -108,7 +105,7 @@ func handler() {
 	log.Println("---")
 	log.Println("Connecting to Spotify")
 	log.Println("---")
-	_, _ = verifyLogin()
+	//_, _ = verifyLogin()
 	client, _ := verifyLogin()
 
 	log.Println("Emptying playlist...")
@@ -206,6 +203,7 @@ func verifyLogin() (spotify.Client, error) {
 
 	buff, _ := DownloadBlogToBytes("")
 
+	fmt.Println("token downloaded from Azure")
 	tok := new(oauth2.Token)
 	if err := json.Unmarshal(buff, tok); err != nil {
 		log.Fatalf("could not unmarshal token: %v", err)
@@ -214,8 +212,10 @@ func verifyLogin() (spotify.Client, error) {
 	// Create a Spotify authenticator with the oauth2 token.
 	// If the token is expired, the oauth2 package will automatically refresh
 	// so the new token is checked against the old one to see if it should be updated.
+	fmt.Println("Creating Spotify Authenticator")
 	client := spotify.NewAuthenticator("").NewClient(tok)
 
+	fmt.Println("Creating new Client Token")
 	newToken, err := client.Token()
 	if err != nil {
 		log.Fatalf("could not retrieve token from client: %v", err)
@@ -228,6 +228,8 @@ func verifyLogin() (spotify.Client, error) {
 	if err != nil {
 		log.Fatalf("cound not upload token: %v", err)
 	}
+
+	fmt.Println("token uploaded.")
 
 	// use the client to make calls that require authorization
 	user, err := client.CurrentUser()
