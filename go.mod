@@ -1,12 +1,15 @@
 module plattentests-az
 
-go 1.13
+go 1.16
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.2.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/azidentity v0.13.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.2.0
+	github.com/Azure/azure-storage-blob-go v0.14.0 // indirect
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/aws/aws-lambda-go v1.28.0
 	github.com/aws/aws-sdk-go v1.42.44
+	github.com/digitalocean/godo v1.75.0 // indirect
 	github.com/gin-gonic/gin v1.7.7
 	github.com/go-playground/validator/v10 v10.10.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect

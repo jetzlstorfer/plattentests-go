@@ -9,25 +9,22 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"log"
+	"net/url"
 	"os"
 	"sort"
 	"strings"
 
 	"golang.org/x/oauth2"
 
-	"jetzlstorfer/plattentests-go/crawler"
+	"github.com/Azure/azure-storage-blob-go/azblob"
+	"github.com/jetzlstorfer/plattentests-go/crawler"
 
-	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/zmb3/spotify"
 )
@@ -40,12 +37,13 @@ const logFile = "log.txt"
 
 var (
 	config struct {
-		TargetPlaylist string `envconfig:"PLAYLIST_ID" required:"true"`
-		ProdPlaylist   string `envconfig:"PROD_PLAYLIST_ID"`
-		Bucket         string `required:"true"`
-		TokenFile      string `envconfig:"TOKEN_FILE" required:"true"`
-		Region         string `required:"true"`
-		LogFile        string `required:"false"`
+		TargetPlaylist  string `envconfig:"PLAYLIST_ID" required:"true"`
+		ProdPlaylist    string `envconfig:"PROD_PLAYLIST_ID"`
+		TokenFile       string `envconfig:"TOKEN_FILE" required:"true"`
+		AzAccountName   string `envconfig:"AZ_ACCOUNT" required:"true"`
+		AzAccountKey    string `envconfig:"AZ_KEY" required:"true"`
+		AzContainerName string `envconfig:"AZ_CONTAINER" required:"true"`
+		LogFile         string `required:"false"`
 	}
 )
 var (
@@ -58,16 +56,12 @@ var plID = flag.String("playlistid", "", "The id of the playlist to be modified"
 var prod = flag.String("prod", "", "Set to true to create production playlist")
 
 func main() {
-	if os.Getenv("LOCAL_EXECUTION") == "true" {
-		log.Println("executing locally")
-		handler(events.APIGatewayProxyRequest{})
-	} else {
-		log.Println("executing as lambda function")
-		lambda.Start(handler)
-	}
+
+	handler()
+
 }
 
-func handler(request events.APIGatewayProxyRequest) {
+func handler() {
 	err := envconfig.Process("", &config)
 	if err != nil {
 		log.Fatal(err.Error())
@@ -84,43 +78,9 @@ func handler(request events.APIGatewayProxyRequest) {
 
 	playlistID = spotify.ID(os.Getenv("PLAYLIST_ID"))
 
-	flag.Parse()
-
-	// param, found := request.QueryStringParameters["prod"]
-
-	if request.Path == "prod" || *prod == "true" {
-		log.Println("Generating production playlist from testing playlist")
-		client, _ := verifyLogin()
-		log.Println("Getting tracks from testing playlist")
-		tracks, err := client.GetPlaylistTracks(playlistID)
-		if err != nil {
-			log.Println("Error fetching tracks from playlist")
-		}
-		log.Printf("Fetched %d tracks from testing playlist", len(tracks.Tracks))
-		var trackIDs []spotify.ID
-		for _, track := range tracks.Tracks {
-			trackIDs = append(trackIDs, track.Track.ID)
-		}
-		log.Printf("Copying tracks from testing to production playlist...")
-		err = client.ReplacePlaylistTracks(spotify.ID(config.ProdPlaylist), trackIDs...)
-		if err != nil {
-			log.Printf("Could not populate production playlist: %s", err.Error())
-		}
-		log.Println("Copying from testing to production done.")
-		return
-	}
-
 	log.Println("Plattentests.de Highlights of the week playlist generator")
 	log.Printf("version=%s, date=%s\n", version, date)
 	log.Println()
-
-	if *plID != "" {
-		playlistID = spotify.ID(*plID)
-	} else if playlistID == "" && *plID == "" {
-		fmt.Fprintf(os.Stderr, "Error: missing playlist ID. Either use CLI flag or env variabble PLAYLIST_ID\n")
-		flag.Usage()
-		return
-	}
 
 	if playlistID == "" || os.Getenv("SPOTIFY_ID") == "" || os.Getenv("SPOTIFY_SECRET") == "" {
 		log.Fatalln("PLAYLIST_ID, SPOTIFY_ID, or SPOTIFY_SECRET missing.")
@@ -145,15 +105,10 @@ func handler(request events.APIGatewayProxyRequest) {
 	}
 	log.Println("Size of records of the week: ", len(highlights))
 
-	// local file option
-	// buff, err := ioutil.ReadFile("mytoken.txt")
-	// if err != nil {
-	// 	log.Fatalf("could not read token file: %v", err)
-	// }
-
 	log.Println("---")
 	log.Println("Connecting to Spotify")
 	log.Println("---")
+	_, _ = verifyLogin()
 	client, _ := verifyLogin()
 
 	log.Println("Emptying playlist...")
@@ -193,24 +148,66 @@ func handler(request events.APIGatewayProxyRequest) {
 
 }
 
-func verifyLogin() (spotify.Client, error) {
-	log.Println("Connecting to AWS to download token")
-	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(config.Region)}))
-	s3dl := s3manager.NewDownloader(sess)
-	s3ul := s3manager.NewUploader(sess)
+func GetAccountInfo() (string, string, string, string) {
+	azrKey := config.AzAccountKey
+	azrBlobAccountName := config.AzAccountName
+	azrPrimaryBlobServiceEndpoint := fmt.Sprintf("https://%s.blob.core.windows.net/", azrBlobAccountName)
+	azrBlobContainer := config.AzContainerName
 
-	// Download the token file from S3.
-	buff := &aws.WriteAtBuffer{}
-	if _, err := s3dl.Download(buff, &s3.GetObjectInput{
-		Bucket: aws.String(config.Bucket),
-		Key:    aws.String(config.TokenFile),
-	}); err != nil {
-		log.Fatalf("failed to download token file from S3: %v", err)
+	return azrKey, azrBlobAccountName, azrPrimaryBlobServiceEndpoint, azrBlobContainer
+}
+
+func UploadBytesToBlob(b []byte) (string, error) {
+	azrKey, accountName, endPoint, container := GetAccountInfo()
+	u, _ := url.Parse(fmt.Sprint(endPoint, container, "/", config.TokenFile))
+	credential, errC := azblob.NewSharedKeyCredential(accountName, azrKey)
+	if errC != nil {
+		return "", errC
 	}
-	log.Println("Token downloaded from S3: ", config.TokenFile)
+
+	blockBlobUrl := azblob.NewBlockBlobURL(*u, azblob.NewPipeline(credential, azblob.PipelineOptions{}))
+
+	ctx := context.Background()
+	o := azblob.UploadToBlockBlobOptions{
+		BlobHTTPHeaders: azblob.BlobHTTPHeaders{
+			ContentType: "application/json",
+		},
+	}
+
+	_, errU := azblob.UploadBufferToBlockBlob(ctx, b, blockBlobUrl, o)
+	return blockBlobUrl.String(), errU
+}
+
+func DownloadBlogToBytes(string) ([]byte, error) {
+	azrKey, accountName, endPoint, container := GetAccountInfo()
+	u, _ := url.Parse(fmt.Sprint(endPoint, container, "/", config.TokenFile))
+	credential, errC := azblob.NewSharedKeyCredential(accountName, azrKey)
+	if errC != nil {
+		return nil, errC
+	}
+
+	ctx := context.Background()
+	blockBlobUrl := azblob.NewBlockBlobURL(*u, azblob.NewPipeline(credential, azblob.PipelineOptions{}))
+	get, err := blockBlobUrl.Download(ctx, 0, 0, azblob.BlobAccessConditions{}, false, azblob.ClientProvidedKeyOptions{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	blobData := &bytes.Buffer{}
+	reader := get.Body(azblob.RetryReaderOptions{})
+	blobData.ReadFrom(reader)
+	reader.Close() // The client must close the response body when finished with it
+	fmt.Println(blobData)
+
+	return blobData.Bytes(), nil
+}
+
+func verifyLogin() (spotify.Client, error) {
+	log.Println("Connecting to Azure to download token")
+
+	buff, _ := DownloadBlogToBytes("")
 
 	tok := new(oauth2.Token)
-	if err := json.Unmarshal(buff.Bytes(), tok); err != nil {
+	if err := json.Unmarshal(buff, tok); err != nil {
 		log.Fatalf("could not unmarshal token: %v", err)
 	}
 
@@ -227,17 +224,9 @@ func verifyLogin() (spotify.Client, error) {
 		log.Println("got refreshed token, saving it")
 	}
 
-	btys, err := json.Marshal(newToken)
+	_, err = UploadBytesToBlob(buff)
 	if err != nil {
-		log.Fatalf("could not marshal token: %v", err)
-	}
-
-	if _, err := s3ul.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(config.Bucket),
-		Key:    aws.String(config.TokenFile),
-		Body:   bytes.NewReader(btys),
-	}); err != nil {
-		log.Fatalf("could not write token to s3: %v", err)
+		log.Fatalf("cound not upload token: %v", err)
 	}
 
 	// use the client to make calls that require authorization
