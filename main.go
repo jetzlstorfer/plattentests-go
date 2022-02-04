@@ -23,7 +23,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
-	"github.com/jetzlstorfer/plattentests-go/crawler@azure-function"
+	"github.com/jetzlstorfer/plattentests-go/crawler"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/zmb3/spotify"
