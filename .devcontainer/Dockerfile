@@ -11,11 +11,11 @@ RUN if [ "${NODE_VERSION}" != "none" ]; then su vscode -c "umask 0002 && . /usr/
 # [Optional] Uncomment this section to install additional OS packages.
 # RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 #     && apt-get -y install --no-install-recommends <your-package-list-here>
-RUN curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
-RUN sudo mv microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg
-RUN sudo sh -c 'echo "deb [arch=amd64] https://packages.microsoft.com/debian/$(lsb_release -rs | cut -d'.' -f 1)/prod $(lsb_release -cs) main" > /etc/apt/sources.list.d/dotnetdev.list'
-RUN sudo apt-get update 
-RUN sudo apt-get install azure-functions-core-tools-4
+RUN curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg \
+  && sudo mv microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg \
+  && sudo sh -c 'echo "deb [arch=amd64] https://packages.microsoft.com/debian/$(lsb_release -rs | cut -d'.' -f 1)/prod $(lsb_release -cs) main" > /etc/apt/sources.list.d/dotnetdev.list' \
+  && sudo apt-get update \
+  && sudo apt-get install azure-functions-core-tools-4
 
 
 # [Optional] Uncomment the next lines to use go get to install anything else you need
