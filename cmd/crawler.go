@@ -17,11 +17,12 @@ const baseurl = "https://www.plattentests.de/"
 
 // Record holds all information for a record
 type Record struct {
-	Band   string
-	Name   string
-	Link   string
-	Score  int
-	Tracks []string
+	Band           string
+	Recordname     string
+	PlattentestsID int
+	Link           string
+	Score          int
+	Tracks         []string
 }
 
 // GetRecordsOfTheWeek return array of names for highlights of the week
@@ -97,16 +98,19 @@ func getHighlights(recordLink string) Record {
 	recordname := strings.Split(doc.Find("h1").Text(), " - ")[1]
 	recordname, _ = charmap.ISO8859_1.NewDecoder().String(recordname)
 
+	r, _ := http.NewRequest("GET", recordLink, nil)
+	plattentestsid, _ := strconv.Atoi(r.URL.Query().Get("show"))
+
 	score, _ := strconv.Atoi(strings.Split(doc.Find("p.bewertung strong").First().Text(), "/")[0])
 
 	var tracks []string
-	record := Record{bandname, recordname, recordLink, score, tracks}
+	record := Record{bandname, recordname, plattentestsid, recordLink, score, tracks}
 	doc.Find("#rezihighlights li").Each(func(i int, s *goquery.Selection) {
 		// For each item found, get the band and title
 		track := s.Text()
 		track, _ = charmap.ISO8859_1.NewDecoder().String(track)
 		log.Printf(" Track %d: %s\n", i+1, bandname+" "+track)
-		tracks = append(tracks, bandname+" "+track)
+		tracks = append(tracks, track)
 	})
 	record.Tracks = tracks
 	//log.Println(len(record.Tracks), " highlights found for", record.Name)
