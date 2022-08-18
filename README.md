@@ -1,8 +1,8 @@
-# Plattentests.de - Highlights der Woche
+# Plattentests.de - Highlights der Woche (Highlights of the week)
 
 :warning: readme has to be updated
 
-This programm collects the current records of the week from http://plattentests.de and updates a playlist with all highlights. Therefore we are going to use Azure functions. Please note the original version of this program was using AWS lambda (see branch)
+This program collects the current records of the week from http://plattentests.de and updates a playlist with all highlights. Therefore we are going to use Azure functions. Please note the original version of this program was using AWS lambda (see branch)
 
 # Usage
 

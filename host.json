@@ -12,10 +12,10 @@
     "id": "Microsoft.Azure.Functions.ExtensionBundle",
     "version": "[2.*, 3.0.0)"
   },
-  "customHandler": {
+  "customHandler": { 
     "enableForwardingHttpRequest": true,
     "description": {
-      "defaultExecutablePath": "crawler.exe",
+      "defaultExecutablePath": "crawler",
       "workingDirectory": "",
       "arguments": []
     }
