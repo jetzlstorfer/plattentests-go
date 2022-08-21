@@ -17,11 +17,11 @@ const baseurl = "https://www.plattentests.de/"
 
 // Record holds all information for a record
 type Record struct {
-	Band   string
-	Name   string
-	Link   string
-	Score  int
-	Tracks []string
+	Band       string
+	Recordname string
+	Link       string
+	Score      int
+	Tracks     []string
 }
 
 // GetRecordsOfTheWeek return array of names for highlights of the week

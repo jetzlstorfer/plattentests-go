@@ -2,7 +2,7 @@
 // In order to run this example yourself, you'll need to:
 //
 //  1. Register an application at: https://developer.spotify.com/my-applications/
-//       - Use "http://localhost:8080/callback" as the redirect URI
+//     - Use "http://localhost:8080/callback" as the redirect URI
 //  2. Set the SPOTIFY_ID environment variable to the client ID you got in step 1.
 //  3. Set the SPOTIFY_SECRET environment variable to the client secret from step 1.
 package main
@@ -116,7 +116,7 @@ func handler() {
 	var newTracks []spotify.ID
 	var notFound []string
 	for _, record := range highlights {
-		log.Println(record.Band + record.Name + ": " + record.Link)
+		log.Println(record.Band + record.Recordname + ": " + record.Link)
 		var itemsToAdd []spotify.ID
 		for _, track := range record.Tracks {
 
@@ -226,7 +226,7 @@ func verifyLogin() (spotify.Client, error) {
 
 	_, err = UploadBytesToBlob(buff)
 	if err != nil {
-		log.Fatalf("cound not upload token: %v", err)
+		log.Fatalf("could not upload token: %v", err)
 	}
 
 	fmt.Println("token uploaded.")
@@ -243,7 +243,7 @@ func verifyLogin() (spotify.Client, error) {
 
 func searchSong(client spotify.Client, track string, record crawler.Record) spotify.ID {
 	searchTerm := sanitizeTrackname(track)
-	searchTerm = searchTerm + " " + record.Name
+	searchTerm = searchTerm + " " + record.Recordname
 	log.Printf(" searching term: %s", searchTerm)
 	results, err := client.Search(searchTerm, spotify.SearchTypeTrack)
 	if err != nil {
@@ -263,7 +263,7 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 
 	}
 
-	if record.Name == "" {
+	if record.Recordname == "" {
 		log.Printf(" nothing found for %s", searchTerm)
 		return ""
 	}
