@@ -1,8 +1,22 @@
-include .env
+#include .env
 
 run:
 	export `cat .env | xargs`
 	go run main.go
+
+build:
+	go build cmd/crawler.go
+
+run-local:
+	make build
+	func start
+
+deploy:
+	make build
+	func azure functionapp publish plattentests-go
+
+
+### OLD 
 
 token:
 	export `cat .env | xargs`
