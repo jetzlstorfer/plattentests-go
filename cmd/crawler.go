@@ -1,9 +1,10 @@
-package crawler
+package crawler // to be defined if "main" or "crawler"
 
 import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -17,11 +18,12 @@ const baseurl = "https://www.plattentests.de/"
 
 // Record holds all information for a record
 type Record struct {
-	Band       string
-	Recordname string
-	Link       string
-	Score      int
-	Tracks     []string
+	Band        string
+	Recordname  string
+	Link        string
+	Score       int
+	ReleaseYear string
+	Tracks      []string
 }
 
 // GetRecordsOfTheWeek return array of names for highlights of the week
@@ -96,11 +98,15 @@ func getHighlights(recordLink string) Record {
 	bandname, _ = charmap.ISO8859_1.NewDecoder().String(bandname)
 	recordname := strings.Split(doc.Find("h1").Text(), " - ")[1]
 	recordname, _ = charmap.ISO8859_1.NewDecoder().String(recordname)
+	// for the releaseYear, find the following pattern ": dd.mm.yyyy"
+	regex, _ := regexp.Compile(": [0-9]+.[0-9]+.[0-9]+")
+	match := regex.FindString(doc.Find("p").Text())
+	releaseYear := strings.Split(match, ".")[len(strings.Split(match, "."))-1]
 
 	score, _ := strconv.Atoi(strings.Split(doc.Find("p.bewertung strong").First().Text(), "/")[0])
 
 	var tracks []string
-	record := Record{bandname, recordname, recordLink, score, tracks}
+	record := Record{bandname, recordname, recordLink, score, releaseYear, tracks}
 	doc.Find("#rezihighlights li").Each(func(i int, s *goquery.Selection) {
 		// For each item found, get the band and title
 		track := s.Text()

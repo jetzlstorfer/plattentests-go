@@ -22,7 +22,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
-	"github.com/jetzlstorfer/plattentests-go/crawler"
+	crawler "github.com/jetzlstorfer/plattentests-go/cmd"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/zmb3/spotify"
@@ -31,7 +31,7 @@ import (
 // redirectURI is the OAuth redirect URI for the application.
 // You must register an application at Spotify's developer portal
 // and enter this value.
-const redirectURI = "http://localhost:8888/callback"
+// const redirectURI = "http://localhost:8888/callback"
 const logFile = "log.txt"
 
 var (
@@ -113,10 +113,10 @@ func handler() {
 
 	log.Println("Adding highlights of the week to playlist....")
 	total := 0
-	var newTracks []spotify.ID
+	// var newTracks []spotify.ID
 	var notFound []string
 	for _, record := range highlights {
-		log.Println(record.Band + record.Recordname + ": " + record.Link)
+		log.Println(record.Band + " - " + record.Recordname + ": " + record.Link)
 		var itemsToAdd []spotify.ID
 		for _, track := range record.Tracks {
 
@@ -124,7 +124,7 @@ func handler() {
 			if itemID != "" {
 				log.Println("adding item to collection to be added: " + itemID)
 				itemsToAdd = append(itemsToAdd, itemID)
-				newTracks = append(newTracks, itemsToAdd...)
+				// newTracks = append(newTracks, itemsToAdd...)
 			} else {
 				notFound = append(notFound, track)
 			}
@@ -193,7 +193,7 @@ func DownloadBlogToBytes(string) ([]byte, error) {
 	reader := get.Body(azblob.RetryReaderOptions{})
 	blobData.ReadFrom(reader)
 	reader.Close() // The client must close the response body when finished with it
-	fmt.Println(blobData)
+	// fmt.Println(blobData)
 
 	return blobData.Bytes(), nil
 }
@@ -203,7 +203,7 @@ func verifyLogin() (spotify.Client, error) {
 
 	buff, _ := DownloadBlogToBytes("")
 
-	fmt.Println("token downloaded from Azure")
+	log.Println("Ttoken downloaded from Azure")
 	tok := new(oauth2.Token)
 	if err := json.Unmarshal(buff, tok); err != nil {
 		log.Fatalf("could not unmarshal token: %v", err)
@@ -212,31 +212,31 @@ func verifyLogin() (spotify.Client, error) {
 	// Create a Spotify authenticator with the oauth2 token.
 	// If the token is expired, the oauth2 package will automatically refresh
 	// so the new token is checked against the old one to see if it should be updated.
-	fmt.Println("Creating Spotify Authenticator")
+	log.Println("Creating Spotify Authenticator")
 	client := spotify.NewAuthenticator("").NewClient(tok)
 
-	fmt.Println("Creating new Client Token")
+	log.Println("Creating new Client Token")
 	newToken, err := client.Token()
 	if err != nil {
-		log.Fatalf("could not retrieve token from client: %v", err)
+		log.Fatalf("Could not retrieve token from client: %v", err)
 	}
 	if newToken.AccessToken != tok.AccessToken {
-		log.Println("got refreshed token, saving it")
+		log.Println("Got refreshed token, saving it")
 	}
 
 	_, err = UploadBytesToBlob(buff)
 	if err != nil {
-		log.Fatalf("could not upload token: %v", err)
+		log.Fatalf("Could not upload token: %v", err)
 	}
 
-	fmt.Println("token uploaded.")
+	log.Println("Token uploaded.")
 
 	// use the client to make calls that require authorization
 	user, err := client.CurrentUser()
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("You are logged in as: ", user.ID)
+	log.Println("Logged in as: ", user.ID)
 
 	return client, nil
 }
@@ -244,6 +244,12 @@ func verifyLogin() (spotify.Client, error) {
 func searchSong(client spotify.Client, track string, record crawler.Record) spotify.ID {
 	searchTerm := sanitizeTrackname(track)
 	searchTerm = searchTerm + " " + record.Recordname
+
+	// if record has a year, append it to the search
+	if record.ReleaseYear != "" {
+		searchTerm += " year:" + record.ReleaseYear
+	}
+
 	log.Printf(" searching term: %s", searchTerm)
 	results, err := client.Search(searchTerm, spotify.SearchTypeTrack)
 	if err != nil {
@@ -252,14 +258,20 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 	// handle track results
 	if results.Tracks != nil && results.Tracks.Tracks != nil && len(results.Tracks.Tracks) > 0 {
 		for i, item := range results.Tracks.Tracks {
-			log.Printf(" found item: %s - %s", item.Name, item.Album.Name)
+			log.Printf(" found item: %s - %s  (%s)", item.Artists[0].Name, item.Name, item.Album.Name)
 			if i >= 3 {
 				break
 			}
 		}
 		item := results.Tracks.Tracks[0]
-		log.Printf(" using item: %s - %s", item.Name, item.Album.Name)
-		return item.ID
+
+		if strings.EqualFold(item.Artists[0].Name, record.Band) {
+			log.Printf(" using item: %s - %s (%s)", item.Artists[0].Name, item.Name, item.Album.Name)
+			return item.ID
+		} else {
+			log.Printf(" not adding item %s - %s (%s) since artists don't match (%s != %s)", item.Artists[0].Name, item.Name, item.Album.Name, record.Band, item.Artists[0].Name)
+			return ""
+		}
 
 	}
 
@@ -267,8 +279,11 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 		log.Printf(" nothing found for %s", searchTerm)
 		return ""
 	}
-	log.Println(" nothing found, removing recordname from search query")
-	return searchSong(client, track, crawler.Record{"", "", "", 0, nil})
+	log.Println(" nothing found, removing recordname and year from search query")
+	newRecord := record
+	newRecord.ReleaseYear = ""
+	newRecord.Recordname = ""
+	return searchSong(client, track, newRecord)
 
 }
 
