@@ -2,9 +2,11 @@
 
 :warning: readme has to be updated
 
-This programm collects the current records of the week from http://plattentests.de and updates a playlist with all highlights. Therefore we are going to use Azure functions. Please note the original version of this program was using AWS lambda (see branch)
+This program collects the current records of the week from http://plattentests.de and updates a playlist with all highlights. Therefore we are going to use Azure functions. Please note the original version of this program was using AWS lambda (see branch)
 
 # Usage
+
+## first token export currently not working. you need to have a valid token for it to run successfully.
 
 - Create the token first. Make sure you have the ENV variables set: `
   ```
@@ -16,6 +18,8 @@ This programm collects the current records of the week from http://plattentests.
   ```
   go run cmd/token.go
   ```
+
+## needs rework!
 
 - Run locally with the [Azure functions core tools](https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local?tabs=v4%2Cwindows%2Ccsharp%2Cportal%2Cbash)
   ```
