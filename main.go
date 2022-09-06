@@ -130,7 +130,11 @@ func handler() {
 			}
 			total++
 		}
-		addTracks(client, itemsToAdd...)
+		// remove duplicates
+		noDuplicateTracks := removeDuplicates(itemsToAdd)
+
+		// now add tracks to playlist
+		addTracks(client, noDuplicateTracks...)
 	}
 	log.Println()
 	log.Println("total tracks:     ", total)
@@ -241,6 +245,7 @@ func verifyLogin() (spotify.Client, error) {
 	return client, nil
 }
 
+// searches a song given by the track and record name and returns spotify.ID if successful
 func searchSong(client spotify.Client, track string, record crawler.Record) spotify.ID {
 	searchTerm := sanitizeTrackname(track)
 	searchTerm = searchTerm + " " + record.Recordname
@@ -255,7 +260,7 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 	if err != nil {
 		log.Fatal(err)
 	}
-	// handle track results
+	// handle track results only if tracks are available
 	if results.Tracks != nil && results.Tracks.Tracks != nil && len(results.Tracks.Tracks) > 0 {
 		for i, item := range results.Tracks.Tracks {
 			log.Printf(" found item: %s - %s  (%s)", item.Artists[0].Name, item.Name, item.Album.Name)
@@ -287,6 +292,7 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 
 }
 
+// adds tracks to global playlist ID
 func addTracks(client spotify.Client, trackids ...spotify.ID) bool {
 	if len(trackids) == 0 {
 		log.Println("no tracks to add")
@@ -301,10 +307,24 @@ func addTracks(client spotify.Client, trackids ...spotify.ID) bool {
 
 }
 
+// removes parts of string that should not be in search term
 func sanitizeTrackname(trackname string) string {
 	sanitizedName := trackname
 	sanitizedName = strings.Split(sanitizedName, "(feat. ")[0]
 	sanitizedName = strings.Split(sanitizedName, "(with ")[0]
 	sanitizedName = strings.Split(sanitizedName, "(Bonus)")[0]
 	return sanitizedName
+}
+
+// remove duplicates from array
+func removeDuplicates(sliceList []spotify.ID) []spotify.ID {
+	allKeys := make(map[spotify.ID]bool)
+	list := []spotify.ID{}
+	for _, item := range sliceList {
+		if _, value := allKeys[item]; !value {
+			allKeys[item] = true
+			list = append(list, item)
+		}
+	}
+	return list
 }
