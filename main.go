@@ -12,7 +12,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/url"
 	"os"
@@ -22,17 +21,21 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
+	"github.com/gin-gonic/gin"
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/zmb3/spotify"
+
+	"github.com/lithammer/fuzzysearch/fuzzy"
 )
 
 // redirectURI is the OAuth redirect URI for the application.
 // You must register an application at Spotify's developer portal
 // and enter this value.
 // const redirectURI = "http://localhost:8888/callback"
-const logFile = "log.txt"
+const MAX_SEARCH_RESULTS = 3
+const MAX_RECORDS_OF_THE_WEEK = 25
 
 var (
 	config struct {
@@ -42,7 +45,7 @@ var (
 		AzAccountName   string `envconfig:"AZ_ACCOUNT" required:"true"`
 		AzAccountKey    string `envconfig:"AZ_KEY" required:"true"`
 		AzContainerName string `envconfig:"AZ_CONTAINER" required:"true"`
-		LogFile         string `required:"false"`
+		LogFile         string `envConfig:"LOG_FILE" required:"false"`
 	}
 )
 var (
@@ -54,24 +57,29 @@ var playlistID spotify.ID
 
 func main() {
 
-	handler()
+	r := gin.Default()
+	r.GET("/api/createPlaylist/", handler)
+	r.GET("/api/records/", crawler.PrintRecordsOfTheWeek)
+	r.GET("/api/records/:id", crawler.GetRecord)
+	r.Run(get_port())
 
 }
 
-func handler() {
+func handler(c *gin.Context) {
 	err := envconfig.Process("", &config)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
-	if config.LogFile == "true" {
-		logFile, err := os.OpenFile(logFile, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
-		if err != nil {
-			panic(err)
-		}
-		mw := io.MultiWriter(os.Stdout, logFile)
-		log.SetOutput(mw)
-	}
+	// probably not used!?
+	// if config.LogFile == "true" {
+	// 	logFile, err := os.OpenFile(config.LogFile, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
+	// 	mw := io.MultiWriter(os.Stdout, logFile)
+	// 	log.SetOutput(mw)
+	// }
 
 	playlistID = spotify.ID(os.Getenv("PLAYLIST_ID"))
 
@@ -100,6 +108,12 @@ func handler() {
 			break
 		}
 	}
+	// only use the first records up to MAX_RECORDS_OF_THE_WEEK
+	// this is mainly for debugging purposes
+	if len(highlights) > MAX_RECORDS_OF_THE_WEEK {
+		highlights = highlights[0:MAX_RECORDS_OF_THE_WEEK]
+	}
+
 	log.Println("Size of records of the week: ", len(highlights))
 
 	log.Println("---")
@@ -111,7 +125,7 @@ func handler() {
 	log.Println("Emptying playlist...")
 	client.ReplacePlaylistTracks(playlistID)
 
-	log.Println("Adding highlights of the week to playlist....")
+	log.Println("Adding highlights of the week to playlist...")
 	total := 0
 	// var newTracks []spotify.ID
 	var notFound []string
@@ -137,6 +151,8 @@ func handler() {
 		addTracks(client, noDuplicateTracks...)
 	}
 	log.Println()
+	log.Println("--- RESULTS ---")
+	log.Println()
 	log.Println("total tracks:     ", total)
 	log.Println("found tracks:     ", total-len(notFound))
 	log.Println("not found tracks: ", len(notFound))
@@ -144,7 +160,7 @@ func handler() {
 	log.Println("Not found search terms: ")
 
 	for _, track := range notFound {
-		log.Println(track)
+		log.Println(" " + track)
 	}
 
 }
@@ -207,7 +223,7 @@ func verifyLogin() (spotify.Client, error) {
 
 	buff, _ := DownloadBlogToBytes("")
 
-	log.Println("Ttoken downloaded from Azure")
+	log.Println("Token downloaded from Azure")
 	tok := new(oauth2.Token)
 	if err := json.Unmarshal(buff, tok); err != nil {
 		log.Fatalf("could not unmarshal token: %v", err)
@@ -262,13 +278,20 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 	}
 	// handle track results only if tracks are available
 	if results.Tracks != nil && results.Tracks.Tracks != nil && len(results.Tracks.Tracks) > 0 {
+		allTrackNames := []string{}
 		for i, item := range results.Tracks.Tracks {
 			log.Printf(" found item: %s - %s  (%s)", item.Artists[0].Name, item.Name, item.Album.Name)
-			if i >= 3 {
+			allTrackNames = append(allTrackNames, item.Name)
+			// only get MAX_SEARCH_RESULTS results
+			if i >= MAX_SEARCH_RESULTS-1 {
 				break
 			}
 		}
 		item := results.Tracks.Tracks[0]
+
+		// do some fuzzy search
+		ranking := fuzzy.RankFind(searchTerm, allTrackNames)
+		log.Printf("%d %d %+v", len(allTrackNames), len(ranking), ranking)
 
 		if strings.EqualFold(item.Artists[0].Name, record.Band) {
 			log.Printf(" using item: %s - %s (%s)", item.Artists[0].Name, item.Name, item.Album.Name)
@@ -327,4 +350,12 @@ func removeDuplicates(sliceList []spotify.ID) []spotify.ID {
 		}
 	}
 	return list
+}
+
+func get_port() string {
+	port := ":8080"
+	if val, ok := os.LookupEnv("FUNCTIONS_CUSTOMHANDLER_PORT"); ok {
+		port = ":" + val
+	}
+	return port
 }

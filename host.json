@@ -15,7 +15,7 @@
   "customHandler": {
     "enableForwardingHttpRequest": true,
     "description": {
-      "defaultExecutablePath": "crawler",
+      "defaultExecutablePath": "plattentests-go",
       "workingDirectory": "",
       "arguments": []
     }

@@ -24,6 +24,5 @@ creds.sh
 bin/
 log.txt
 *token.txt
-.env
-crawler
-
+.env*
+plattentests-go
