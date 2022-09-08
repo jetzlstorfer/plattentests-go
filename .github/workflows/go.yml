@@ -27,6 +27,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
+    steps:
     - name: Azure Functions Action
       uses: Azure/functions-action@v1.4.7
       with:
