@@ -2,20 +2,32 @@
 
 :warning: readme has to be updated
 
-This programm collects the current records of the week from http://plattentests.de and updates a playlist with all highlights.
+:warning: Please note that this project currently serves as a playground and thus, serves multiple purposes, not only the original purpose of providing a spotify playlist. it is currently also used as playground for codespaces, co-pilot and other features of github.
+therefore, a lot of commit messages might not be useful at the moment :)
 
-🙏 Authentication is based on https://www.zachjohnsondev.com/posts/managing-spotify-library/ (kudos!)
+This program collects the current records of the week from http://plattentests.de and updates a playlist with all highlights. Therefore we are going to use Azure functions. Please note the original version of this program was using AWS lambda (see branch)
 
 # Usage
 
-- Create the token first
+## first token export currently not working. you need to have a valid token for it to run successfully.
+
+- Create the token first. Make sure you have the ENV variables set: `
   ```
-  make token
+  export TOKEN_FILE=
+  export SPOTIFY_ID=
+  export SPOTIFY_SECRET=
+  ```
+  Then run the file:
+  ```
+  go run cmd/token.go
   ```
 
-- Run locally
+## needs rework!
+
+- Run locally with the [Azure functions core tools](https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local?tabs=v4%2Cwindows%2Ccsharp%2Cportal%2Cbash)
   ```
-  make run
+  go build .\cmd\crawler.go
+  func start
   ```
 
 - Create Lambda function

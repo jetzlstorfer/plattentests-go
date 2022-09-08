@@ -11,8 +11,18 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
+
+/tools/NuGet.exe
+/App_Data
+/secrets
+/data
+.secrets
+appsettings.json
+local.settings.json
+
 creds.sh
 bin/
 log.txt
 *token.txt
-.env
+.env*
+plattentests-go
