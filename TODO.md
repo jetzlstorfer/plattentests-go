@@ -5,7 +5,7 @@ Project Description
 ### Column Name
 - [ ] github actions
   - [x] deployment
-  - [ ] only deploy when merged to main
+  - [x] only deploy when merged to main
   - [ ] deploy to staging 
 - [ ] search and insert algorithm
   - [ ] improve special character treatment
