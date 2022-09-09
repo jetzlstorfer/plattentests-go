@@ -26,6 +26,7 @@ jobs:
 
 
   deploy:
+    needs: build
     runs-on: ubuntu-latest
     steps:
     - name: Azure Functions Action
