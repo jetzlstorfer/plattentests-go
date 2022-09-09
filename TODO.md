@@ -4,7 +4,8 @@ Project Description
 
 ### Column Name
 - [ ] github actions
-  - [ ] deployment
+  - [x] deployment
+  - [ ] only deploy when merged to main
 - [ ] search and insert algorithm
   - [ ] improve special character treatment
   - [x] remove duplicates from results
