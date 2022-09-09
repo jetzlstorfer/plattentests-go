@@ -24,11 +24,21 @@ jobs:
     - name: Test
       run: go test -v ./...
 
+    - name: Upload
+      uses: actions/upload-artifact@v2
+      with:
+        name: plattentests-go
+        path: ./plattentests-go
+
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
     steps:
+    - name: Download
+      uses: actions/download-artifact@v2
+      with:
+        name: plattentests-go
     - uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
