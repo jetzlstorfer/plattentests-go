@@ -11,6 +11,7 @@ Project Description
   - [x] remove duplicates from results
   - [ ] check if album title == song title why it is not added
 - [ ] moving todo list to github issues
+- [x] rename master branch to main branch
 
 ### Completed Column ✓
 - [x] Completed task title  
