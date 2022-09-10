@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"sort"
@@ -70,16 +71,6 @@ func handler(c *gin.Context) {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-
-	// probably not used!?
-	// if config.LogFile == "true" {
-	// 	logFile, err := os.OpenFile(config.LogFile, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	mw := io.MultiWriter(os.Stdout, logFile)
-	// 	log.SetOutput(mw)
-	// }
 
 	playlistID = spotify.ID(os.Getenv("PLAYLIST_ID"))
 
@@ -163,6 +154,12 @@ func handler(c *gin.Context) {
 		log.Println(" " + track)
 	}
 
+	outputJson := make(map[string]interface{})
+	outputJson["highlights"] = highlights
+
+	outputJson["notFound"] = notFound
+
+	c.IndentedJSON(http.StatusOK, outputJson)
 }
 
 func GetAccountInfo() (string, string, string, string) {

@@ -14,6 +14,7 @@ Project Description
 - [ ] moving todo list to github issues
 - [x] rename master branch to main branch
 - [ ] provide log output as json 
+- [ ] add simple UI 
 
 ### Completed Column ✓
 - [x] Completed task title  

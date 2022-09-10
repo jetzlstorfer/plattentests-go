@@ -1,8 +1,14 @@
 include .env
+export 
 
 run:
 	export `cat .env | xargs`
 	go run main.go
+
+run-function:
+	export `cat .env | xargs`
+	env GOOS=linux go build .
+	func start
 
 upload:
 	export `cat .env | xargs`
