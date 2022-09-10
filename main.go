@@ -60,6 +60,7 @@ func main() {
 
 	r := gin.Default()
 	r.GET("/api/createPlaylist/", handler)
+	r.GET("/api/createPlaylist/:id", handler)
 	r.GET("/api/records/", crawler.PrintRecordsOfTheWeek)
 	r.GET("/api/records/:id", crawler.GetRecord)
 	r.Run(get_port())
@@ -72,7 +73,12 @@ func handler(c *gin.Context) {
 		log.Fatal(err.Error())
 	}
 
-	playlistID = spotify.ID(os.Getenv("PLAYLIST_ID"))
+	if c.Param("id") == "" {
+		playlistID = spotify.ID(os.Getenv("PLAYLIST_ID"))
+
+	} else {
+		playlistID = spotify.ID(c.Param("id"))
+	}
 
 	log.Println("Plattentests.de Highlights of the week playlist generator")
 	log.Printf("version=%s, date=%s\n", version, date)
@@ -154,9 +160,9 @@ func handler(c *gin.Context) {
 		log.Println(" " + track)
 	}
 
+	// out some json with all records that should have been added and the once that have not been added
 	outputJson := make(map[string]interface{})
 	outputJson["highlights"] = highlights
-
 	outputJson["notFound"] = notFound
 
 	c.IndentedJSON(http.StatusOK, outputJson)
