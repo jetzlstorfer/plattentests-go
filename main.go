@@ -49,10 +49,6 @@ var (
 		LogFile         string `envConfig:"LOG_FILE" required:"false"`
 	}
 )
-var (
-	version string
-	date    string
-)
 
 var playlistID spotify.ID
 
@@ -81,7 +77,6 @@ func handler(c *gin.Context) {
 	}
 
 	log.Println("Plattentests.de Highlights of the week playlist generator")
-	log.Printf("version=%s, date=%s\n", version, date)
 	log.Println()
 
 	if playlistID == "" || os.Getenv("SPOTIFY_ID") == "" || os.Getenv("SPOTIFY_SECRET") == "" {
