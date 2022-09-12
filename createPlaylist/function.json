@@ -5,10 +5,7 @@
       "type": "timerTrigger",
       "schedule": "0 */5 * * * *",
       "direction": "in",
-      "name": "req",
-      "methods": [
-        "get"
-      ]
+      "name": "timer"
     },
     {
       "type": "http",
