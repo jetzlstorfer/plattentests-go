@@ -59,6 +59,7 @@ func main() {
 	r.GET("/api/createPlaylist/:id", handler)
 	r.GET("/api/records/", crawler.PrintRecordsOfTheWeek)
 	r.GET("/api/records/:id", crawler.GetRecord)
+	r.GET("/playlistTimerTrigger", handler)
 	r.Run(get_port())
 
 }
