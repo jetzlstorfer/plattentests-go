@@ -33,3 +33,8 @@ https://www.eventslooped.com/posts/use-golang-to-upload-files-to-azure-blob-stor
 how to access spotify api
 
 
+## CONFIGURE ZSH
+
+git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+
+and then add the plugin to the ~/.zshrc file (can this be done automated)
