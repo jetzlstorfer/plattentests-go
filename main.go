@@ -111,8 +111,9 @@ func handler(c *gin.Context) {
 	log.Println("---")
 	log.Println("Connecting to Spotify")
 	log.Println("---")
-	//_, _ = verifyLogin()
-	client, _ := verifyLogin()
+
+	// login to spotify, all error messages are dealt within the function
+	client := verifyLogin()
 
 	log.Println("Emptying playlist...")
 	client.ReplacePlaylistTracks(playlistID)
@@ -216,10 +217,13 @@ func DownloadBlogToBytes(string) ([]byte, error) {
 	return blobData.Bytes(), nil
 }
 
-func verifyLogin() (spotify.Client, error) {
+func verifyLogin() spotify.Client {
 	log.Println("Connecting to Azure to download token")
 
-	buff, _ := DownloadBlogToBytes("")
+	buff, err := DownloadBlogToBytes("")
+	if err != nil {
+		log.Fatalf("Could not download token from Azure: %v", err)
+	}
 
 	log.Println("Token downloaded from Azure")
 	tok := new(oauth2.Token)
@@ -252,11 +256,11 @@ func verifyLogin() (spotify.Client, error) {
 	// use the client to make calls that require authorization
 	user, err := client.CurrentUser()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Could not identify as user: %v", err)
 	}
-	log.Println("Logged in as: ", user.ID)
+	log.Printf("Logged in as: %v", user.ID)
 
-	return client, nil
+	return client
 }
 
 // searches a song given by the track and record name and returns spotify.ID if successful
@@ -287,7 +291,7 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 		}
 		item := results.Tracks.Tracks[0]
 
-		// do some fuzzy search
+		// TODO: do some fuzzy search
 		ranking := fuzzy.RankFind(searchTerm, allTrackNames)
 		log.Printf("%d %d %+v", len(allTrackNames), len(ranking), ranking)
 
