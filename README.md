@@ -1,6 +1,6 @@
 # Plattentests.de - Highlights der Woche
 
-:warning: readme has to be updated
+:warning: readme has to be updated!
 
 :warning: Please note that this project currently serves as a playground and thus, serves multiple purposes, not only the original purpose of providing a spotify playlist. it is currently also used as playground for codespaces, co-pilot and other features of github.
 therefore, a lot of commit messages might not be useful at the moment :)
