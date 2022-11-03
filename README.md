@@ -1,49 +1,35 @@
 # Plattentests.de - Highlights der Woche
 
-:warning: readme has to be updated!!
 
-:warning: Please note that this project currently serves as a playground and thus, serves multiple purposes, not only the original purpose of providing a spotify playlist. it is currently also used as playground for codespaces, co-pilot and other features of github.
-therefore, a lot of commit messages might not be useful at the moment :)
 
-This program collects the current records of the week from http://plattentests.de and updates a playlist with all highlights. Therefore we are going to use Azure functions. Please note the original version of this program was using AWS lambda (see branch)
+👨‍💻👩‍💻 **Please note that this project currently serves multiple purposes** 👨‍💻👩‍💻
+1. The original purpose of generating a [Spotify playlist](https://open.spotify.com/playlist/2Bc5TRdMTj6OHwt32x5T6Y?si=c7cf976d4d124bef) that lists all "highlights" of the week of my personal favourite music website [Plattentests.de](https://plattentests.de).
+1. The purpose of getting to know more about serverless and Azure functions
+1. A playground for features like
+    - Codespaces & devcontainers,
+   - GitHub actions,
+   - GitHub co-pilot and other features of GitHub.
+
+Therefore, some commit messages might not be useful at the moment :)
+
 
 # Usage
 
-## first token export currently not working. you need to have a valid token for it to run successfully.
-
-- Create the token first. Make sure you have the ENV variables set: `
-  ```
-  export TOKEN_FILE=
-  export SPOTIFY_ID=
-  export SPOTIFY_SECRET=
-  ```
-  Then run the file:
-  ```
-  go run cmd/token.go
-  ```
-
-## needs rework!
-
-- Run locally with the [Azure functions core tools](https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local?tabs=v4%2Cwindows%2Ccsharp%2Cportal%2Cbash)
-  ```
-  go build .\cmd\crawler.go
-  func start
-  ```
-
-- Create Lambda function
-  ```
-  make upload
-  ```
-
-- Update Lambda function if source code has changed
-  ```
-  make update
-  ```
-
-## Run it locally on a Windows machine
-
-To run it on Windows, I have the [Git bash](https://gitforwindows.org/) installed and run it from there. 
+## ⚠️ First token export currently not working. You need to have a valid token to run the program successfully. There is already an issue for it :)
 
 
-## Configure Lambda function
-To set up the Lambda function to run on a predefined schedule, configure it in your AWS console.
+💡 For your own convenience, make use of Codespaces or run it locally as devcontainer.
+
+There is a `Makefile` with multiple targets to be used. Make sure you have the proper `ENV` variables set in a `.env` file.
+
+- To run the project locally as Go binary:
+    ```
+    make run
+    ```
+
+- To run the project locally as a function:
+    ```
+    make run-function
+    ```
+
+In either case you'll be prompted to open a URL to trigger the playlist creation.
