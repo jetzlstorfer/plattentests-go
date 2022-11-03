@@ -77,6 +77,7 @@ func GetRecord(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, getHighlights(recordLink))
 }
 
+// getting highlights of a particular record by recordLink
 func getHighlights(recordLink string) Record {
 	res, err := http.Get(recordLink)
 	if err != nil {
@@ -109,9 +110,16 @@ func getHighlights(recordLink string) Record {
 	doc.Find("#rezihighlights li").Each(func(i int, s *goquery.Selection) {
 		// For each item found, get the band and title
 		track := s.Text()
-		track, _ = charmap.ISO8859_1.NewDecoder().String(track)
-		log.Printf(" Track %d: %s\n", i+1, bandname+" "+track)
-		tracks = append(tracks, bandname+" "+track)
+		// only proceed if there are highlights available
+		if strings.Trim(track, " ") != "-" {
+			// decoce into utf-8
+			track, err = charmap.ISO8859_1.NewDecoder().String(track)
+			if err != nil {
+				log.Printf("Could not convert trackname to UTF8: %v", err)
+			}
+			log.Printf(" Track %d: %s\n", i+1, bandname+" "+track)
+			tracks = append(tracks, bandname+" "+track)
+		}
 	})
 	record.Tracks = tracks
 	//log.Println(len(record.Tracks), " highlights found for", record.Name)
