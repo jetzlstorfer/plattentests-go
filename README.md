@@ -5,6 +5,7 @@
 [![Dependency Review](https://github.com/jetzlstorfer/plattentests-go/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/jetzlstorfer/plattentests-go/actions/workflows/dependency-review.yml)
 
 👨‍💻👩‍💻 **Please note that this project currently serves multiple purposes** 👨‍💻👩‍💻
+
 1. The original purpose of generating a [Spotify playlist](https://open.spotify.com/playlist/2Bc5TRdMTj6OHwt32x5T6Y?si=c7cf976d4d124bef) that lists all "highlights" of the week of my personal favourite music website [Plattentests.de](https://plattentests.de).
 1. The purpose of getting to know more about serverless and Azure functions
 1. A playground for features like
