@@ -18,15 +18,17 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"testing"
 
 	"golang.org/x/oauth2"
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
 	"github.com/gin-gonic/gin"
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd"
+	"github.com/zmb3/spotify/v2"
+	spotifyauth "github.com/zmb3/spotify/v2/auth"
 
 	"github.com/kelseyhightower/envconfig"
-	"github.com/zmb3/spotify"
 
 	"github.com/lithammer/fuzzysearch/fuzzy"
 )
@@ -53,6 +55,9 @@ var (
 var playlistID spotify.ID
 
 func main() {
+
+	// log a welcome message in bold letters
+	log.Println("\033[1mPlattentests.de Highlights of the week playlist generator\033[0m")
 
 	r := gin.Default()
 	r.GET("/api/createPlaylist/", handler)
@@ -114,9 +119,10 @@ func handler(c *gin.Context) {
 
 	// login to spotify, all error messages are dealt within the function
 	client := verifyLogin()
+	ctx := context.Background()
 
 	log.Println("Emptying playlist...")
-	client.ReplacePlaylistTracks(playlistID)
+	client.ReplacePlaylistTracks(ctx, playlistID)
 
 	log.Println("Adding highlights of the week to playlist...")
 	total := 0
@@ -235,7 +241,7 @@ func verifyLogin() spotify.Client {
 	// If the token is expired, the oauth2 package will automatically refresh
 	// so the new token is checked against the old one to see if it should be updated.
 	log.Println("Creating Spotify Authenticator")
-	client := spotify.NewAuthenticator("").NewClient(tok)
+	client := spotifyauth.New()
 
 	log.Println("Creating new Client Token")
 	newToken, err := client.Token()
@@ -352,6 +358,15 @@ func removeDuplicates(sliceList []spotify.ID) []spotify.ID {
 		}
 	}
 	return list
+}
+
+// test the function removeDeuplicates
+func TestRemoveDuplicates(t *testing.T) {
+	list := []spotify.ID{"1", "2", "3", "1", "2", "3"}
+	list = removeDuplicates(list)
+	if len(list) != 3 {
+		t.Errorf("removeDuplicates failed")
+	}
 }
 
 func get_port() string {
