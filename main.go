@@ -33,10 +33,6 @@ import (
 	"github.com/lithammer/fuzzysearch/fuzzy"
 )
 
-// redirectURI is the OAuth redirect URI for the application.
-// You must register an application at Spotify's developer portal
-// and enter this value.
-const redirectURI = "http://localhost:8888/callback"
 const MAX_SEARCH_RESULTS = 3
 const MAX_RECORDS_OF_THE_WEEK = 25
 
