@@ -36,7 +36,7 @@ import (
 // redirectURI is the OAuth redirect URI for the application.
 // You must register an application at Spotify's developer portal
 // and enter this value.
-// const redirectURI = "http://localhost:8888/callback"
+const redirectURI = "http://localhost:8888/callback"
 const MAX_SEARCH_RESULTS = 3
 const MAX_RECORDS_OF_THE_WEEK = 25
 
@@ -232,8 +232,8 @@ func verifyLogin() spotify.Client {
 	}
 
 	log.Println("Token downloaded from Azure")
-	tok := new(oauth2.Token)
-	if err := json.Unmarshal(buff, tok); err != nil {
+	token := new(oauth2.Token)
+	if err := json.Unmarshal(buff, token); err != nil {
 		log.Fatalf("could not unmarshal token: %v", err)
 	}
 
@@ -241,14 +241,16 @@ func verifyLogin() spotify.Client {
 	// If the token is expired, the oauth2 package will automatically refresh
 	// so the new token is checked against the old one to see if it should be updated.
 	log.Println("Creating Spotify Authenticator")
-	client := spotifyauth.New()
+	ctx := context.Background()
+	httpClient := spotifyauth.New().Client(ctx, token)
+	client := spotify.New(httpClient)
 
 	log.Println("Creating new Client Token")
 	newToken, err := client.Token()
 	if err != nil {
 		log.Fatalf("Could not retrieve token from client: %v", err)
 	}
-	if newToken.AccessToken != tok.AccessToken {
+	if newToken.AccessToken != token.AccessToken {
 		log.Println("Got refreshed token, saving it")
 	}
 
@@ -260,13 +262,13 @@ func verifyLogin() spotify.Client {
 	log.Println("Token uploaded.")
 
 	// use the client to make calls that require authorization
-	user, err := client.CurrentUser()
+	user, err := client.CurrentUser(ctx)
 	if err != nil {
 		log.Fatalf("Could not identify as user: %v", err)
 	}
 	log.Printf("Logged in as: %v", user.ID)
 
-	return client
+	return *client
 }
 
 // searches a song given by the track and record name and returns spotify.ID if successful
@@ -280,7 +282,7 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 	}
 
 	log.Printf(" searching term: %s", searchTerm)
-	results, err := client.Search(searchTerm, spotify.SearchTypeTrack)
+	results, err := client.Search(context.Background(), searchTerm, spotify.SearchTypeTrack)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -329,7 +331,7 @@ func addTracks(client spotify.Client, trackids ...spotify.ID) bool {
 		log.Println("no tracks to add")
 		return false
 	}
-	_, err := client.AddTracksToPlaylist(playlistID, trackids...)
+	_, err := client.AddTracksToPlaylist(context.Background(), playlistID, trackids...)
 	if err != nil {
 		log.Fatalf("could not add tracks to playlist: %s", err)
 		return false
