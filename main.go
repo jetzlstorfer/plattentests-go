@@ -8,25 +8,17 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"sort"
 	"strings"
-	"testing"
 
-	"golang.org/x/oauth2"
-
-	"github.com/Azure/azure-storage-blob-go/azblob"
 	"github.com/gin-gonic/gin"
-	crawler "github.com/jetzlstorfer/plattentests-go/cmd"
+	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
+	myauth "github.com/jetzlstorfer/plattentests-go/internal/auth"
 	"github.com/zmb3/spotify/v2"
-	spotifyauth "github.com/zmb3/spotify/v2/auth"
 
 	"github.com/kelseyhightower/envconfig"
 
@@ -40,11 +32,11 @@ var (
 	config struct {
 		TargetPlaylist  string `envconfig:"PLAYLIST_ID" required:"true"`
 		ProdPlaylist    string `envconfig:"PROD_PLAYLIST_ID"`
+		LogFile         string `envConfig:"LOG_FILE" required:"false"`
 		TokenFile       string `envconfig:"TOKEN_FILE" required:"true"`
 		AzAccountName   string `envconfig:"AZ_ACCOUNT" required:"true"`
 		AzAccountKey    string `envconfig:"AZ_KEY" required:"true"`
 		AzContainerName string `envconfig:"AZ_CONTAINER" required:"true"`
-		LogFile         string `envConfig:"LOG_FILE" required:"false"`
 	}
 )
 
@@ -114,7 +106,7 @@ func handler(c *gin.Context) {
 	log.Println("---")
 
 	// login to spotify, all error messages are dealt within the function
-	client := verifyLogin()
+	client := myauth.VerifyLogin()
 	ctx := context.Background()
 
 	log.Println("Emptying playlist...")
@@ -164,107 +156,6 @@ func handler(c *gin.Context) {
 	outputJson["notFound"] = notFound
 
 	c.IndentedJSON(http.StatusOK, outputJson)
-}
-
-func GetAccountInfo() (string, string, string, string) {
-	azrKey := config.AzAccountKey
-	azrBlobAccountName := config.AzAccountName
-	azrPrimaryBlobServiceEndpoint := fmt.Sprintf("https://%s.blob.core.windows.net/", azrBlobAccountName)
-	azrBlobContainer := config.AzContainerName
-
-	return azrKey, azrBlobAccountName, azrPrimaryBlobServiceEndpoint, azrBlobContainer
-}
-
-func UploadBytesToBlob(b []byte) (string, error) {
-	azrKey, accountName, endPoint, container := GetAccountInfo()
-	u, _ := url.Parse(fmt.Sprint(endPoint, container, "/", config.TokenFile))
-	credential, errC := azblob.NewSharedKeyCredential(accountName, azrKey)
-	if errC != nil {
-		return "", errC
-	}
-
-	blockBlobUrl := azblob.NewBlockBlobURL(*u, azblob.NewPipeline(credential, azblob.PipelineOptions{}))
-
-	ctx := context.Background()
-	o := azblob.UploadToBlockBlobOptions{
-		BlobHTTPHeaders: azblob.BlobHTTPHeaders{
-			ContentType: "application/json",
-		},
-	}
-
-	_, errU := azblob.UploadBufferToBlockBlob(ctx, b, blockBlobUrl, o)
-	return blockBlobUrl.String(), errU
-}
-
-func DownloadBlogToBytes(string) ([]byte, error) {
-	azrKey, accountName, endPoint, container := GetAccountInfo()
-	u, _ := url.Parse(fmt.Sprint(endPoint, container, "/", config.TokenFile))
-	credential, errC := azblob.NewSharedKeyCredential(accountName, azrKey)
-	if errC != nil {
-		return nil, errC
-	}
-
-	ctx := context.Background()
-	blockBlobUrl := azblob.NewBlockBlobURL(*u, azblob.NewPipeline(credential, azblob.PipelineOptions{}))
-	get, err := blockBlobUrl.Download(ctx, 0, 0, azblob.BlobAccessConditions{}, false, azblob.ClientProvidedKeyOptions{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	blobData := &bytes.Buffer{}
-	reader := get.Body(azblob.RetryReaderOptions{})
-	blobData.ReadFrom(reader)
-	reader.Close() // The client must close the response body when finished with it
-	// fmt.Println(blobData)
-
-	return blobData.Bytes(), nil
-}
-
-func verifyLogin() spotify.Client {
-	log.Println("Connecting to Azure to download token")
-
-	buff, err := DownloadBlogToBytes("")
-	if err != nil {
-		log.Fatalf("Could not download token from Azure: %v", err)
-	}
-
-	log.Println("Token downloaded from Azure")
-	token := new(oauth2.Token)
-	if err := json.Unmarshal(buff, token); err != nil {
-		log.Fatalf("could not unmarshal token: %v", err)
-	}
-
-	// Create a Spotify authenticator with the oauth2 token.
-	// If the token is expired, the oauth2 package will automatically refresh
-	// so the new token is checked against the old one to see if it should be updated.
-	log.Println("Creating Spotify Authenticator")
-	ctx := context.Background()
-	httpClient := spotifyauth.New().Client(ctx, token)
-	client := spotify.New(httpClient)
-
-	log.Println("Creating new Client Token")
-	newToken, err := client.Token()
-	if err != nil {
-		log.Fatalf("Could not retrieve token from client: %v", err)
-	}
-	if newToken.AccessToken != token.AccessToken {
-		log.Println("Got refreshed token, saving it")
-	}
-
-	_, err = UploadBytesToBlob(buff)
-	if err != nil {
-		log.Fatalf("Could not upload token: %v", err)
-	}
-
-	log.Println("Token uploaded.")
-
-	// use the client to make calls that require authorization
-	user, err := client.CurrentUser(ctx)
-	if err != nil {
-		log.Fatalf("Could not identify as user: %v", err)
-	}
-	log.Printf("Logged in as: %v", user.ID)
-
-	return *client
 }
 
 // searches a song given by the track and record name and returns spotify.ID if successful
@@ -356,15 +247,6 @@ func removeDuplicates(sliceList []spotify.ID) []spotify.ID {
 		}
 	}
 	return list
-}
-
-// test the function removeDeuplicates
-func TestRemoveDuplicates(t *testing.T) {
-	list := []spotify.ID{"1", "2", "3", "1", "2", "3"}
-	list = removeDuplicates(list)
-	if len(list) != 3 {
-		t.Errorf("removeDuplicates failed")
-	}
 }
 
 func get_port() string {

@@ -1,4 +1,4 @@
-package crawler // to be defined if "main" or "crawler"
+package crawler
 
 import (
 	"log"

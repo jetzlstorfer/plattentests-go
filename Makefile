@@ -13,4 +13,4 @@ upload-function:
 	func azure functionapp publish plattentests-go
 
 token:
-	go run get-token/main.go
+	go run cmd/token/main.go
