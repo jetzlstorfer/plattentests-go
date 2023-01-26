@@ -18,12 +18,16 @@ Therefore, some commit messages might not be useful at the moment :)
 
 # Usage
 
-## ⚠️ First token export currently not working. You need to have a valid token to run the program successfully. There is already an issue for it :)
-
 
 💡 For your own convenience, make use of Codespaces or run it locally as devcontainer.
 
-There is a `Makefile` with multiple targets to be used. Make sure you have the proper `ENV` variables set in a `.env` file.
+There is a `Makefile` with multiple targets to be used. 
+⚠️ Make sure you have the proper `ENV` variables set in a `.env` file.
+
+- To create a token and store it in Azure:
+    ```
+    make token
+    ```
 
 - To run the project locally as Go binary:
     ```
