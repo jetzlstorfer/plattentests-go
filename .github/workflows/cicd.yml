@@ -3,6 +3,8 @@ name: Build and deploy to Azure function
 on:
   push:
     branches: [ "main" ]
+    paths-ignore:
+      - '**/README.md'
   pull_request:
     branches: [ "main" ]
 
@@ -25,7 +27,7 @@ jobs:
       run: go test -v ./...
 
     - name: Upload
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: plattentests-go
         path: ./plattentests-go
@@ -38,14 +40,14 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Download
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: plattentests-go
     - uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
     - name: Azure Functions Action
-      uses: Azure/functions-action@v1.4.7
+      uses: Azure/functions-action@v1.4.8
       with:
         # Name of the Azure Function App
         app-name: plattentests-go
