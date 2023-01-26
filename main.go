@@ -52,6 +52,7 @@ func main() {
 	r.GET("/api/createPlaylist/:id", handler)
 	r.GET("/api/records/", crawler.PrintRecordsOfTheWeek)
 	r.GET("/api/records/:id", crawler.GetRecord)
+	r.StaticFile("/", "./web/index.html") // this is not working with az functions, still getting the default landing page
 	r.Run(get_port())
 
 }
@@ -250,7 +251,7 @@ func removeDuplicates(sliceList []spotify.ID) []spotify.ID {
 }
 
 func get_port() string {
-	port := ":8080"
+	port := ":" + myauth.Port
 	if val, ok := os.LookupEnv("FUNCTIONS_CUSTOMHANDLER_PORT"); ok {
 		port = ":" + val
 	}
