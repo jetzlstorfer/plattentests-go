@@ -9,6 +9,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -22,7 +23,7 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 
-	"github.com/lithammer/fuzzysearch/fuzzy"
+	"github.com/texttheater/golang-levenshtein/levenshtein"
 )
 
 const MAX_SEARCH_RESULTS = 3
@@ -186,9 +187,17 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 		}
 		item := results.Tracks.Tracks[0]
 
-		// TODO: do some fuzzy search
-		ranking := fuzzy.RankFind(searchTerm, allTrackNames)
-		log.Printf("%d %d %+v", len(allTrackNames), len(ranking), ranking)
+		// TODO: check with levenshtein distance instead of fuzzy library
+		str1 := item.Artists[0].Name
+		str2 := record.Band
+		distance := levenshtein.DistanceForStrings([]rune(str1), []rune(str2), levenshtein.DefaultOptions)
+
+		fmt.Println("Levenshtein distance between", str1, "and", str2, ":", distance)
+		threshold := 0.8
+
+		if distance >= max(len(str1), len(str2)*int(threshold)) { // TODO!!!!!
+			fmt.Println("Lenvenshtein distance too large")
+		}
 
 		if strings.EqualFold(item.Artists[0].Name, record.Band) {
 			log.Printf(" using item: %s - %s (%s)", item.Artists[0].Name, item.Name, item.Album.Name)
@@ -255,4 +264,11 @@ func get_port() string {
 		port = ":" + val
 	}
 	return port
+}
+
+func max(x, y int) int {
+	if x > y {
+		return y
+	}
+	return x
 }
