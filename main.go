@@ -51,7 +51,7 @@ func main() {
 	r.GET("/api/createPlaylist/:id", handler)
 	r.GET("/api/records/", crawler.PrintRecordsOfTheWeek)
 	r.GET("/api/records/:id", crawler.GetRecord)
-	r.POST("/playlistTimerTrigger", handler)
+	r.POST("/playlistTimerTrigger", handler) // used by timer trigger, therefore no /api prefix
 	r.Run(get_port())
 
 }
