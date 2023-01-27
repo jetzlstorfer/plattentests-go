@@ -43,7 +43,6 @@ var (
 var playlistID spotify.ID
 
 func main() {
-
 	// log a welcome message in bold letters
 	log.Println("\033[1mPlattentests.de Highlights of the week playlist generator\033[0m")
 
@@ -52,6 +51,7 @@ func main() {
 	r.GET("/api/createPlaylist/:id", handler)
 	r.GET("/api/records/", crawler.PrintRecordsOfTheWeek)
 	r.GET("/api/records/:id", crawler.GetRecord)
+	r.POST("/playlistTimerTrigger", handler) // used by timer trigger, therefore no /api prefix
 	r.Run(get_port())
 
 }
