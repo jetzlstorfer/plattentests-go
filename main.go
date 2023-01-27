@@ -9,7 +9,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -44,17 +43,14 @@ var (
 var playlistID spotify.ID
 
 func main() {
-
 	// log a welcome message in bold letters
 	log.Println("\033[1mPlattentests.de Highlights of the week playlist generator\033[0m")
-	fmt.Println("hello world")
 
 	r := gin.Default()
 	r.GET("/api/createPlaylist/", handler)
 	r.GET("/api/createPlaylist/:id", handler)
 	r.GET("/api/records/", crawler.PrintRecordsOfTheWeek)
 	r.GET("/api/records/:id", crawler.GetRecord)
-	r.GET("/playlistTimerTrigger", handler)
 	r.POST("/playlistTimerTrigger", handler)
 	r.Run(get_port())
 
