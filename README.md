@@ -40,3 +40,13 @@ There is a `Makefile` with multiple targets to be used.
     ```
 
 In either case you'll be prompted to open a URL to trigger the playlist creation.
+
+## As Docker container
+
+You can also run the project as a Docker container.
+
+- Build and run the container:
+    ```
+    docker build -t plattentests-go .
+    docker run -p 8080:8080 plattentests-go
+    ```
