@@ -22,7 +22,7 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 
-	"github.com/lithammer/fuzzysearch/fuzzy"
+	"github.com/texttheater/golang-levenshtein/levenshtein"
 )
 
 const MAX_SEARCH_RESULTS = 3
@@ -175,10 +175,8 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 	}
 	// handle track results only if tracks are available
 	if results.Tracks != nil && results.Tracks.Tracks != nil && len(results.Tracks.Tracks) > 0 {
-		allTrackNames := []string{}
 		for i, item := range results.Tracks.Tracks {
 			log.Printf(" found item: %s - %s  (%s)", item.Artists[0].Name, item.Name, item.Album.Name)
-			allTrackNames = append(allTrackNames, item.Name)
 			// only get MAX_SEARCH_RESULTS results
 			if i >= MAX_SEARCH_RESULTS-1 {
 				break
@@ -186,18 +184,24 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 		}
 		item := results.Tracks.Tracks[0]
 
-		// TODO: do some fuzzy search
-		ranking := fuzzy.RankFind(searchTerm, allTrackNames)
-		log.Printf("%d %d %+v", len(allTrackNames), len(ranking), ranking)
+		bandnameFromSearch := strings.ToLower(item.Artists[0].Name)
+		bandnameFromPlattentests := strings.ToLower(record.Band)
+		distance := levenshtein.DistanceForStrings([]rune(bandnameFromSearch), []rune(bandnameFromPlattentests), levenshtein.DefaultOptions)
 
-		if strings.EqualFold(item.Artists[0].Name, record.Band) {
-			log.Printf(" using item: %s - %s (%s)", item.Artists[0].Name, item.Name, item.Album.Name)
-			return item.ID
-		} else {
-			log.Printf(" not adding item %s - %s (%s) since artists don't match (%s != %s)", item.Artists[0].Name, item.Name, item.Album.Name, record.Band, item.Artists[0].Name)
+		log.Println(" Levenshtein distance between", bandnameFromSearch, "and", bandnameFromPlattentests, ":", distance)
+		threshold := 0.8
+
+		calculatedThreshold := 1 - float64(distance)/float64(max(len(bandnameFromSearch), len(bandnameFromPlattentests)))
+		if (calculatedThreshold) < threshold {
+			log.Println(" Levenshtein distance too large")
+			//s := strconv.FormatFloat(calculatedThreshold, 'g', 5, 32)
+			log.Println(" distance is ", distance, " and percenate is ", calculatedThreshold)
+			log.Printf(" not adding item %s - %s (%s) since artists don't match (%s != %s)", bandnameFromSearch, item.Name, item.Album.Name, bandnameFromPlattentests, bandnameFromSearch)
 			return ""
+		} else {
+			log.Printf(" using item: %s - %s (%s)", bandnameFromSearch, item.Name, item.Album.Name)
+			return item.ID
 		}
-
 	}
 
 	if record.Recordname == "" {
@@ -255,4 +259,11 @@ func get_port() string {
 		port = ":" + val
 	}
 	return port
+}
+
+func max(x, y int) int {
+	if x > y {
+		return x
+	}
+	return y
 }
