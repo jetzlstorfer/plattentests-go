@@ -23,7 +23,7 @@ const Port = "8080"
 const RedirectURI = "http://localhost:" + Port + "/callback"
 
 var (
-	SpotifyAuthenticator = spotifyauth.New(spotifyauth.WithRedirectURL(RedirectURI), spotifyauth.WithScopes(spotifyauth.ScopePlaylistModifyPrivate))
+	SpotifyAuthenticator = spotifyauth.New(spotifyauth.WithRedirectURL(RedirectURI), spotifyauth.WithScopes(spotifyauth.ScopePlaylistModifyPrivate, spotifyauth.ScopePlaylistModifyPublic))
 	config               struct {
 		TokenFile       string `envconfig:"TOKEN_FILE" required:"true"`
 		AzAccountName   string `envconfig:"AZ_ACCOUNT" required:"true"`

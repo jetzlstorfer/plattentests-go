@@ -18,7 +18,7 @@ const Port = "8080"
 const RedirectURI = "http://localhost:" + Port + "/callback"
 
 var (
-	SpotifyAuthenticator = spotifyauth.New(spotifyauth.WithRedirectURL(RedirectURI), spotifyauth.WithScopes(spotifyauth.ScopePlaylistModifyPrivate))
+	SpotifyAuthenticator = spotifyauth.New(spotifyauth.WithRedirectURL(RedirectURI), spotifyauth.WithScopes(spotifyauth.ScopePlaylistModifyPrivate, spotifyauth.ScopePlaylistModifyPublic))
 	channel              = make(chan *spotify.Client)
 	state                = "myCrazyState"
 	config               struct {
