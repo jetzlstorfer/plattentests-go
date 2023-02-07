@@ -175,10 +175,8 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 	}
 	// handle track results only if tracks are available
 	if results.Tracks != nil && results.Tracks.Tracks != nil && len(results.Tracks.Tracks) > 0 {
-		allTrackNames := []string{}
 		for i, item := range results.Tracks.Tracks {
 			log.Printf(" found item: %s - %s  (%s)", item.Artists[0].Name, item.Name, item.Album.Name)
-			allTrackNames = append(allTrackNames, item.Name)
 			// only get MAX_SEARCH_RESULTS results
 			if i >= MAX_SEARCH_RESULTS-1 {
 				break
