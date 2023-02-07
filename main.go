@@ -9,12 +9,10 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -188,32 +186,24 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 		}
 		item := results.Tracks.Tracks[0]
 
-		// TODO: check with levenshtein distance instead of fuzzy library
 		bandnameFromSearch := strings.ToLower(item.Artists[0].Name)
 		bandnameFromPlattentests := strings.ToLower(record.Band)
 		distance := levenshtein.DistanceForStrings([]rune(bandnameFromSearch), []rune(bandnameFromPlattentests), levenshtein.DefaultOptions)
 
-		fmt.Println("Levenshtein distance between", bandnameFromSearch, "and", bandnameFromPlattentests, ":", distance)
+		log.Println(" Levenshtein distance between", bandnameFromSearch, "and", bandnameFromPlattentests, ":", distance)
 		threshold := 0.8
-		calculatedThreshold := float64(max(len(bandnameFromSearch), len(bandnameFromPlattentests))) * float64(threshold)
-		if float64(distance) >= calculatedThreshold { // TODO!!!!!
-			fmt.Println("Levenshtein distance too large")
-			s := strconv.FormatFloat(calculatedThreshold, 'g', 5, 32)
-			fmt.Println("distance is ", distance, " and threshold is", s)
-		}
 
-		// check if distance is smaller than threshold
-		// NOW WHAT?
-
-		// TODO
-		if strings.EqualFold(bandnameFromSearch, bandnameFromPlattentests) {
-			log.Printf(" using item: %s - %s (%s)", bandnameFromSearch, item.Name, item.Album.Name)
-			return item.ID
-		} else {
+		calculatedThreshold := 1 - float64(distance)/float64(max(len(bandnameFromSearch), len(bandnameFromPlattentests)))
+		if (calculatedThreshold) < threshold {
+			log.Println(" Levenshtein distance too large")
+			//s := strconv.FormatFloat(calculatedThreshold, 'g', 5, 32)
+			log.Println(" distance is ", distance, " and percenate is ", calculatedThreshold)
 			log.Printf(" not adding item %s - %s (%s) since artists don't match (%s != %s)", bandnameFromSearch, item.Name, item.Album.Name, bandnameFromPlattentests, bandnameFromSearch)
 			return ""
+		} else {
+			log.Printf(" using item: %s - %s (%s)", bandnameFromSearch, item.Name, item.Album.Name)
+			return item.ID
 		}
-
 	}
 
 	if record.Recordname == "" {
