@@ -38,3 +38,9 @@ how to access spotify api
 git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
 
 and then add the plugin to the ~/.zshrc file (can this be done automated)
+
+### Resources
+
+https://www.thorsten-hans.com/azure-functions-with-go/
+
+https://learn.microsoft.com/en-us/azure/azure-functions/create-first-function-vs-code-other?tabs=go%2Cwindows 
