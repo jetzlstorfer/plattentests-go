@@ -19,5 +19,5 @@ require (
 	github.com/zmb3/spotify/v2 v2.3.1
 	golang.org/x/crypto v0.4.0 // indirect
 	golang.org/x/oauth2 v0.4.0
-	golang.org/x/text v0.6.0
+	golang.org/x/text v0.7.0
 )
