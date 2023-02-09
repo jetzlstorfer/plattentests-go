@@ -7,7 +7,7 @@ RUN go mod download
 
 RUN go build -o /plattentests-go
 
-FROM alpine:latest
+FROM alpine:3.17
 
 WORKDIR /
 
