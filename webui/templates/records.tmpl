@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Highlights of the week</title>
+</head>
+<body>
+	<h1>Plattentests.de Highlights of the week 💿</h1>
+	<a href="">Records of the week</a>
+	<a href="">Create Spotify playlist</a>
+	
+	<table>
+		<thead>
+			<tr>
+        <th>Image</th>
+				<th>Band</th>
+				<th>Record Name</th>
+				<th>Score</th>
+				<th>Release Year</th>
+				<th>Tracks</th>
+			</tr>
+		</thead>
+		<tbody>
+			{{range .}}
+			<tr>
+        <td><img src="{{.Image}}" alt="{{.Band}}"></td>
+				<td>{{.Band}}<br><a href="{{.Link}}">go to review</a></td>
+				<td>{{.Recordname}}</td>
+				<td><strong>{{.Score}}</strong></td>
+				<td>{{.ReleaseYear}}</td>
+				<td>
+					<ul>
+						{{range .Tracks}}
+						<li>{{.}}</li>
+						{{end}}
+					</ul>
+				</td>
+			</tr>
+			{{end}}
+		</tbody>
+	</table>
+</body>
+</html>
