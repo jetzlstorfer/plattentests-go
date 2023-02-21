@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.15.0
-	github.com/PuerkitoBio/goquery v1.8.0
+	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/gin-gonic/gin v1.8.2
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/goccy/go-json v0.10.0 // indirect
