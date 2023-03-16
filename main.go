@@ -55,7 +55,7 @@ func main() {
 	r.GET("/api/records/", crawler.PrintRecordsOfTheWeek)
 	r.GET("/api/records/:id", crawler.GetRecord)
 	r.POST("/playlistTimerTrigger", handler) // used by timer trigger, therefore no /api prefix
-	r.Run(getPort())
+	_ = r.Run(getPort())
 
 }
 
@@ -113,7 +113,10 @@ func handler(c *gin.Context) {
 	ctx := context.Background()
 
 	log.Println("Emptying playlist...")
-	client.ReplacePlaylistTracks(ctx, playlistID)
+	err = client.ReplacePlaylistTracks(ctx, playlistID)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	log.Println("Adding highlights of the week to playlist...")
 	total := 0

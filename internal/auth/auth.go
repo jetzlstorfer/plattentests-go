@@ -101,7 +101,10 @@ func DownloadBlogToBytes(string) ([]byte, error) {
 	}
 	blobData := &bytes.Buffer{}
 	reader := get.Body(azblob.RetryReaderOptions{})
-	blobData.ReadFrom(reader)
+	_, err = blobData.ReadFrom(reader)
+	if err != nil {
+		log.Fatal(err)
+	}
 	reader.Close() // The client must close the response body when finished with it
 	// fmt.Println(blobData)
 
