@@ -187,7 +187,6 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 		bandnameFromSearch := strings.ToLower(item.Artists[0].Name)
 		bandnameFromPlattentests := strings.ToLower(record.Band)
 		distance := levenshtein.DistanceForStrings([]rune(bandnameFromSearch), []rune(bandnameFromPlattentests), levenshtein.DefaultOptions)
-
 		log.Println(" Levenshtein distance between", bandnameFromSearch, "and", bandnameFromPlattentests, ":", distance)
 		threshold := 0.8
 
@@ -196,20 +195,20 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 			log.Println(" Levenshtein distance too large")
 			log.Printf(" not adding item %s - %s (%s) since artists don't match (%s != %s)", bandnameFromSearch, item.Name, item.Album.Name, bandnameFromPlattentests, bandnameFromSearch)
 			return ""
-		} else {
-
-			// calculate the levenshtein distance between the trackname from the search and the trackname from the record
-			tracknameFromSearch := strings.ToLower(item.Name)
-			tracknameFromPlattentests := strings.ToLower(track)
-			distance = levenshtein.DistanceForStrings([]rune(tracknameFromSearch), []rune(tracknameFromPlattentests), levenshtein.DefaultOptions)
-
-			calculatedThreshold = 1 - float64(distance)/float64(max(len(tracknameFromSearch), len(tracknameFromPlattentests)))
-			if (calculatedThreshold) < threshold {
-				log.Println(" Levenshtein distance too large")
-				log.Printf(" not adding item %s - %s (%s) since tracknames don't match (%s != %s)", bandnameFromSearch, item.Name, item.Album.Name, tracknameFromPlattentests, tracknameFromSearch)
-				return ""
-			}
 		}
+
+		// calculate the levenshtein distance between the trackname from the search and the trackname from the record
+		tracknameFromSearch := strings.ToLower(item.Name)
+		tracknameFromPlattentests := strings.ToLower(track)
+		distance = levenshtein.DistanceForStrings([]rune(tracknameFromSearch), []rune(tracknameFromPlattentests), levenshtein.DefaultOptions)
+
+		calculatedThreshold = 1 - float64(distance)/float64(max(len(tracknameFromSearch), len(tracknameFromPlattentests)))
+		if (calculatedThreshold) < threshold {
+			log.Println(" Levenshtein distance too large")
+			log.Printf(" not adding item %s - %s (%s) since tracknames don't match (%s != %s)", bandnameFromSearch, item.Name, item.Album.Name, tracknameFromPlattentests, tracknameFromSearch)
+			return ""
+		}
+
 		log.Printf(" using item: %s - %s (%s)", bandnameFromSearch, item.Name, item.Album.Name)
 		return item.ID
 	}
