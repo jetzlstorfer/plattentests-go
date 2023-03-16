@@ -161,7 +161,8 @@ func handler(c *gin.Context) {
 // searches a song given by the track and record name and returns spotify.ID if successful
 func searchSong(client spotify.Client, track string, record crawler.Record) spotify.ID {
 	searchTerm := sanitizeTrackname(record.Band + " " + track)
-	searchTerm = searchTerm + " " + record.Recordname
+	// POTENTIAL FIX - do not include recordname in search
+	//searchTerm = searchTerm + " " + record.Recordname
 
 	// if record has a year, append it to the search
 	if record.ReleaseYear != "" {
@@ -182,9 +183,14 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 				break
 			}
 		}
+		// TODO not only use first item!
 		item := results.Tracks.Tracks[0]
 
 		bandnameFromSearch := strings.ToLower(item.Artists[0].Name)
+		if len(item.Artists) > 1 {
+			bandnameFromSearch += " " + strings.ToLower(item.Artists[1].Name)
+		}
+
 		bandnameFromPlattentests := strings.ToLower(record.Band)
 		distance := levenshtein.DistanceForStrings([]rune(bandnameFromSearch), []rune(bandnameFromPlattentests), levenshtein.DefaultOptions)
 		log.Println(" Levenshtein distance between", bandnameFromSearch, "and", bandnameFromPlattentests, ":", distance)
@@ -194,7 +200,9 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 		if (calculatedThreshold) < threshold {
 			log.Println(" Levenshtein distance too large")
 			log.Printf(" not adding item %s - %s (%s) since artists don't match (%s != %s)", bandnameFromSearch, item.Name, item.Album.Name, bandnameFromPlattentests, bandnameFromSearch)
-			return ""
+			if record.ReleaseYear == "" {
+				return ""
+			}
 		}
 
 		// calculate the levenshtein distance between the trackname from the search and the trackname from the record
@@ -206,7 +214,9 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 		if (calculatedThreshold) < threshold {
 			log.Println(" Levenshtein distance too large")
 			log.Printf(" not adding item %s - %s (%s) since tracknames don't match (%s != %s)", bandnameFromSearch, item.Name, item.Album.Name, tracknameFromPlattentests, tracknameFromSearch)
-			return ""
+			if record.ReleaseYear == "" {
+				return ""
+			}
 		}
 
 		log.Printf(" using item: %s - %s (%s)", bandnameFromSearch, item.Name, item.Album.Name)
