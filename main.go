@@ -25,8 +25,11 @@ import (
 	"github.com/texttheater/golang-levenshtein/levenshtein"
 )
 
-const MAX_SEARCH_RESULTS = 3
-const MAX_RECORDS_OF_THE_WEEK = 25
+// MaxSearchResults is the maximum number of search results to return
+const MaxSearchResults = 3
+
+// MaxRecordsOfTheWeek is the maximum number of records of the week to be considered
+const MaxRecordsOfTheWeek = 25
 
 var (
 	config struct {
@@ -52,7 +55,7 @@ func main() {
 	r.GET("/api/records/", crawler.PrintRecordsOfTheWeek)
 	r.GET("/api/records/:id", crawler.GetRecord)
 	r.POST("/playlistTimerTrigger", handler) // used by timer trigger, therefore no /api prefix
-	r.Run(get_port())
+	r.Run(getPort())
 
 }
 
@@ -95,8 +98,8 @@ func handler(c *gin.Context) {
 	}
 	// only use the first records up to MAX_RECORDS_OF_THE_WEEK
 	// this is mainly for debugging purposes
-	if len(highlights) > MAX_RECORDS_OF_THE_WEEK {
-		highlights = highlights[0:MAX_RECORDS_OF_THE_WEEK]
+	if len(highlights) > MaxRecordsOfTheWeek {
+		highlights = highlights[0:MaxRecordsOfTheWeek]
 	}
 
 	log.Println("Size of records of the week: ", len(highlights))
@@ -151,11 +154,11 @@ func handler(c *gin.Context) {
 	}
 
 	// out some json with all records that should have been added and the once that have not been added
-	outputJson := make(map[string]interface{})
-	outputJson["highlights"] = highlights
-	outputJson["notFound"] = notFound
+	outputJSON := make(map[string]interface{})
+	outputJSON["highlights"] = highlights
+	outputJSON["notFound"] = notFound
 
-	c.IndentedJSON(http.StatusOK, outputJson)
+	c.IndentedJSON(http.StatusOK, outputJSON)
 }
 
 // searches a song given by the track and record name and returns spotify.ID if successful
@@ -179,7 +182,7 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 		for i, item := range results.Tracks.Tracks {
 			log.Printf(" found item: %s - %s  (%s)", item.Artists[0].Name, item.Name, item.Album.Name)
 			// only get MAX_SEARCH_RESULTS results
-			if i >= MAX_SEARCH_RESULTS-1 {
+			if i >= MaxSearchResults-1 {
 				break
 			}
 		}
@@ -272,7 +275,7 @@ func removeDuplicates(sliceList []spotify.ID) []spotify.ID {
 	return list
 }
 
-func get_port() string {
+func getPort() string {
 	port := ":8080"
 	if val, ok := os.LookupEnv("FUNCTIONS_CUSTOMHANDLER_PORT"); ok {
 		port = ":" + val
