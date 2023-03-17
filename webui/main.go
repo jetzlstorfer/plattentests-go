@@ -10,6 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const RecordEndPoint = "https://plattentests-go.azurewebsites.net/api/records/"
+
 // Album represents an album's information
 type Album struct {
 	Image       string   `json:"Image"`
@@ -45,7 +47,7 @@ func main() {
 	// Define a handler function for the root endpoint
 	r.GET("/", func(c *gin.Context) {
 		// Fetch the album data from the given URL
-		resp, err := http.Get("https://plattentests-go.azurewebsites.net/api/records/")
+		resp, err := http.Get(RecordEndPoint)
 		if err != nil {
 			log.Fatalf("Error fetching album data: %v", err)
 		}
