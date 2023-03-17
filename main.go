@@ -25,8 +25,11 @@ import (
 	"github.com/texttheater/golang-levenshtein/levenshtein"
 )
 
-const MAX_SEARCH_RESULTS = 3
-const MAX_RECORDS_OF_THE_WEEK = 25
+// MaxSearchResults is the maximum number of search results to return
+const MaxSearchResults = 3
+
+// MaxRecordsOfTheWeek is the maximum number of records of the week to be considered
+const MaxRecordsOfTheWeek = 25
 
 var (
 	config struct {
@@ -52,7 +55,7 @@ func main() {
 	r.GET("/api/records/", crawler.PrintRecordsOfTheWeek)
 	r.GET("/api/records/:id", crawler.GetRecord)
 	r.POST("/playlistTimerTrigger", handler) // used by timer trigger, therefore no /api prefix
-	r.Run(get_port())
+	_ = r.Run(getPort())
 
 }
 
@@ -95,8 +98,8 @@ func handler(c *gin.Context) {
 	}
 	// only use the first records up to MAX_RECORDS_OF_THE_WEEK
 	// this is mainly for debugging purposes
-	if len(highlights) > MAX_RECORDS_OF_THE_WEEK {
-		highlights = highlights[0:MAX_RECORDS_OF_THE_WEEK]
+	if len(highlights) > MaxRecordsOfTheWeek {
+		highlights = highlights[0:MaxRecordsOfTheWeek]
 	}
 
 	log.Println("Size of records of the week: ", len(highlights))
@@ -110,7 +113,10 @@ func handler(c *gin.Context) {
 	ctx := context.Background()
 
 	log.Println("Emptying playlist...")
-	client.ReplacePlaylistTracks(ctx, playlistID)
+	err = client.ReplacePlaylistTracks(ctx, playlistID)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	log.Println("Adding highlights of the week to playlist...")
 	total := 0
@@ -127,7 +133,7 @@ func handler(c *gin.Context) {
 				itemsToAdd = append(itemsToAdd, itemID)
 				// newTracks = append(newTracks, itemsToAdd...)
 			} else {
-				notFound = append(notFound, track)
+				notFound = append(notFound, record.Band+" - "+track)
 			}
 			total++
 		}
@@ -151,17 +157,18 @@ func handler(c *gin.Context) {
 	}
 
 	// out some json with all records that should have been added and the once that have not been added
-	outputJson := make(map[string]interface{})
-	outputJson["highlights"] = highlights
-	outputJson["notFound"] = notFound
+	outputJSON := make(map[string]interface{})
+	outputJSON["highlights"] = highlights
+	outputJSON["notFound"] = notFound
 
-	c.IndentedJSON(http.StatusOK, outputJson)
+	c.IndentedJSON(http.StatusOK, outputJSON)
 }
 
 // searches a song given by the track and record name and returns spotify.ID if successful
 func searchSong(client spotify.Client, track string, record crawler.Record) spotify.ID {
-	searchTerm := sanitizeTrackname(track)
-	searchTerm = searchTerm + " " + record.Recordname
+	searchTerm := sanitizeTrackname(record.Band + " " + track)
+	// POTENTIAL FIX - do not include recordname in search
+	//searchTerm = searchTerm + " " + record.Recordname
 
 	// if record has a year, append it to the search
 	if record.ReleaseYear != "" {
@@ -178,30 +185,48 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 		for i, item := range results.Tracks.Tracks {
 			log.Printf(" found item: %s - %s  (%s)", item.Artists[0].Name, item.Name, item.Album.Name)
 			// only get MAX_SEARCH_RESULTS results
-			if i >= MAX_SEARCH_RESULTS-1 {
+			if i >= MaxSearchResults-1 {
 				break
 			}
 		}
+		// TODO not only use first item!
 		item := results.Tracks.Tracks[0]
 
 		bandnameFromSearch := strings.ToLower(item.Artists[0].Name)
+		if len(item.Artists) > 1 {
+			bandnameFromSearch += " " + strings.ToLower(item.Artists[1].Name)
+		}
+
 		bandnameFromPlattentests := strings.ToLower(record.Band)
 		distance := levenshtein.DistanceForStrings([]rune(bandnameFromSearch), []rune(bandnameFromPlattentests), levenshtein.DefaultOptions)
-
 		log.Println(" Levenshtein distance between", bandnameFromSearch, "and", bandnameFromPlattentests, ":", distance)
 		threshold := 0.8
 
 		calculatedThreshold := 1 - float64(distance)/float64(max(len(bandnameFromSearch), len(bandnameFromPlattentests)))
 		if (calculatedThreshold) < threshold {
 			log.Println(" Levenshtein distance too large")
-			//s := strconv.FormatFloat(calculatedThreshold, 'g', 5, 32)
-			log.Println(" distance is ", distance, " and percenate is ", calculatedThreshold)
 			log.Printf(" not adding item %s - %s (%s) since artists don't match (%s != %s)", bandnameFromSearch, item.Name, item.Album.Name, bandnameFromPlattentests, bandnameFromSearch)
-			return ""
-		} else {
-			log.Printf(" using item: %s - %s (%s)", bandnameFromSearch, item.Name, item.Album.Name)
-			return item.ID
+			if record.ReleaseYear == "" {
+				return ""
+			}
 		}
+
+		// calculate the levenshtein distance between the trackname from the search and the trackname from the record
+		tracknameFromSearch := strings.ToLower(item.Name)
+		tracknameFromPlattentests := strings.ToLower(track)
+		distance = levenshtein.DistanceForStrings([]rune(tracknameFromSearch), []rune(tracknameFromPlattentests), levenshtein.DefaultOptions)
+
+		calculatedThreshold = 1 - float64(distance)/float64(max(len(tracknameFromSearch), len(tracknameFromPlattentests)))
+		if (calculatedThreshold) < threshold {
+			log.Println(" Levenshtein distance too large")
+			log.Printf(" not adding item %s - %s (%s) since tracknames don't match (%s != %s)", bandnameFromSearch, item.Name, item.Album.Name, tracknameFromPlattentests, tracknameFromSearch)
+			if record.ReleaseYear == "" {
+				return ""
+			}
+		}
+
+		log.Printf(" using item: %s - %s (%s)", bandnameFromSearch, item.Name, item.Album.Name)
+		return item.ID
 	}
 
 	if record.Recordname == "" {
@@ -253,7 +278,7 @@ func removeDuplicates(sliceList []spotify.ID) []spotify.ID {
 	return list
 }
 
-func get_port() string {
+func getPort() string {
 	port := ":8080"
 	if val, ok := os.LookupEnv("FUNCTIONS_CUSTOMHANDLER_PORT"); ok {
 		port = ":" + val
