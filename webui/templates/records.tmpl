@@ -21,20 +21,7 @@
 		</thead>
 		<tbody>
 			{{range .}}
-			<tr>
-        <td><img src="{{.Image}}" alt="{{.Band}}"></td>
-				<td>{{.Band}}<br><a href="{{.Link}}">go to review</a></td>
-				<td>{{.Recordname}}</td>
-				<td><strong>{{.Score}}</strong></td>
-				<td>{{.ReleaseYear}}</td>
-				<td>
-					<ul>
-						{{range .Tracks}}
-						<li>{{.}}</li>
-						{{end}}
-					</ul>
-				</td>
-			</tr>
+			{{template "Record" .}}
 			{{end}}
 		</tbody>
 	</table>

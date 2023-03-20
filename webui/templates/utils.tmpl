@@ -1,4 +1,21 @@
 {{define "navigation"}}
-	<a href="">Records of the week</a>
-	<a href="">Create Spotify playlist</a>
+	<a href="/">Records of the week</a>
+	<a href="/createPlaylist">Create Spotify playlist</a>
+{{end}}
+
+{{define "Record"}}
+			<tr>
+        <td><img src="{{.Image}}" alt="{{.Band}}"></td>
+				<td>{{.Band}}<br><a href="{{.Link}}">go to review</a></td>
+				<td>{{.Recordname}}</td>
+				<td><strong>{{.Score}}</strong></td>
+				<td>{{.ReleaseYear}}</td>
+				<td>
+					<ul>
+						{{range .Tracks}}
+						<li>{{.}}</li>
+						{{end}}
+					</ul>
+				</td>
+			</tr>
 {{end}}
