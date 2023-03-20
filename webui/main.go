@@ -11,6 +11,7 @@ import (
 )
 
 const RecordEndPoint = "https://plattentests-go.azurewebsites.net/api/records/"
+const CreatePlaylistEndpoint = "https://plattentests-go.azurewebsites.net/api/createPlaylist/"
 
 // Album represents an album's information
 type Album struct {
@@ -32,20 +33,14 @@ func main() {
 	// Create a new Gin router
 	r := gin.Default()
 
-	// Load the template file
-	tmpl, err := template.ParseFiles("templates/records.tmpl")
-	if err != nil {
-		log.Fatalf("Error parsing template: %v", err)
-	}
-
-	// Load the template file
-	tmpl2, err := template.ParseFiles("templates/createPlaylist.tmpl")
-	if err != nil {
-		log.Fatalf("Error parsing template: %v", err)
-	}
-
 	// Define a handler function for the root endpoint
 	r.GET("/", func(c *gin.Context) {
+		// Load the template file
+		tmpl, err := template.ParseFiles("templates/records.tmpl", "templates/utils.tmpl")
+		if err != nil {
+			log.Fatalf("Error parsing template: %v", err)
+		}
+
 		// Fetch the album data from the given URL
 		resp, err := http.Get(RecordEndPoint)
 		if err != nil {
@@ -71,8 +66,13 @@ func main() {
 	})
 
 	r.GET("/createPlaylist", func(c *gin.Context) {
+		// Load the template file
+		tmpl, err := template.ParseFiles("templates/createPlaylist.tmpl", "templates/utils.tmpl")
+		if err != nil {
+			log.Fatalf("Error parsing template: %v", err)
+		}
 		// Fetch the album data from the given URL
-		resp, err := http.Get("https://plattentests-go.azurewebsites.net/api/createPlaylist/")
+		resp, err := http.Get(CreatePlaylistEndpoint)
 		if err != nil {
 			log.Fatalf("Error fetching album data: %v", err)
 		}
@@ -90,7 +90,7 @@ func main() {
 		}
 
 		// Execute the template with the album data
-		if err := tmpl2.Execute(c.Writer, highlights); err != nil {
+		if err := tmpl.Execute(c.Writer, highlights); err != nil {
 			log.Fatalf("Error executing template: %v", err)
 		}
 	})
