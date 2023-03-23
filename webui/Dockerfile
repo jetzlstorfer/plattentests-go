@@ -5,12 +5,13 @@ WORKDIR /app
 COPY . .
 RUN go mod download
 
-RUN go build -o /plattentests-web
+RUN cd webui && go build -o /plattentests-web
 
 FROM alpine:3.17
 
 WORKDIR /
 
+COPY --from=BuildStage /app/webui/templates ./templates
 COPY --from=BuildStage /plattentests-web .
 
 EXPOSE 8080
