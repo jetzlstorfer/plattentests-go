@@ -20,3 +20,6 @@ upload-function:
 
 token:
 	go run cmd/token/main.go
+
+web:
+	cd webui && go run main.go

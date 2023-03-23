@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+{{template "HtmlHead"}}
+<body>
+	<h1>Plattentests.de Highlights of the week 💿</h1>
+	{{template "Navigation"}}
+	
+	<table>
+		<thead>
+			<tr>
+        <th>Image</th>
+				<th>Band</th>
+				<th>Record Name</th>
+				<th>Score</th>
+				<th>Release Year</th>
+				<th>Tracks</th>
+			</tr>
+		</thead>
+		<tbody>
+			{{range .}}
+				{{template "Record" .}}
+			{{end}}
+		</tbody>
+	</table>
+</body>
+</html>
