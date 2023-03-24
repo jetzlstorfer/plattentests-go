@@ -2,21 +2,14 @@
 <html>
 {{template "HtmlHead"}}
 <body>
-	<h1>Plattentests.de Highlights of the week 💿</h1>
+	<h1>Plattentests.de 💿 <br>Highlights of the week </h1>
 	{{template "Navigation"}}
 	
 	<iframe style="border-radius:12px" src="https://open.spotify.com/embed/playlist/2Gs8cKE9wSHo1t5iJEjTG1?utm_source=generator&theme=0" width="100%" height="600" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
 
 	<table>
 		<thead>
-			<tr>
-        <th>Image</th>
-				<th>Band</th>
-				<th>Record Name</th>
-				<th>Score</th>
-				<th>Release Year</th>
-				<th>Highlight Tracks</th>
-			</tr>
+				{{template "RecordHead"}}
 		</thead>
 		<tbody>
 			{{range .Albums}}

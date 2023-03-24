@@ -2,19 +2,12 @@
 <html>
 {{template "HtmlHead"}}
 <body>
-	<h1>Plattentests.de Highlights of the week 💿</h1>
+	<h1>Plattentests.de 💿 <br>Highlights of the week </h1>
 	{{template "Navigation"}}
 	
 	<table>
 		<thead>
-			<tr>
-        <th>Image</th>
-				<th>Band</th>
-				<th>Record Name</th>
-				<th>Score</th>
-				<th>Release Year</th>
-				<th>Highlight Tracks</th>
-			</tr>
+				{{template "RecordHeader"}}
 		</thead>
 		<tbody>
 			{{range .}}
