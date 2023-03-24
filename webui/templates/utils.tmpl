@@ -15,13 +15,22 @@
 	</header>
 {{end}}
 
+{{define "RecordHeader"}}
+			<tr>
+        <th>Image</th>
+				<th>Band</th>
+				<th>Record Name</th>
+				<th>Score</th>
+				<th>Tracks</th>
+			</tr>
+{{end}}
+
 {{define "Record"}}
 			<tr>
         <td><img src="{{.Image}}" alt="{{.Band}}"></td>
 				<td>{{.Band}}<br><a href="{{.Link}}">go to review</a></td>
 				<td>{{.Recordname}}</td>
 				<td><strong>{{.Score}}</strong></td>
-				<td>{{.ReleaseYear}}</td>
 				<td>
 					<ul>
 						{{range .Tracks}}
