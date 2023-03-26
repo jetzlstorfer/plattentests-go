@@ -58,9 +58,7 @@ func GetRecordsOfTheWeek() []Record {
 
 		go func(i int, s *goquery.Selection) {
 			defer wg.Done()
-			// For each item found, get the band and title
-			recordTitle := s.Find("a").Text()
-			recordTitle, _ = charmap.ISO8859_1.NewDecoder().String(recordTitle)
+			// For each item found, get the link
 			link, _ := s.Find("a").Attr("href")
 			highlights = append(highlights, getHighlightsByRecordLink(baseurl+link))
 		}(i, s)
