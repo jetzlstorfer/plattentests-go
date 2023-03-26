@@ -4,8 +4,10 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gin-gonic/gin"
@@ -47,19 +49,30 @@ func GetRecordsOfTheWeek() []Record {
 
 	var highlights []Record
 	// Find the review items
-	doc.Find(".neuerezis li").Each(func(i int, s *goquery.Selection) {
-		// For each item found, get the band and title
-		recordTitle := s.Find("a").Text()
-		recordTitle, _ = charmap.ISO8859_1.NewDecoder().String(recordTitle)
-		link, _ := s.Find("a").Attr("href")
-		//log.Printf("Review %d: %s - %s\n", i, band, link)
-		log.Println(recordTitle)
-		highlights = append(highlights, getHighlights(baseurl+link))
+	newReviews := doc.Find(".neuerezis li")
+
+	var wg sync.WaitGroup
+	wg.Add(newReviews.Length())
+
+	newReviews.Each(func(i int, s *goquery.Selection) {
+
+		go func(i int, s *goquery.Selection) {
+			defer wg.Done()
+			// For each item found, get the link
+			link, _ := s.Find("a").Attr("href")
+			highlights = append(highlights, getHighlightsByRecordLink(baseurl+link))
+		}(i, s)
 
 	})
 
-	return highlights
+	wg.Wait()
 
+	// sort record collection
+	sort.Slice(highlights[:], func(i, j int) bool {
+		return strings.Compare(highlights[i].Band, highlights[j].Band) <= 0
+	})
+
+	return highlights
 }
 
 func PrintRecordsOfTheWeek(c *gin.Context) {
@@ -75,11 +88,11 @@ func GetRecord(c *gin.Context) {
 	}
 	recordUrl := "rezi.php?show="
 	recordLink := baseurl + recordUrl + strconv.Itoa(id)
-	c.IndentedJSON(http.StatusOK, getHighlights(recordLink))
+	c.IndentedJSON(http.StatusOK, getHighlightsByRecordLink(recordLink))
 }
 
 // getting highlights of a particular record by recordLink
-func getHighlights(recordLink string) Record {
+func getHighlightsByRecordLink(recordLink string) Record {
 	res, err := http.Get(recordLink)
 	if err != nil {
 		log.Fatal(err)
@@ -112,6 +125,7 @@ func getHighlights(recordLink string) Record {
 
 	var tracks []string
 	record := Record{image, bandname, recordname, recordLink, score, releaseYear, tracks}
+	log.Printf("%s - %s\n", bandname, recordname)
 	doc.Find("#rezihighlights li").Each(func(i int, s *goquery.Selection) {
 		// For each item found, get the band and title
 		track := s.Text()
