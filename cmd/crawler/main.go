@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gin-gonic/gin"
@@ -47,17 +48,29 @@ func GetRecordsOfTheWeek() []Record {
 
 	var highlights []Record
 	// Find the review items
-	doc.Find(".neuerezis li").Each(func(i int, s *goquery.Selection) {
-		// For each item found, get the band and title
-		recordTitle := s.Find("a").Text()
-		recordTitle, _ = charmap.ISO8859_1.NewDecoder().String(recordTitle)
-		link, _ := s.Find("a").Attr("href")
-		//log.Printf("Review %d: %s - %s\n", i, band, link)
-		log.Println(recordTitle)
-		highlights = append(highlights, getHighlights(baseurl+link))
+	newReviews := doc.Find(".neuerezis li")
+
+	var wg sync.WaitGroup
+	wg.Add(newReviews.Length())
+
+	newReviews.Each(func(i int, s *goquery.Selection) {
+
+		go func(i int, s *goquery.Selection) {
+			defer wg.Done()
+			// For each item found, get the band and title
+			recordTitle := s.Find("a").Text()
+			//recordTitle, _ = charmap.ISO8859_1.NewDecoder().String(recordTitle)
+			link, _ := s.Find("a").Attr("href")
+			//log.Printf("Review %d: %s - %s\n", i, band, link)
+			log.Println(recordTitle)
+			highlights = append(highlights, getHighlights(baseurl+link))
+		}(i, s)
 
 	})
 
+	wg.Wait()
+
+	log.Println("size of highlights: ", len(highlights))
 	return highlights
 
 }
