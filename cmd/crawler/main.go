@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -68,9 +69,12 @@ func GetRecordsOfTheWeek() []Record {
 
 	wg.Wait()
 
-	log.Println("size of highlights: ", len(highlights))
-	return highlights
+	// sort record collection
+	sort.Slice(highlights[:], func(i, j int) bool {
+		return strings.Compare(highlights[i].Band, highlights[j].Band) <= 0
+	})
 
+	return highlights
 }
 
 func PrintRecordsOfTheWeek(c *gin.Context) {
