@@ -292,3 +292,14 @@ func max(x, y int) int {
 	}
 	return y
 }
+
+// this function returns the record with the highest score
+func getBestRecord(records []crawler.Record) crawler.Record {
+	var bestRecord crawler.Record
+	for _, record := range records {
+		if record.Score > bestRecord.Score {
+			bestRecord = record
+		}
+	}
+	return bestRecord
+}
