@@ -14,6 +14,6 @@ WORKDIR /
 COPY --from=BuildStage /app/webui/templates ./templates
 COPY --from=BuildStage /plattentests-web .
 
-EXPOSE 8080
+EXPOSE 8081
 
 CMD [ "/plattentests-web" ]

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,20 +14,30 @@ import (
 const RecordEndPoint = "https://plattentests-go.azurewebsites.net/api/records/"
 const CreatePlaylistEndpoint = "https://plattentests-go.azurewebsites.net/api/createPlaylist/"
 
-// Album represents an album's information
-type Album struct {
-	Image       string   `json:"Image"`
-	Band        string   `json:"Band"`
-	Recordname  string   `json:"Recordname"`
-	Link        string   `json:"Link"`
-	Score       int      `json:"Score"`
-	ReleaseYear string   `json:"ReleaseYear"`
-	Tracks      []string `json:"Tracks"`
+// const RecordEndPoint = "http://localhost:8080/api/records/"
+// const CreatePlaylistEndpoint = "http://localhost:8080/api/createPlaylist/"
+
+// Record represents an album's information
+type Record struct {
+	Image       string  `json:"Image"`
+	Band        string  `json:"Band"`
+	Recordname  string  `json:"Recordname"`
+	Link        string  `json:"Link"`
+	Score       int     `json:"Score"`
+	ReleaseYear string  `json:"ReleaseYear"`
+	Tracks      []Track `json:"Tracks"`
 }
 
-type Highlight struct {
-	Albums   []Album  `json:"Highlights"`
-	NotFound []string `json:"NotFound"`
+type Track struct {
+	Band      string
+	Trackname string
+	Tracklink string
+}
+
+type Highlights struct {
+	Records    []Record `json:"Highlights"`
+	NotFound   []string `json:"NotFound"`
+	PlaylistID string   `json:"PlaylistID"`
 }
 
 func main() {
@@ -35,12 +46,6 @@ func main() {
 
 	// Define a handler function for the root endpoint
 	r.GET("/", func(c *gin.Context) {
-		// Load the template file
-		tmpl, err := template.ParseFiles("templates/records.tmpl", "templates/utils.tmpl")
-		if err != nil {
-			log.Fatalf("Error parsing template: %v", err)
-		}
-
 		// Fetch the album data from the given URL
 		resp, err := http.Get(RecordEndPoint)
 		if err != nil {
@@ -53,26 +58,34 @@ func main() {
 			log.Fatalf("Error reading response body: %v", err)
 		}
 
-		// Unmarshal the JSON data into an array of Album objects
-		var albums []Album
-		if err := json.Unmarshal(body, &albums); err != nil {
-			log.Fatalf("Error unmarshaling album data: %v", err)
+		// Unmarshal the JSON data into an array of Record objects
+		var records []Record
+		if err := json.Unmarshal(body, &records); err != nil {
+			log.Fatalf("Error unmarshaling record data: %v", err)
 		}
 
-		// Execute the template with the album data
-		if err := tmpl.Execute(c.Writer, albums); err != nil {
+		// Load the template file
+		tmpl, err := template.ParseFiles("templates/records.tmpl", "templates/utils.tmpl")
+		if err != nil {
+			log.Fatalf("Error parsing template: %v", err)
+		}
+
+		// Execute the template with the record data
+		if err := tmpl.Execute(c.Writer, records); err != nil {
 			log.Fatalf("Error executing template: %v", err)
 		}
 	})
 
 	r.GET("/createPlaylist", func(c *gin.Context) {
-		// Load the template file
-		tmpl, err := template.ParseFiles("templates/createPlaylist.tmpl", "templates/utils.tmpl")
-		if err != nil {
-			log.Fatalf("Error parsing template: %v", err)
+		playlist := c.DefaultQuery("playlist", "")
+		playlistID := os.Getenv("PLAYLIST_ID")
+		if playlist == "prod" {
+			playlistID = os.Getenv("PLAYLIST_ID_PROD")
 		}
+
+		myPlaylistEndpoint := CreatePlaylistEndpoint + playlistID
 		// Fetch the album data from the given URL
-		resp, err := http.Get(CreatePlaylistEndpoint)
+		resp, err := http.Get(myPlaylistEndpoint)
 		if err != nil {
 			log.Fatalf("Error fetching album data: %v", err)
 		}
@@ -84,9 +97,16 @@ func main() {
 		}
 
 		// Unmarshal the JSON data into an array of Album objects
-		var highlights Highlight
+		var highlights Highlights
 		if err := json.Unmarshal(body, &highlights); err != nil {
 			log.Fatalf("Error unmarshaling album data: %v", err)
+		}
+		highlights.PlaylistID = playlistID
+
+		// Load the template file
+		tmpl, err := template.ParseFiles("templates/createPlaylist.tmpl", "templates/utils.tmpl")
+		if err != nil {
+			log.Fatalf("Error parsing template: %v", err)
 		}
 
 		// Execute the template with the album data
@@ -96,7 +116,7 @@ func main() {
 	})
 
 	// Start the server
-	if err := r.Run(":8080"); err != nil {
+	if err := r.Run(":8081"); err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
 }

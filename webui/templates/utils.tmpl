@@ -9,8 +9,9 @@
 {{define "Navigation"}}
 	<header>
 		<nav>
-			<a href="/">Records of the week</a>
-			<a href="/createPlaylist">Create Spotify playlist</a>
+			<a href="/">📃 List records of the week  </a>
+			<a href="/createPlaylist">🔈 Create TEST Spotify playlist </a>
+			<a href="/createPlaylist?playlist=prod">🔊 Create LIVE Spotify playlist</a>
 		</nav>
 	</header>
 {{end}}
@@ -34,7 +35,13 @@
 				<td>
 					<ul>
 						{{range .Tracks}}
-						<li>{{.}}</li>
+						<li>
+						  {{ if .Tracklink }}
+						  	✅ <a href="{{ .Tracklink}}">{{.Trackname}}</a> 
+						  {{ else }}
+						    ❌ {{.Trackname}} 
+						  {{end}}
+						</li>
 						{{end}}
 					</ul>
 				</td>
