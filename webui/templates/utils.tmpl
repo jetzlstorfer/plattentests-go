@@ -19,8 +19,7 @@
 {{define "RecordHeader"}}
 			<tr>
         <th>Image</th>
-				<th>Band</th>
-				<th>Record Name</th>
+				<th>Band & Record</th>
 				<th>Score</th>
 				<th>Tracks</th>
 			</tr>
@@ -28,22 +27,20 @@
 
 {{define "Record"}}
 			<tr>
-        <td><img src="{{.Image}}" alt="{{.Band}}"></td>
-				<td>{{.Band}}<br><a href="{{.Link}}">go to review</a></td>
-				<td>{{.Recordname}}</td>
+        <td><a href="{{.Link}}"><img src="{{.Image}}" alt="{{.Band}}"></a></td>
+				<td>{{.Band}}<br>
+					<strong>{{.Recordname}}</strong>
+				</td>
 				<td><strong>{{.Score}}</strong></td>
 				<td>
-					<ul>
-						{{range .Tracks}}
-						<li>
-						  {{ if .Tracklink }}
-						  	✅ <a href="{{ .Tracklink}}">{{.Trackname}}</a> 
-						  {{ else }}
-						    ❌ {{.Trackname}} 
-						  {{end}}
-						</li>
-						{{end}}
-					</ul>
+				{{range .Tracks}}
+					{{ if .Tracklink }}
+					✅ <a href="{{ .Tracklink}}">{{.Trackname}}</a> 
+					{{ else }}
+					❌ {{.Trackname}} 
+					{{end}}
+					<br>
+				{{end}}
 				</td>
 			</tr>
 {{end}}
