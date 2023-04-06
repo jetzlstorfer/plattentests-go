@@ -142,7 +142,7 @@ func getHighlightsByRecordLink(recordLink string) Record {
 			if err != nil {
 				log.Printf("Could not convert trackname to UTF8: %v", err)
 			}
-			log.Printf(" Track %d: %s\n", i+1, track)
+			log.Printf(" Track %d: %s\n", i+1, trackname)
 			track.Band = bandname
 			track.Trackname = trackname
 			tracks = append(tracks, track)
