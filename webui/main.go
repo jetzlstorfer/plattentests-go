@@ -17,7 +17,7 @@ const CreatePlaylistEndpoint = "https://plattentests-go.azurewebsites.net/api/cr
 // const RecordEndPoint = "http://localhost:8080/api/records/"
 // const CreatePlaylistEndpoint = "http://localhost:8080/api/createPlaylist/"
 
-// Record represents an album's information
+// Record represents an record's information
 type Record struct {
 	Image       string  `json:"Image"`
 	Band        string  `json:"Band"`
@@ -46,10 +46,10 @@ func main() {
 
 	// Define a handler function for the root endpoint
 	r.GET("/", func(c *gin.Context) {
-		// Fetch the album data from the given URL
+		// Fetch the record data from the given URL
 		resp, err := http.Get(RecordEndPoint)
 		if err != nil {
-			log.Fatalf("Error fetching album data: %v", err)
+			log.Fatalf("Error fetching record data: %v", err)
 		}
 		defer resp.Body.Close()
 
@@ -84,10 +84,10 @@ func main() {
 		}
 
 		myPlaylistEndpoint := CreatePlaylistEndpoint + playlistID
-		// Fetch the album data from the given URL
+		// Fetch the record data from the given URL
 		resp, err := http.Get(myPlaylistEndpoint)
 		if err != nil {
-			log.Fatalf("Error fetching album data: %v", err)
+			log.Fatalf("Error fetching record data: %v", err)
 		}
 		defer resp.Body.Close()
 
@@ -96,10 +96,10 @@ func main() {
 			log.Fatalf("Error reading response body: %v", err)
 		}
 
-		// Unmarshal the JSON data into an array of Album objects
+		// Unmarshal the JSON data into an array of record objects
 		var highlights Highlights
 		if err := json.Unmarshal(body, &highlights); err != nil {
-			log.Fatalf("Error unmarshaling album data: %v", err)
+			log.Fatalf("Error unmarshaling record data: %v", err)
 		}
 		highlights.PlaylistID = playlistID
 
@@ -109,7 +109,7 @@ func main() {
 			log.Fatalf("Error parsing template: %v", err)
 		}
 
-		// Execute the template with the album data
+		// Execute the template with the record data
 		if err := tmpl.Execute(c.Writer, highlights); err != nil {
 			log.Fatalf("Error executing template: %v", err)
 		}
