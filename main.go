@@ -125,15 +125,17 @@ func handler(c *gin.Context) {
 	for _, record := range highlights {
 		log.Println(record.Band + " - " + record.Recordname + ": " + record.Link)
 		var itemsToAdd []spotify.ID
-		for _, track := range record.Tracks {
+		for i, track := range record.Tracks {
 
-			itemID := searchSong(client, track, record)
+			itemID := searchSong(client, track.Trackname, record)
 			if itemID != "" {
 				log.Println("adding item to collection to be added: " + itemID)
 				itemsToAdd = append(itemsToAdd, itemID)
+				record.Tracks[i].Tracklink = "https://open.spotify.com/track/" + itemID.String()
+				//track.Tracklink = "https://open.spotify.com/track/" + itemID.String()
 				// newTracks = append(newTracks, itemsToAdd...)
 			} else {
-				notFound = append(notFound, record.Band+" - "+track)
+				notFound = append(notFound, track.Band+" - "+track.Trackname)
 			}
 			total++
 		}
@@ -150,7 +152,7 @@ func handler(c *gin.Context) {
 	log.Println("found tracks:     ", total-len(notFound))
 	log.Println("not found tracks: ", len(notFound))
 	log.Println()
-	log.Println("Not found search terms: ")
+	log.Println("Not found items: ")
 
 	for _, track := range notFound {
 		log.Println(" " + track)
