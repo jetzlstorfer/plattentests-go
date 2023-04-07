@@ -12,7 +12,7 @@ FROM alpine:3.17
 WORKDIR /
 
 COPY --from=BuildStage /app/webui/templates ./templates
-COPY --from=BuildStage /app/webui/static ./static
+COPY --from=BuildStage /app/webui/assets ./assets
 COPY --from=BuildStage /plattentests-web .
 
 EXPOSE 8081
