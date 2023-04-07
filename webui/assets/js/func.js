@@ -45,6 +45,12 @@ function applyTextColor(row, imageurl) {
 
             // Apply the color to the background of the row
             row.style.color = getOppositeColor(color);
+
+            // Apply the color to all links in the row
+            var links = row.getElementsByTagName('a');
+            for (var i = 0; i < links.length; i++) {
+                links[i].style.color = getOppositeColor(color);
+            }
             return color;
         };
     }
@@ -87,8 +93,6 @@ function getAverageColor(img) {
 
     return rgb;
 }
-
-
 
 function getOppositeColor(color) {
     var r = color.r;
