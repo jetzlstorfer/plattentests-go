@@ -2,6 +2,7 @@
 <head>
 	<meta charset="utf-8">
 	<link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+	<script src="/assets/js/func.js"></script>
 	<title>Plattentests.de 💿 - Highlights of the week</title>
 </head>
 {{end}}
@@ -18,29 +19,32 @@
 
 {{define "RecordHeader"}}
 			<tr>
-        <th>Image</th>
+       			<th>Image</th>
 				<th>Band & Record</th>
 				<th>Score</th>
-				<th>Tracks</th>
+				<th>Highlights</th>
 			</tr>
 {{end}}
 
 {{define "Record"}}
-			<tr>
-        <td><a href="{{.Link}}"><img src="{{.Image}}" alt="{{.Band}}"></a></td>
+			<tr data-imageurl="{{.Image}}">
+       	 		<td><a href="{{.Link}}"><img src="{{.Image}}" alt="{{.Band}}"></a></td>
 				<td>{{.Band}}<br>
 					<strong>{{.Recordname}}</strong>
 				</td>
 				<td><strong>{{.Score}}</strong></td>
 				<td>
-				{{range .Tracks}}
-					{{ if .Tracklink }}
-					✅ <a href="{{ .Tracklink}}">{{.Trackname}}</a> 
-					{{ else }}
-					❌ {{.Trackname}} 
+					<ul>
+					{{range .Tracks}}
+						<li>
+						{{ if .Tracklink }}
+							<a href="{{ .Tracklink}}">{{.Trackname}}</a> 
+						{{ else }}
+							{{.Trackname}} 
+						{{end}}
+						</li>
 					{{end}}
-					<br>
-				{{end}}
+					</ul>
 				</td>
 			</tr>
 {{end}}
@@ -49,4 +53,24 @@
 	<footer>
 		<p>Created with ❤️ by <a href="https://github.com/jetzlstorfer">jetzlstorfer</a><br>Source on <a href="https://github.com/jetzlstorfer/plattentests-go">GitHub</a>. Content crawled from <a href="https://plattentests.de">Plattentests.de</a>.</p>
 	</footer>
+{{end}}
+
+{{define "FormatTableScript" }}
+<script>
+// Get all the rows in the table
+var rows = document.getElementsByTagName("tr");
+
+// Iterate over each row
+for (var i = 0; i < rows.length; i++) {
+    // Get the recordname and imageurl from the row attributes
+    //var recordname = rows[i].getAttribute("data-recordname");
+    var imageurl = rows[i].getAttribute("data-imageurl");
+
+    // Apply the background color to the row
+	if (imageurl != null) {
+    	applyBackgroundColor(rows[i], imageurl);
+		applyTextColor(rows[i], imageurl);
+	}
+}
+</script>
 {{end}}

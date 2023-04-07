@@ -132,8 +132,6 @@ func handler(c *gin.Context) {
 				log.Println("adding item to collection to be added: " + itemID)
 				itemsToAdd = append(itemsToAdd, itemID)
 				record.Tracks[i].Tracklink = "https://open.spotify.com/track/" + itemID.String()
-				//track.Tracklink = "https://open.spotify.com/track/" + itemID.String()
-				// newTracks = append(newTracks, itemsToAdd...)
 			} else {
 				notFound = append(notFound, track.Band+" - "+track.Trackname)
 			}
