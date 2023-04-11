@@ -8,17 +8,7 @@
 
 	<iframe style="border-radius:12px" src="https://open.spotify.com/embed/playlist/{{ .PlaylistID }}?utm_source=generator&theme=0" width="100%" height="600" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
 
-	<table>
-		<thead>
-				{{template "RecordHeader"}}
-		</thead>
-		<tbody>
-			{{range .Records}}
-				{{template "Record" .}}
-			{{end}}
-		</tbody>
-	</table>
-
+	{{template "RecordTable" .Records}}
 	
 	<h3>Not Found</h3>
 
