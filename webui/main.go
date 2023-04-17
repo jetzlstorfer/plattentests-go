@@ -43,6 +43,7 @@ type Highlights struct {
 func main() {
 	// Create a new Gin router
 	r := gin.Default()
+	r.Static("./assets", "./assets")
 
 	// Define a handler function for the root endpoint
 	r.GET("/", func(c *gin.Context) {
