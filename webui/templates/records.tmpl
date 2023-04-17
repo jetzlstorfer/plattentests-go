@@ -6,16 +6,7 @@
 	
 	<h1>Plattentests.de 💿 <br>Highlights of the week </h1>
 
-	<table>
-		<thead>
-				{{template "RecordHeader"}}
-		</thead>
-		<tbody>
-			{{range .}}
-				{{template "Record" .}}
-			{{end}}
-		</tbody>
-	</table>
+	{{template "RecordTable" .}}
 
 	{{template "Footer"}}
 
