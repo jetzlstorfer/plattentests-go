@@ -39,7 +39,11 @@ There is a `Makefile` with multiple targets to be used.
     make run-function
     ```
 
-In either case you'll be prompted to open a URL to trigger the playlist creation.
+- To run the web-frontend of the project (located in `./webui`):
+    ```
+    make web
+    ```
+
 
 ## As Docker container
 
