@@ -160,13 +160,20 @@ func handler(c *gin.Context) {
 	}
 	wg1.Wait()
 
-	// sort items by bandname and score
+	// sort items by highest score and bandname
 	sort.Slice(itemsToAdd[:], func(i, j int) bool {
-		if itemsToAdd[i].bandname == itemsToAdd[j].bandname {
-			return itemsToAdd[i].recordIndex > itemsToAdd[j].recordIndex
+		if itemsToAdd[i].recordIndex == itemsToAdd[j].recordIndex {
+			return itemsToAdd[i].bandname < itemsToAdd[j].bandname
 		}
-		return itemsToAdd[i].bandname < itemsToAdd[j].bandname
+		return itemsToAdd[i].recordIndex > itemsToAdd[j].recordIndex
 	})
+
+	// put record of the week on top of the playlist
+	for _, item := range itemsToAdd {
+		if item.bandname == recordOfTheWeek {
+			itemsToAdd = append([]result{item}, itemsToAdd...)
+		}
+	}
 
 	// extract spotify IDs from itemsToAdd
 	var itemsToAddIDs []spotify.ID
