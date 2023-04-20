@@ -1,6 +1,3 @@
-// This example demonstrates how to authenticate with Spotify using the authorization code flow.
-// In order to run this example yourself, you'll need to:
-//
 //  1. Register an application at: https://developer.spotify.com/my-applications/
 //     - Use "http://localhost:8080/callback" as the redirect URI
 //  2. Set the SPOTIFY_ID environment variable to the client ID you got in step 1.
@@ -14,6 +11,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
@@ -122,27 +120,68 @@ func handler(c *gin.Context) {
 	total := 0
 	// var newTracks []spotify.ID
 	var notFound []string
-	for _, record := range highlights {
-		log.Println(record.Band + " - " + record.Recordname + ": " + record.Link)
-		var itemsToAdd []spotify.ID
-		for i, track := range record.Tracks {
+	var wg1 sync.WaitGroup
+	var wg2 sync.WaitGroup
 
-			itemID := searchSong(client, track.Trackname, record)
-			if itemID != "" {
-				log.Println("adding item to collection to be added: " + itemID)
-				itemsToAdd = append(itemsToAdd, itemID)
-				record.Tracks[i].Tracklink = "https://open.spotify.com/track/" + itemID.String()
-			} else {
-				notFound = append(notFound, track.Band+" - "+track.Trackname)
-			}
-			total++
-		}
-		// remove duplicates
-		noDuplicateTracks := removeDuplicates(itemsToAdd)
+	wg1.Add(len(highlights))
 
-		// now add tracks to playlist
-		addTracks(client, noDuplicateTracks...)
+	type result struct {
+		recordIndex int
+		bandname    string
+		itemID      spotify.ID
 	}
+	var itemsToAdd []result
+	for i, record := range highlights {
+		go func(i int, record crawler.Record) {
+			defer wg1.Done()
+
+			log.Println(record.Band + " - " + record.Recordname + ": " + record.Link)
+
+			for j, track := range record.Tracks {
+				wg2.Add(1)
+				total++
+				go func(j int, track crawler.Track) {
+					defer wg2.Done()
+					itemID := searchSong(client, track.Trackname, record)
+					if itemID != "" {
+						log.Println("adding item to collection to be added: " + itemID)
+						// add new result to itemsToAdd
+						r := result{itemID: itemID, bandname: record.Band, recordIndex: record.Score}
+						itemsToAdd = append(itemsToAdd, r)
+						record.Tracks[j].Tracklink = "https://open.spotify.com/track/" + itemID.String()
+					} else {
+						notFound = append(notFound, track.Band+" - "+track.Trackname)
+					}
+				}(j, track)
+			}
+			wg2.Wait()
+
+		}(i, record)
+	}
+	wg1.Wait()
+
+	// sort items by bandname and score
+	sort.Slice(itemsToAdd[:], func(i, j int) bool {
+		if itemsToAdd[i].bandname == itemsToAdd[j].bandname {
+			return itemsToAdd[i].recordIndex > itemsToAdd[j].recordIndex
+		}
+		return itemsToAdd[i].bandname < itemsToAdd[j].bandname
+	})
+
+	// extract spotify IDs from itemsToAdd
+	var itemsToAddIDs []spotify.ID
+	for _, item := range itemsToAdd {
+		itemsToAddIDs = append(itemsToAddIDs, item.itemID)
+	}
+
+	// remove duplicates
+	log.Println("removing duplicates...")
+	noDuplicateTracks := removeDuplicates(itemsToAddIDs)
+
+	// now add tracks to playlist
+	log.Println("adding tracks to playlist...")
+	addTracks(client, noDuplicateTracks...)
+
 	log.Println()
 	log.Println("--- RESULTS ---")
 	log.Println()
