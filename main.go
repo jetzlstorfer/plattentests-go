@@ -80,20 +80,6 @@ func handler(c *gin.Context) {
 	log.Println("Getting tracks of the week...")
 	highlights := crawler.GetRecordsOfTheWeek()
 
-	// sort record collection
-	sort.Slice(highlights[:], func(i, j int) bool {
-		return highlights[i].Score > highlights[j].Score
-	})
-
-	// put record of the week on top
-	recordOfTheWeek := crawler.GetRecordOfTheWeek()
-	for i, record := range highlights {
-		if record.Band == recordOfTheWeek {
-			highlights = append(highlights[:i], highlights[i+1:]...)
-			highlights = append([]crawler.Record{record}, highlights...)
-			break
-		}
-	}
 	// only use the first records up to MAX_RECORDS_OF_THE_WEEK
 	// this is mainly for debugging purposes
 	if len(highlights) > MaxRecordsOfTheWeek {
@@ -169,6 +155,7 @@ func handler(c *gin.Context) {
 	})
 
 	// put record of the week on top of the playlist
+	recordOfTheWeek := crawler.GetRecordOfTheWeek()
 	for _, item := range itemsToAdd {
 		if item.bandname == recordOfTheWeek {
 			itemsToAdd = append([]result{item}, itemsToAdd...)
