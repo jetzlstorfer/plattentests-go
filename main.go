@@ -172,6 +172,9 @@ func handler(c *gin.Context) {
 	log.Println("removing duplicates...")
 	noDuplicateTracks := removeDuplicates(itemsToAddIDs)
 
+	// sort notfound tracks
+	sort.Strings(notFound)
+
 	// now add tracks to playlist
 	log.Println("adding tracks to playlist...")
 	addTracks(client, noDuplicateTracks...)
