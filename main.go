@@ -17,6 +17,7 @@ import (
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
 	myauth "github.com/jetzlstorfer/plattentests-go/internal/auth"
 	"github.com/zmb3/spotify/v2"
+	"golang.org/x/text/encoding/charmap"
 
 	"github.com/kelseyhightower/envconfig"
 
@@ -155,7 +156,9 @@ func handler(c *gin.Context) {
 	})
 
 	// put record of the week on top of the playlist
-	recordOfTheWeek := crawler.GetRecordOfTheWeek()
+	recordOfTheWeek := crawler.GetRecordOfTheWeekBandName()
+	recordOfTheWeek, _ = charmap.ISO8859_1.NewDecoder().String(recordOfTheWeek)
+
 	for _, item := range itemsToAdd {
 		if item.bandname == recordOfTheWeek {
 			itemsToAdd = append([]result{item}, itemsToAdd...)
@@ -232,6 +235,7 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 		if len(item.Artists) > 1 {
 			bandnameFromSearch += " " + strings.ToLower(item.Artists[1].Name)
 		}
+		bandnameFromSearch, _ = charmap.ISO8859_1.NewDecoder().String(bandnameFromSearch)
 
 		bandnameFromPlattentests := strings.ToLower(record.Band)
 		distance := levenshtein.DistanceForStrings([]rune(bandnameFromSearch), []rune(bandnameFromPlattentests), levenshtein.DefaultOptions)

@@ -14,7 +14,7 @@ import (
 	"golang.org/x/text/encoding/charmap"
 )
 
-const url = "https://www.plattentests.de/index.php"
+const plattentestsUrl = "https://www.plattentests.de/index.php"
 const baseurl = "https://www.plattentests.de/"
 
 // Record holds all information for a record
@@ -36,7 +36,7 @@ type Track struct {
 // GetRecordsOfTheWeek return array of names for highlights of the week
 func GetRecordsOfTheWeek() []Record {
 	// Request the HTML page.
-	res, err := http.Get(url)
+	res, err := http.Get(plattentestsUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -154,9 +154,9 @@ func getHighlightsByRecordLink(recordLink string) Record {
 }
 
 // GetRecordOfTheWeek return name of record of the week
-func GetRecordOfTheWeek() string {
+func GetRecordOfTheWeekBandName() string {
 	// Request the HTML page.
-	res, err := http.Get(url)
+	res, err := http.Get(plattentestsUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
