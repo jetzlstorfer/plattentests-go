@@ -78,18 +78,19 @@ func main() {
 	})
 
 	r.GET("/createPlaylist", func(c *gin.Context) {
+
+		// Check if the user is authenticated
+		user, password, ok := c.Request.BasicAuth()
+		if !ok || !checkAuth(user, password) {
+			c.Header("WWW-Authenticate", "Basic realm=\"Restricted Content\"")
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
 		playlist := c.DefaultQuery("playlist", "")
 		playlistID := os.Getenv("PLAYLIST_ID")
 		if playlist == "prod" {
 			playlistID = os.Getenv("PLAYLIST_ID_PROD")
-			// Check if the user is authenticated
-			user, password, ok := c.Request.BasicAuth()
-			if !ok || !checkAuth(user, password) {
-				c.Header("WWW-Authenticate", "Basic realm=\"Restricted Content\"")
-				c.AbortWithStatus(http.StatusUnauthorized)
-				return
-			}
-
 		}
 
 		myPlaylistEndpoint := CreatePlaylistEndpoint + playlistID
@@ -131,8 +132,7 @@ func main() {
 }
 
 func checkAuth(username, password string) bool {
-	// TODO: Implement a proper authentication
-	if username != "TODO" || password != "TODO" {
+	if username != os.Getenv(("CREATOR_USER")) || password != os.Getenv("CREATOR_PASSWORD") {
 		return false
 	}
 	return true
