@@ -78,6 +78,15 @@ func main() {
 	})
 
 	r.GET("/createPlaylist", func(c *gin.Context) {
+
+		// Check if the user is authenticated
+		user, password, ok := c.Request.BasicAuth()
+		if !ok || !checkAuth(user, password) {
+			c.Header("WWW-Authenticate", "Basic realm=\"Restricted Content\"")
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
 		playlist := c.DefaultQuery("playlist", "")
 		playlistID := os.Getenv("PLAYLIST_ID")
 		if playlist == "prod" {
@@ -120,4 +129,11 @@ func main() {
 	if err := r.Run(":8081"); err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
+}
+
+func checkAuth(username, password string) bool {
+	if username != os.Getenv(("CREATOR_USER")) || password != os.Getenv("CREATOR_PASSWORD") {
+		return false
+	}
+	return true
 }
