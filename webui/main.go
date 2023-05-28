@@ -82,6 +82,14 @@ func main() {
 		playlistID := os.Getenv("PLAYLIST_ID")
 		if playlist == "prod" {
 			playlistID = os.Getenv("PLAYLIST_ID_PROD")
+			// Check if the user is authenticated
+			user, password, ok := c.Request.BasicAuth()
+			if !ok || !checkAuth(user, password) {
+				c.Header("WWW-Authenticate", "Basic realm=\"Restricted Content\"")
+				c.AbortWithStatus(http.StatusUnauthorized)
+				return
+			}
+
 		}
 
 		myPlaylistEndpoint := CreatePlaylistEndpoint + playlistID
@@ -120,4 +128,12 @@ func main() {
 	if err := r.Run(":8081"); err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
+}
+
+func checkAuth(username, password string) bool {
+	// TODO: Implement a proper authentication
+	if username != "TODO" || password != "TODO" {
+		return false
+	}
+	return true
 }
