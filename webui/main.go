@@ -7,8 +7,11 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
 
 	"github.com/gin-gonic/gin"
+	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
+	"golang.org/x/text/encoding/charmap"
 )
 
 const RecordEndPoint = "https://plattentests-go.azurewebsites.net/api/records/"
@@ -44,6 +47,7 @@ func main() {
 	// Create a new Gin router
 	r := gin.Default()
 	r.Static("./assets", "./assets")
+	r.StaticFile("./favicon.ico", "./assets/favicon.ico")
 
 	// Define a handler function for the root endpoint
 	r.GET("/", func(c *gin.Context) {
@@ -63,6 +67,25 @@ func main() {
 		var records []Record
 		if err := json.Unmarshal(body, &records); err != nil {
 			log.Fatalf("Error unmarshaling record data: %v", err)
+		}
+
+		// sort by score
+		if c.DefaultQuery("sort", "title") == "score" {
+			sort.Slice(records, func(i, j int) bool {
+				return records[i].Score > records[j].Score
+			})
+
+			// put record of the week on top of the playlist
+			recordOfTheWeek := crawler.GetRecordOfTheWeekBandName()
+			recordOfTheWeek, _ = charmap.ISO8859_1.NewDecoder().String(recordOfTheWeek)
+
+			// put record of the week on top of the playlist
+			for i, record := range records {
+				if record.Band == recordOfTheWeek {
+					records[0], records[i] = records[i], records[0]
+					break
+				}
+			}
 		}
 
 		// Load the template file
