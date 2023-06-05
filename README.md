@@ -16,6 +16,51 @@
 
 Therefore, some commit messages might not be useful at the moment :)
 
+# Usage
+
+
+💡 For your own convenience, make use of Codespaces or run it locally as devcontainer.
+
+There is a `Makefile` with multiple targets to be used. 
+⚠️ Make sure you have the proper `ENV` variables set in a `.env` file.
+
+- To create a token and store it in Azure:
+    ```
+    make token
+    ```
+
+- To run the project locally as Go binary:
+    ```
+    make run
+    ```
+
+- To run the project locally as a function:
+    ```
+    make run-function
+    ```
+
+- To run the web-frontend of the project (located in `./webui`):
+    ```
+    make web
+    ```
+
+
+## As Docker container
+
+You can also run the project as a Docker container.
+
+- Azure Function: 
+    ```
+    docker build -t plattentests-go .
+    docker run -p 8080:8080 plattentests-go
+    ```
+- Web Frontend (make sure it points to the correct function URL)
+    ```
+    cd webui
+    docker build -t plattentests-go-web .
+    docker run -p 8081:8081 plattentests-go-web
+    ```
+
 # Architecture
 
 ## Get records
@@ -64,43 +109,3 @@ sequenceDiagram
     ACA->>User: records
     
 ```
-
-
-# Usage
-
-
-💡 For your own convenience, make use of Codespaces or run it locally as devcontainer.
-
-There is a `Makefile` with multiple targets to be used. 
-⚠️ Make sure you have the proper `ENV` variables set in a `.env` file.
-
-- To create a token and store it in Azure:
-    ```
-    make token
-    ```
-
-- To run the project locally as Go binary:
-    ```
-    make run
-    ```
-
-- To run the project locally as a function:
-    ```
-    make run-function
-    ```
-
-- To run the web-frontend of the project (located in `./webui`):
-    ```
-    make web
-    ```
-
-
-## As Docker container
-
-You can also run the project as a Docker container.
-
-- Build and run the container:
-    ```
-    docker build -t plattentests-go .
-    docker run -p 8080:8080 plattentests-go
-    ```
