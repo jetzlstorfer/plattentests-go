@@ -2,20 +2,17 @@
 <html>
 {{template "HtmlHead"}}
 <body>
-	<h1>Plattentests.de 💿 <br>Highlights of the week </h1>
 	{{template "Navigation"}}
 	
-	<table>
-		<thead>
-				{{template "RecordHeader"}}
-		</thead>
-		<tbody>
-			{{range .}}
-				{{template "Record" .}}
-			{{end}}
-		</tbody>
-	</table>
+	<h1>Plattentests.de 💿 <br>Highlights of the week </h1>
+
+	<p>	Sort by <a href="?sort=title">title</a> | <a href="?sort=score">score</a></p>
+
+	{{template "RecordTable" .}}
 
 	{{template "Footer"}}
+
+
+{{template "FormatTableScript"}}
 </body>
 </html>

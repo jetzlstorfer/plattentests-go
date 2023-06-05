@@ -14,7 +14,7 @@ import (
 	"golang.org/x/text/encoding/charmap"
 )
 
-const url = "https://www.plattentests.de/index.php"
+const plattentestsUrl = "https://www.plattentests.de/index.php"
 const baseurl = "https://www.plattentests.de/"
 
 // Record holds all information for a record
@@ -25,13 +25,18 @@ type Record struct {
 	Link        string
 	Score       int
 	ReleaseYear string
-	Tracks      []string
+	Tracks      []Track
+}
+type Track struct {
+	Band      string
+	Trackname string
+	Tracklink string
 }
 
 // GetRecordsOfTheWeek return array of names for highlights of the week
 func GetRecordsOfTheWeek() []Record {
 	// Request the HTML page.
-	res, err := http.Get(url)
+	res, err := http.Get(plattentestsUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -123,20 +128,23 @@ func getHighlightsByRecordLink(recordLink string) Record {
 
 	score, _ := strconv.Atoi(strings.Split(doc.Find("p.bewertung strong").First().Text(), "/")[0])
 
-	var tracks []string
+	var tracks []Track
 	record := Record{image, bandname, recordname, recordLink, score, releaseYear, tracks}
 	log.Printf("%s - %s\n", bandname, recordname)
 	doc.Find("#rezihighlights li").Each(func(i int, s *goquery.Selection) {
 		// For each item found, get the band and title
-		track := s.Text()
+		track := Track{}
+		trackname := s.Text()
 		// only proceed if there are highlights available
-		if strings.Trim(track, " ") != "-" {
-			// decoce into utf-8
-			track, err = charmap.ISO8859_1.NewDecoder().String(track)
+		if strings.Trim(trackname, " ") != "-" {
+			// decode into utf-8
+			trackname, err = charmap.ISO8859_1.NewDecoder().String(trackname)
 			if err != nil {
 				log.Printf("Could not convert trackname to UTF8: %v", err)
 			}
-			log.Printf(" Track %d: %s\n", i+1, track)
+			log.Printf(" Track %d: %s\n", i+1, trackname)
+			track.Band = bandname
+			track.Trackname = trackname
 			tracks = append(tracks, track)
 		}
 	})
@@ -146,9 +154,9 @@ func getHighlightsByRecordLink(recordLink string) Record {
 }
 
 // GetRecordOfTheWeek return name of record of the week
-func GetRecordOfTheWeek() string {
+func GetRecordOfTheWeekBandName() string {
 	// Request the HTML page.
-	res, err := http.Get(url)
+	res, err := http.Get(plattentestsUrl)
 	if err != nil {
 		log.Fatal(err)
 	}

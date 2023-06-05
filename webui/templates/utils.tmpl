@@ -1,48 +1,84 @@
 {{define "HtmlHead"}}
 <head>
 	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
 	<link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
-	<title>Highlights of the week</title>
+	<link rel="stylesheet" href="/assets/css/style.css">
+	<script src="/assets/js/func.js"></script>
+	<title>Plattentests.de 💿 - Highlights of the week</title>
 </head>
 {{end}}
 
 {{define "Navigation"}}
 	<header>
 		<nav>
-			<a href="/">Records of the week</a>
-			<a href="/createPlaylist">Create Spotify playlist</a>
+			<a href="/">📃 List </a>
+			<a href="/createPlaylist">🔈 Test </a>
+			<a href="/createPlaylist?playlist=prod">🔊 Prod</a>
 		</nav>
 	</header>
 {{end}}
 
-{{define "RecordHeader"}}
+{{define "RecordTable"}}
+	<table class="recordTable">
+		<thead>
 			<tr>
-        <th>Image</th>
-				<th>Band</th>
-				<th>Record Name</th>
-				<th>Score</th>
-				<th>Tracks</th>
+       			<th>Image</th>
+				<th>Band & Record</th>
+				<th>Highlights</th>
 			</tr>
+		</thead>
+		<tbody>
+			{{range .}}
+				<tr data-imageurl="{{.Image}}">
+					<td><a href="{{.Link}}"><img src="{{.Image}}" alt="{{.Band}}"></a></td>
+					<td>{{.Band}}<br>
+						<strong>{{.Recordname}}</strong><br>
+						💿 {{.Score}}/10
+					</td>
+					<td>
+						<ul>
+						{{range .Tracks}}
+							<li>
+							{{ if .Tracklink }}
+								<a href="{{ .Tracklink}}">{{.Trackname}}</a> 
+							{{ else }}
+								{{.Trackname}} 
+							{{end}}
+							</li>
+						{{end}}
+						</ul>
+					</td>
+				</tr>
+			{{end}}
+		</tbody>
+	</table>
 {{end}}
 
-{{define "Record"}}
-			<tr>
-        <td><img src="{{.Image}}" alt="{{.Band}}"></td>
-				<td>{{.Band}}<br><a href="{{.Link}}">go to review</a></td>
-				<td>{{.Recordname}}</td>
-				<td><strong>{{.Score}}</strong></td>
-				<td>
-					<ul>
-						{{range .Tracks}}
-						<li>{{.}}</li>
-						{{end}}
-					</ul>
-				</td>
-			</tr>
-{{end}}
 
 {{define "Footer"}}
 	<footer>
-		<p>Created with ❤️<br>Source on <a href="https://github.com/jetzlstorfer/plattentests-go">GitHub</a>. Content crawled from <a href="https://plattentests.de">Plattentests.de</a>.</p>
+		<p>Created with ❤️ by <a href="https://github.com/jetzlstorfer">jetzlstorfer</a><br>Source on <a href="https://github.com/jetzlstorfer/plattentests-go">GitHub</a>. Content crawled from <a href="https://plattentests.de">Plattentests.de</a>.</p>
 	</footer>
+{{end}}
+
+{{define "FormatTableScript" }}
+<script>
+// Get all the rows in the table
+var rows = document.getElementsByTagName("tr");
+
+// Iterate over each row
+for (var i = 0; i < rows.length; i++) {
+    // Get the recordname and imageurl from the row attributes
+    //var recordname = rows[i].getAttribute("data-recordname");
+    var imageurl = rows[i].getAttribute("data-imageurl");
+
+    // Apply the background color to the row
+	if (imageurl != null) {
+    	applyBackgroundColor(rows[i], imageurl);
+		applyTextColor(rows[i], imageurl);
+	}
+}
+</script>
 {{end}}

@@ -1,6 +1,7 @@
 # Plattentests.de - Highlights der Woche
 
-[![Build and deploy to Azure function](https://github.com/jetzlstorfer/plattentests-go/actions/workflows/cicd.yml/badge.svg)](https://github.com/jetzlstorfer/plattentests-go/actions/workflows/cicd.yml)
+[![Build and deploy to Azure function](https://github.com/jetzlstorfer/plattentests-go/actions/workflows/deploy-functions.yml/badge.svg)](https://github.com/jetzlstorfer/plattentests-go/actions/workflows/deploy-functions.yml)
+[![Build and deploy to Azure Container Apps](https://github.com/jetzlstorfer/plattentests-go/actions/workflows/deploy-aca.yml/badge.svg)](https://github.com/jetzlstorfer/plattentests-go/actions/workflows/deploy-aca.yml)
 [![CodeQL](https://github.com/jetzlstorfer/plattentests-go/actions/workflows/codeql.yml/badge.svg)](https://github.com/jetzlstorfer/plattentests-go/actions/workflows/codeql.yml)
 [![Dependency Review](https://github.com/jetzlstorfer/plattentests-go/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/jetzlstorfer/plattentests-go/actions/workflows/dependency-review.yml)
 
@@ -9,7 +10,7 @@
 1. The original purpose of generating a [Spotify playlist](https://open.spotify.com/playlist/2Bc5TRdMTj6OHwt32x5T6Y?si=c7cf976d4d124bef) that lists all "highlights" of the week of my personal favourite music website [Plattentests.de](https://plattentests.de).
 1. The purpose of getting to know more about serverless and Azure functions
 1. A playground for features like
-    - Codespaces & devcontainers,
+   - Codespaces & devcontainers,
    - GitHub actions,
    - GitHub co-pilot and other features of GitHub.
 
@@ -87,7 +88,11 @@ There is a `Makefile` with multiple targets to be used.
     make run-function
     ```
 
-In either case you'll be prompted to open a URL to trigger the playlist creation.
+- To run the web-frontend of the project (located in `./webui`):
+    ```
+    make web
+    ```
+
 
 ## As Docker container
 

@@ -7,7 +7,7 @@ on:
     branches: 
       [ main ]
     paths:
-    - '**'
+    - 'webui/**' 
 
   # Allow mannually trigger 
   workflow_dispatch:      
