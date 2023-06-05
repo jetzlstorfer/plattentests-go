@@ -24,12 +24,10 @@ Therefore, some commit messages might not be useful at the moment :)
 ```mermaid
 
 sequenceDiagram
-    box GetRecords
     actor User
     participant ACA as Azure Container App (Web UI)
     participant Function as Azure Function
     participant Plattentests as Plattentests.de Website
-    end
 
     User->>ACA: get request
     ACA->>Function: get records
@@ -46,13 +44,11 @@ sequenceDiagram
 ```mermaid
 
 sequenceDiagram
-    box Create Playlist
     actor User
     participant ACA as Azure Container App (Web UI)
     participant Function as Azure Function
     participant Plattentests as Plattentests.de Website
     participant Spotify
-    end
 
     User->>ACA: create playlist (id)
     ACA->>Function: create playlist
