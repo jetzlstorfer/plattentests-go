@@ -55,8 +55,11 @@ sequenceDiagram
     Function->>Function: update token
     Function->>Plattentests: get records
     Plattentests->>Function: records
-    Function->>Spotify: create playlist
-    Spotify->>Function: finish
+    loop for each record
+        Function->>Spotify: search record
+        Spotify->>Function: record
+        Function->>Spotify: add record to playlist
+    end
     Function->>ACA: records
     ACA->>User: records
     
