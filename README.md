@@ -16,7 +16,6 @@
 
 Therefore, some commit messages might not be useful at the moment :)
 
-
 # Usage
 
 
@@ -50,8 +49,63 @@ There is a `Makefile` with multiple targets to be used.
 
 You can also run the project as a Docker container.
 
-- Build and run the container:
+- Azure Function: 
     ```
     docker build -t plattentests-go .
     docker run -p 8080:8080 plattentests-go
     ```
+- Web Frontend (make sure it points to the correct function URL)
+    ```
+    cd webui
+    docker build -t plattentests-go-web .
+    docker run -p 8081:8081 plattentests-go-web
+    ```
+
+# Architecture
+
+## Get records
+
+
+```mermaid
+
+sequenceDiagram
+    actor User
+    participant ACA as Azure Container App (Web UI)
+    participant Function as Azure Function
+    participant Plattentests as Plattentests.de Website
+
+    User->>ACA: get request
+    ACA->>Function: get records
+    Function->>Function: update token
+    Function->>Plattentests: get records
+    Plattentests->>Function: records
+    Function->>ACA: records
+    ACA->>User: records
+    
+```
+
+## Create Playlist
+
+```mermaid
+
+sequenceDiagram
+    actor User
+    participant ACA as Azure Container App (Web UI)
+    participant Function as Azure Function
+    participant Plattentests as Plattentests.de Website
+    participant Spotify
+
+    User->>ACA: create playlist (id)
+    ACA->>Function: create playlist
+    Function->>Function: update token
+    Function->>Plattentests: get records
+    Plattentests->>Function: records
+    loop for each record
+        Function->>Spotify: search record
+        Spotify->>Function: record
+        Function->>Spotify: add record to playlist
+    end
+    Function->>ACA: records
+    ACA->>User: records
+    
+```
