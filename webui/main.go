@@ -70,7 +70,7 @@ func main() {
 		}
 
 		// sort by score
-		if c.DefaultQuery("sort", "title") == "score" {
+		if c.DefaultQuery("sort", "score") == "score" {
 			sort.Slice(records, func(i, j int) bool {
 				return records[i].Score > records[j].Score
 			})
