@@ -6,8 +6,8 @@ on:
   push:
     branches: 
       [ main ]
-    paths:
-    - 'webui/**' 
+    # paths:
+    # - 'webui/**' 
 
   # Allow mannually trigger 
   workflow_dispatch:      
