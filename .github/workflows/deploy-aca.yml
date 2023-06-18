@@ -1,4 +1,4 @@
-name: Trigger deployment on Azure container apps
+name: Build and deploy on Azure container apps
 
 # When this action will be executed
 on:
