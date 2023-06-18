@@ -1,4 +1,4 @@
-name: Trigger deployment on Azure container apps
+name: Build and deploy on Azure container apps
 
 # When this action will be executed
 on:
@@ -6,9 +6,11 @@ on:
   push:
     branches: 
       [ main ]
-    paths:
-    - 'webui/**' 
-
+    # paths:
+    # - 'webui/**' 
+  pull_request:
+    branches: 
+      [ main ]
   # Allow mannually trigger 
   workflow_dispatch:      
 
@@ -40,6 +42,7 @@ jobs:
 
 
   deploy:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: build
     
