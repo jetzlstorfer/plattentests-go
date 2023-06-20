@@ -20,7 +20,7 @@ import (
 // You must register an application at Spotify's developer portal
 // and enter this value.
 const Port = "8080"
-const RedirectURI = "http://localhost:" + Port + "/callback"
+const RedirectURI = "http://localhost:" + Port + "/callback" // DevSkim: ignore DS137138
 
 var (
 	SpotifyAuthenticator = spotifyauth.New(spotifyauth.WithRedirectURL(RedirectURI), spotifyauth.WithScopes(spotifyauth.ScopePlaylistModifyPrivate, spotifyauth.ScopePlaylistModifyPublic))
