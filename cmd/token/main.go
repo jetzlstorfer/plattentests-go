@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 
 	myauth "github.com/jetzlstorfer/plattentests-go/internal/auth"
 	"github.com/kelseyhightower/envconfig"
@@ -80,7 +80,7 @@ func completeAuth(w http.ResponseWriter, r *http.Request) {
 		log.Fatalf("could not marshal token: %v", err)
 	}
 
-	err = ioutil.WriteFile(config.TokenFile, btys, 0644)
+	err = os.WriteFile(config.TokenFile, btys, 0644)
 	if err != nil {
 		log.Fatalf("could not write file: %v", err)
 	}
