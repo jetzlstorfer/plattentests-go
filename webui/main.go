@@ -144,6 +144,25 @@ func main() {
 		}
 		highlights.PlaylistID = playlistID
 
+		// sort by score
+		if c.DefaultQuery("sort", "score") == "score" {
+			sort.Slice(highlights.Records, func(i, j int) bool {
+				return highlights.Records[i].Score > highlights.Records[j].Score
+			})
+
+			// put record of the week on top of the playlist
+			recordOfTheWeek := crawler.GetRecordOfTheWeekBandName()
+			recordOfTheWeek, _ = charmap.ISO8859_1.NewDecoder().String(recordOfTheWeek)
+
+			// put record of the week on top of the playlist
+			for i, record := range highlights.Records {
+				if record.Band == recordOfTheWeek {
+					highlights.Records[0], highlights.Records[i] = highlights.Records[i], highlights.Records[0]
+					break
+				}
+			}
+		}
+
 		// Load the template file
 		tmpl, err := template.ParseFiles("templates/createPlaylist.tmpl", "templates/utils.tmpl")
 		if err != nil {
