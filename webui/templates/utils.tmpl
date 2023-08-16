@@ -24,13 +24,13 @@
 	<table class="recordTable">
 		<thead>
 			<tr>
-       			<th>Image</th>
+				<th>Image</th>
 				<th>Band & Record</th>
 				<th>Highlights</th>
 			</tr>
 		</thead>
 		<tbody>
-			{{range .}}
+			{{range .Records}}
 				<tr data-imageurl="{{.Image}}">
 					<td><a href="{{.Link}}"><img src="{{.Image}}" alt="{{.Band}}"></a></td>
 					<td>{{.Band}}<br>
@@ -60,6 +60,7 @@
 {{define "Footer"}}
 	<footer>
 		<p>Created with ❤️ by <a href="https://github.com/jetzlstorfer">jetzlstorfer</a><br>Source on <a href="https://github.com/jetzlstorfer/plattentests-go">GitHub</a>. Content crawled from <a href="https://plattentests.de">Plattentests.de</a>.</p>
+		<p>commit hash: {{ .GitInfo }}</p>
 	</footer>
 {{end}}
 

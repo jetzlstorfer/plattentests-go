@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime/debug"
 	"sort"
 
 	"github.com/gin-gonic/gin"
@@ -94,10 +95,17 @@ func main() {
 			log.Fatalf("Error parsing template: %v", err)
 		}
 
+		data := make(map[string]interface{})
+		data["Records"] = records
+		data["GitInfo"] = getCommitInfo()
+
+		//log.Println("GitInfo: " + data["GitInfo"])
+
 		// Execute the template with the record data
-		if err := tmpl.Execute(c.Writer, records); err != nil {
+		if err := tmpl.Execute(c.Writer, data); err != nil {
 			log.Fatalf("Error executing template: %v", err)
 		}
+
 	})
 
 	r.GET("/createPlaylist", func(c *gin.Context) {
@@ -178,4 +186,15 @@ func checkAuth(username, password string) bool {
 		return false
 	}
 	return true
+}
+
+func getCommitInfo() string {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, setting := range info.Settings {
+			if setting.Key == "vcs.revision" {
+				return setting.Value
+			}
+		}
+	}
+	return ""
 }
