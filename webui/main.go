@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime/debug"
 	"sort"
 
 	"github.com/gin-gonic/gin"
@@ -51,6 +52,8 @@ func main() {
 
 	// Define a handler function for the root endpoint
 	r.GET("/", func(c *gin.Context) {
+		log.Println("revision: " + getCommitInfo())
+
 		// Fetch the record data from the given URL
 		resp, err := http.Get(RecordEndPoint)
 		if err != nil {
@@ -178,4 +181,15 @@ func checkAuth(username, password string) bool {
 		return false
 	}
 	return true
+}
+
+func getCommitInfo() string {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, setting := range info.Settings {
+			if setting.Key == "vcs.revision" {
+				return setting.Value
+			}
+		}
+	}
+	return ""
 }
