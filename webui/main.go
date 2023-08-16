@@ -99,6 +99,8 @@ func main() {
 		data["Records"] = records
 		data["GitInfo"] = getCommitInfo()
 
+		//log.Println("GitInfo: " + data["GitInfo"])
+
 		// Execute the template with the record data
 		if err := tmpl.Execute(c.Writer, data); err != nil {
 			log.Fatalf("Error executing template: %v", err)
