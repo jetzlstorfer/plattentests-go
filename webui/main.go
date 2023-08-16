@@ -99,8 +99,6 @@ func main() {
 		data["Records"] = records
 		data["GitInfo"] = getCommitInfo()
 
-		//log.Println("GitInfo: " + data["GitInfo"])
-
 		// Execute the template with the record data
 		if err := tmpl.Execute(c.Writer, data); err != nil {
 			log.Fatalf("Error executing template: %v", err)
@@ -168,6 +166,10 @@ func main() {
 		if err != nil {
 			log.Fatalf("Error parsing template: %v", err)
 		}
+
+		data := make(map[string]interface{})
+		data["Records"] = highlights
+		data["GitInfo"] = getCommitInfo()
 
 		// Execute the template with the record data
 		if err := tmpl.Execute(c.Writer, highlights); err != nil {
