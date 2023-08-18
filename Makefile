@@ -31,4 +31,4 @@ docker-web-build:
 	docker build --build-arg GIT_SHA=$(GIT_SHA) -f ./webui/Dockerfile -t jetzlstorfer/plattentests-webui:latest .
 
 docker-web-run:
-	docker run -p 8080:8080 jetzlstorfer/plattentests-webui:latest
+	docker run -p 8081:8081 jetzlstorfer/plattentests-webui:latest
