@@ -38,6 +38,7 @@ jobs:
           push: true
           tags: jetzlstorfer/plattentests-web:${{ github.sha }}
           file: ./webui/Dockerfile
+          build-args: GIT_SHA=${{ github.sha }}
           context: .
 
 
