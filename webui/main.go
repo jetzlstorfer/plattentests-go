@@ -113,6 +113,7 @@ func main() {
 		if !ok || !checkAuth(user, password) {
 			c.Header("WWW-Authenticate", "Basic realm=\"Restricted Content\"")
 			c.AbortWithStatus(http.StatusUnauthorized)
+			log.Println("could not authenticate user")
 			return
 		}
 
@@ -172,7 +173,7 @@ func main() {
 		data["GitInfo"] = getCommitInfo()
 
 		// Execute the template with the record data
-		if err := tmpl.Execute(c.Writer, highlights); err != nil {
+		if err := tmpl.Execute(c.Writer, data); err != nil {
 			log.Fatalf("Error executing template: %v", err)
 		}
 	})
@@ -185,6 +186,7 @@ func main() {
 
 func checkAuth(username, password string) bool {
 	if username != os.Getenv(("CREATOR_USER")) || password != os.Getenv("CREATOR_PASSWORD") {
+		log.Println("wrong credentials")
 		return false
 	}
 	return true
