@@ -5,7 +5,11 @@ WORKDIR /app
 COPY . .
 RUN go mod download
 
-RUN cd webui && go build -o /plattentests-web
+# see https://gist.github.com/bodhi/2c2152bb69dd2ef769002bf175a3d509
+
+ARG GIT_SHA
+
+RUN cd webui && go build -ldflags "-X git.sha=${GIT_SHA}" -o /plattentests-web
 
 FROM alpine:3.17
 

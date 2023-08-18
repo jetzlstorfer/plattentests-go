@@ -191,12 +191,17 @@ func checkAuth(username, password string) bool {
 }
 
 func getCommitInfo() string {
-	if info, ok := debug.ReadBuildInfo(); ok {
-		for _, setting := range info.Settings {
-			if setting.Key == "vcs.revision" {
-				return setting.Value
+	if os.Getenv("git.sha") != "" {
+		return os.Getenv("git.sha")
+	} else {
+		if info, ok := debug.ReadBuildInfo(); ok {
+			for _, setting := range info.Settings {
+				if setting.Key == "vcs.revision" {
+					return setting.Value
+				}
 			}
 		}
 	}
 	return ""
+
 }
