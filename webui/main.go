@@ -191,8 +191,9 @@ func checkAuth(username, password string) bool {
 }
 
 func getCommitInfo() string {
-	if os.Getenv("git.sha") != "" {
-		return os.Getenv("git.sha")
+	log.Println("get commit info: " + os.Getenv("GIT_SHA"))
+	if os.Getenv("GIT_SHA") != "" {
+		return os.Getenv("GIT_SHA")
 	} else {
 		if info, ok := debug.ReadBuildInfo(); ok {
 			for _, setting := range info.Settings {
@@ -202,6 +203,5 @@ func getCommitInfo() string {
 			}
 		}
 	}
-	return ""
-
+	return "nothing found"
 }
