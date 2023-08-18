@@ -203,5 +203,5 @@ func getCommitInfo() string {
 			}
 		}
 	}
-	return "nothing found"
+	return ""
 }

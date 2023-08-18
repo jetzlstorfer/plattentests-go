@@ -60,7 +60,7 @@
 {{define "Footer"}}
 	<footer>
 		<p>Created with ❤️ by <a href="https://github.com/jetzlstorfer">jetzlstorfer</a><br>Source on <a href="https://github.com/jetzlstorfer/plattentests-go">GitHub</a>. Content crawled from <a href="https://plattentests.de">Plattentests.de</a>.</p>
-		<p>commit hash: {{ .GitInfo }}</p>
+		<p>{{if .GitInfo}} git commit hash: <a href="https://github.com/jetzlstorfer/plattentests-go/commit/{{.GitInfo}}">{{.GitInfo}}</a> {{else}} no git commit hash found {{end}}</p>
 	</footer>
 {{end}}
 
