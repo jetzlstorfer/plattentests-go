@@ -9,6 +9,7 @@ import (
 	"os"
 	"runtime/debug"
 	"sort"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
@@ -79,13 +80,16 @@ func main() {
 			// put record of the week on top of the playlist
 			recordOfTheWeek := crawler.GetRecordOfTheWeekBandName()
 			recordOfTheWeek, _ = charmap.ISO8859_1.NewDecoder().String(recordOfTheWeek)
+			recordOfTheWeek = strings.Trim(recordOfTheWeek, " ")
 
 			// put record of the week on top of the playlist
 			for i, record := range records {
 				if record.Band == recordOfTheWeek {
+					log.Println("record of the week found: " + recordOfTheWeek)
 					records[0], records[i] = records[i], records[0]
 					break
 				}
+				log.Println("record of the week not found: " + record.Band + " vs " + recordOfTheWeek)
 			}
 		}
 
