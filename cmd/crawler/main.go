@@ -119,6 +119,7 @@ func getHighlightsByRecordLink(recordLink string) Record {
 	}
 	bandname := strings.Split(doc.Find("h1").Text(), " - ")[0]
 	bandname, _ = charmap.ISO8859_1.NewDecoder().String(bandname)
+	bandname = strings.Trim(bandname, " ")
 	recordname := strings.Split(doc.Find("h1").Text(), " - ")[1]
 	recordname, _ = charmap.ISO8859_1.NewDecoder().String(recordname)
 	// for the releaseYear, find the following pattern ": dd.mm.yyyy"
