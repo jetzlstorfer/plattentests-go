@@ -43,7 +43,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: plattentests-go
-    - uses: azure/login@v1
+    - uses: azure/login@v2
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
     - name: Azure Functions Action
