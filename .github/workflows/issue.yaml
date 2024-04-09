@@ -29,6 +29,9 @@ jobs:
 
           fs.writeFileSync('./ISSUE_CONTENT.md', issue.data.body);
           
+    - name: comment on issue
+      
+
     - name: Commit and push if it changed
       run: |
         git config --global user.name 'Automated'
