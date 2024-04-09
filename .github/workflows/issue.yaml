@@ -30,7 +30,15 @@ jobs:
           fs.writeFileSync('./ISSUE_CONTENT.md', issue.data.body);
           
     - name: comment on issue
-      
+      uses: actions/github-script@v4
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            body: 'I have written the issue content to a file. You can see it [here](./ISSUE_CONTENT.md).'
 
     - name: Commit and push if it changed
       run: |
