@@ -10,7 +10,7 @@ require (
 	github.com/texttheater/golang-levenshtein/levenshtein v0.0.0-20200805054039-cae8b0eaed6c
 	github.com/zmb3/spotify/v2 v2.4.2
 	golang.org/x/oauth2 v0.22.0
-	golang.org/x/text v0.17.0
+	golang.org/x/text v0.20.0
 )
 
 require (
