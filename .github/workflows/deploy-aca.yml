@@ -12,7 +12,14 @@ on:
     branches: 
       [ main ]
   # Allow mannually trigger 
-  workflow_dispatch:      
+  workflow_dispatch:   
+
+
+permissions:
+  id-token: write #This is required for requesting the OIDC JWT Token
+  contents: read #Required when GH token is used to authenticate with private repo
+
+   
 
 jobs:
   build:
@@ -45,9 +52,6 @@ jobs:
   deploy:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    permissions: 
-      id-token: write #This is required for requesting the OIDC JWT Token
-      contents: read #Required when GH token is used to authenticate with private repo
     needs: build
     
     steps:
