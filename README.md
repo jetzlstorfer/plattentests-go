@@ -16,6 +16,13 @@
 
 Therefore, some commit messages might not be useful at the moment :)
 
+# Structure
+
+In the root directory, you will find the following folders:
+- `cmd`: Contains the main function of the project for the Azure Function
+- `webui`: Contains the web frontend of the project --> this is an Azure Container App with its own Dockerfile
+
+
 # Usage
 
 
