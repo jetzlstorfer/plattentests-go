@@ -29,12 +29,14 @@ jobs:
     - name: Test
       run: go test -v ./...
 
+    - name: Zip the build output
+      run: zip -r myapp.zip ./myapp
+
     - name: Upload
       uses: actions/upload-artifact@v4
       with:
         name: plattentests-go
-        path: ./myapp
-
+        path: myapp.zip
 
   deploy:
     if: github.ref == 'refs/heads/main'
@@ -61,4 +63,4 @@ jobs:
         az functionapp deployment source config-zip \
           --resource-group rg-plattentests-go \
           --name plattentests-go \
-          --src ./myapp
+          --src ./myapp/myapp.zip
