@@ -110,13 +110,13 @@ func main() {
 
 		results := creator.CreatePlaylist(playlistID)
 		var highlights creator.Result
-		highlights.Highlights = results.Highlights
+		highlights.Records = results.Records
 		highlights.PlaylistID = playlistID
 
 		// sort by score
 		if c.DefaultQuery("sort", "score") == "score" {
-			sort.Slice(highlights.Highlights, func(i, j int) bool {
-				return highlights.Highlights[i].Score > highlights.Highlights[j].Score
+			sort.Slice(highlights.Records, func(i, j int) bool {
+				return highlights.Records[i].Score > highlights.Records[j].Score
 			})
 
 			// put record of the week on top of the playlist
@@ -124,9 +124,9 @@ func main() {
 			recordOfTheWeek, _ = charmap.ISO8859_1.NewDecoder().String(recordOfTheWeek)
 
 			// put record of the week on top of the playlist
-			for i, record := range highlights.Highlights {
+			for i, record := range highlights.Records {
 				if record.Band == recordOfTheWeek {
-					highlights.Highlights[0], highlights.Highlights[i] = highlights.Highlights[i], highlights.Highlights[0]
+					highlights.Records[0], highlights.Records[i] = highlights.Records[i], highlights.Records[0]
 					break
 				}
 			}
