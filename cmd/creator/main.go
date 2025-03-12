@@ -37,7 +37,7 @@ var (
 )
 
 type Result struct {
-	Highlights []crawler.Record
+	Records    []crawler.Record
 	NotFound   []string
 	PlaylistID string
 }
@@ -187,8 +187,8 @@ func CreatePlaylist(pid string) Result {
 	outputJSON["notFound"] = notFound
 
 	return Result{
-		Highlights: highlights,
-		NotFound:   notFound,
+		Records:  highlights,
+		NotFound: notFound,
 	}
 }
 
