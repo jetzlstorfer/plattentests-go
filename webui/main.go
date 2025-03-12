@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"html/template"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -13,14 +11,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
+	creator "github.com/jetzlstorfer/plattentests-go/cmd/creator"
 	"golang.org/x/text/encoding/charmap"
 )
 
-const RecordEndPoint = "https://plattentests-go.azurewebsites.net/api/records/"
-const CreatePlaylistEndpoint = "https://plattentests-go.azurewebsites.net/api/createPlaylist/"
-
-// const RecordEndPoint = "http://localhost:8080/api/records/"
-// const CreatePlaylistEndpoint = "http://localhost:8080/api/createPlaylist/"
+//const RecordEndPoint = "https://plattentests-go.azurewebsites.net/api/records/"
+//const CreatePlaylistEndpoint = "https://plattentests-go.azurewebsites.net/api/createPlaylist/"
 
 // Record represents an record's information
 type Record struct {
@@ -53,23 +49,8 @@ func main() {
 
 	// Define a handler function for the root endpoint
 	r.GET("/", func(c *gin.Context) {
-		// Fetch the record data from the given URL
-		resp, err := http.Get(RecordEndPoint)
-		if err != nil {
-			log.Fatalf("Error fetching record data: %v", err)
-		}
-		defer resp.Body.Close()
 
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			log.Fatalf("Error reading response body: %v", err)
-		}
-
-		// Unmarshal the JSON data into an array of Record objects
-		var records []Record
-		if err := json.Unmarshal(body, &records); err != nil {
-			log.Fatalf("Error unmarshaling record data: %v", err)
-		}
+		records := crawler.GetRecordsOfTheWeek()
 
 		// sort by score
 		if c.DefaultQuery("sort", "score") == "score" {
@@ -127,30 +108,15 @@ func main() {
 			playlistID = os.Getenv("PLAYLIST_ID_PROD")
 		}
 
-		myPlaylistEndpoint := CreatePlaylistEndpoint + playlistID
-		// Fetch the record data from the given URL
-		resp, err := http.Get(myPlaylistEndpoint)
-		if err != nil {
-			log.Fatalf("Error fetching record data: %v", err)
-		}
-		defer resp.Body.Close()
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			log.Fatalf("Error reading response body: %v", err)
-		}
-
-		// Unmarshal the JSON data into an array of record objects
-		var highlights Highlights
-		if err := json.Unmarshal(body, &highlights); err != nil {
-			log.Fatalf("Error unmarshaling record data: %v", err)
-		}
+		results := creator.CreatePlaylist(playlistID)
+		var highlights creator.Result
+		highlights.Highlights = results.Highlights
 		highlights.PlaylistID = playlistID
 
 		// sort by score
 		if c.DefaultQuery("sort", "score") == "score" {
-			sort.Slice(highlights.Records, func(i, j int) bool {
-				return highlights.Records[i].Score > highlights.Records[j].Score
+			sort.Slice(highlights.Highlights, func(i, j int) bool {
+				return highlights.Highlights[i].Score > highlights.Highlights[j].Score
 			})
 
 			// put record of the week on top of the playlist
@@ -158,9 +124,9 @@ func main() {
 			recordOfTheWeek, _ = charmap.ISO8859_1.NewDecoder().String(recordOfTheWeek)
 
 			// put record of the week on top of the playlist
-			for i, record := range highlights.Records {
+			for i, record := range highlights.Highlights {
 				if record.Band == recordOfTheWeek {
-					highlights.Records[0], highlights.Records[i] = highlights.Records[i], highlights.Records[0]
+					highlights.Highlights[0], highlights.Highlights[i] = highlights.Highlights[i], highlights.Highlights[0]
 					break
 				}
 			}
