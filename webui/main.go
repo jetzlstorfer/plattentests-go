@@ -111,6 +111,7 @@ func main() {
 		results := creator.CreatePlaylist(playlistID)
 		var highlights creator.Result
 		highlights.Records = results.Records
+		highlights.NotFound = results.NotFound
 		highlights.PlaylistID = playlistID
 
 		// sort by score
