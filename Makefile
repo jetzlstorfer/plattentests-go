@@ -5,7 +5,7 @@ export
 GIT_SHA=$(shell git rev-parse HEAD)
 
 run:
-	go run main.go
+	go run backend/main.go
 
 install-lint:
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.51.2

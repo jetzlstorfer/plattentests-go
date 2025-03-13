@@ -1,20 +1,13 @@
-// 1. Register an application at: https://developer.spotify.com/my-applications/
-//   - Use "http://localhost:8080/callback" as the redirect URI
-//
-// 2. Set the SPOTIFY_ID environment variable to the client ID you got in step 1.
-// 3. Set the SPOTIFY_SECRET environment variable to the client secret from step 1.
-package main
+package creator
 
 import (
 	"context"
 	"log"
-	"net/http"
 	"os"
 	"sort"
 	"strings"
 	"sync"
 
-	"github.com/gin-gonic/gin"
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
 	myauth "github.com/jetzlstorfer/plattentests-go/internal/auth"
 	"github.com/zmb3/spotify/v2"
@@ -43,33 +36,25 @@ var (
 	}
 )
 
-var playlistID spotify.ID
-
-func main() {
-	// log a welcome message in bold letters
-	log.Println("\033[1mPlattentests.de Highlights of the week playlist generator\033[0m")
-
-	r := gin.Default()
-	r.GET("/api/createPlaylist/", handler)
-	r.GET("/api/createPlaylist/:id", handler)
-	r.GET("/api/records/", crawler.PrintRecordsOfTheWeek)
-	r.GET("/api/records/:id", crawler.GetRecord)
-	r.POST("/playlistTimerTrigger", handler) // used by timer trigger, therefore no /api prefix
-	_ = r.Run(getPort())
-
+type Result struct {
+	Records    []crawler.Record
+	NotFound   []string
+	PlaylistID string
 }
 
-func handler(c *gin.Context) {
+var playlistID spotify.ID
+
+func CreatePlaylist(pid string) Result {
 	err := envconfig.Process("", &config)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
-	if c.Param("id") == "" {
+	if pid == "" {
 		playlistID = spotify.ID(os.Getenv("PLAYLIST_ID"))
 
 	} else {
-		playlistID = spotify.ID(c.Param("id"))
+		playlistID = spotify.ID(pid)
 	}
 
 	log.Println("Plattentests.de Highlights of the week playlist generator")
@@ -201,7 +186,10 @@ func handler(c *gin.Context) {
 	outputJSON["highlights"] = highlights
 	outputJSON["notFound"] = notFound
 
-	c.IndentedJSON(http.StatusOK, outputJSON)
+	return Result{
+		Records:  highlights,
+		NotFound: notFound,
+	}
 }
 
 // searches a song given by the track and record name and returns spotify.ID if successful
