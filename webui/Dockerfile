@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine as BuildStage
+FROM golang:1.23-alpine AS buildstage
 
 WORKDIR /app
 
@@ -7,13 +7,13 @@ RUN go mod download
 
 RUN cd webui && go build -o /plattentests-web
 
-FROM alpine:3.17
+FROM alpine:3.19
 
 WORKDIR /
 
-COPY --from=BuildStage /app/webui/templates ./templates
-COPY --from=BuildStage /app/webui/assets ./assets
-COPY --from=BuildStage /plattentests-web .
+COPY --from=buildstage /app/webui/templates ./templates
+COPY --from=buildstage /app/webui/assets ./assets
+COPY --from=buildstage /plattentests-web .
 
 # see https://gist.github.com/bodhi/2c2152bb69dd2ef769002bf175a3d509
 
