@@ -6,13 +6,11 @@ require (
 	github.com/Azure/azure-storage-blob-go v0.15.0
 	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/gin-gonic/gin v1.10.1
-	github.com/PuerkitoBio/goquery v1.10.2
-	github.com/gin-gonic/gin v1.10.1
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/texttheater/golang-levenshtein/levenshtein v0.0.0-20200805054039-cae8b0eaed6c
 	github.com/zmb3/spotify/v2 v2.4.3
-	golang.org/x/oauth2 v0.29.0
-	golang.org/x/text v0.24.0
+	golang.org/x/oauth2 v0.30.0
+	golang.org/x/text v0.26.0
 )
 
 require (
@@ -37,11 +35,11 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
-	github.com/ugorji/go/codec v1.2.12 // indirect
-	golang.org/x/arch v0.16.0 // indirect
-	golang.org/x/crypto v0.37.0 // indirect
-	golang.org/x/net v0.39.0 // indirect
-	golang.org/x/sys v0.32.0 // indirect
+	github.com/ugorji/go/codec v1.3.0 // indirect
+	golang.org/x/arch v0.18.0 // indirect
+	golang.org/x/crypto v0.39.0 // indirect
+	golang.org/x/net v0.41.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
