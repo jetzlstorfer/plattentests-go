@@ -1,3 +1,45 @@
+/* Legacy styles for table fallback */
 .recordTable td ul {
     padding-inline-start: 20px;
+}
+
+/* Additional modern enhancements */
+.record-card img {
+    transition: transform 0.3s ease;
+}
+
+.record-card:hover img {
+    transform: scale(1.02);
+}
+
+/* Custom scrollbar for webkit browsers */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--gray-100);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--gray-400);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-500);
+}
+
+@media (prefers-color-scheme: dark) {
+    ::-webkit-scrollbar-track {
+        background: var(--dark-surface);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: var(--dark-border);
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--gray-600);
+    }
 }

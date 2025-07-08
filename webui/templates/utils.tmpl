@@ -3,7 +3,10 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
-	<link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="/assets/css/modern.css">
 	<link rel="stylesheet" href="/assets/css/style.css">
 	<script src="/assets/js/func.js"></script>
 	<title>Plattentests.de 💿 - Highlights of the week</title>
@@ -12,15 +15,47 @@
 
 {{define "Navigation"}}
 	<header>
-		<nav>
-			<a href="/">📃 List </a>
-			<a href="/createPlaylist">🔈 Test </a>
-			<a href="/createPlaylist?playlist=prod">🔊 Prod</a>
-		</nav>
+		<div class="container">
+			<nav>
+				<a href="/">📃 List</a>
+				<a href="/createPlaylist">🔈 Test</a>
+				<a href="/createPlaylist?playlist=prod">🔊 Prod</a>
+			</nav>
+		</div>
 	</header>
 {{end}}
 
 {{define "RecordTable"}}
+	<!-- Modern Cards Grid -->
+	<div class="records-grid">
+		{{range .Records}}
+			<div class="record-card" data-imageurl="{{.Image}}">
+				<div class="record-image">
+					<a href="{{.Link}}">
+						<img src="{{.Image}}" alt="{{.Band}}" loading="lazy">
+					</a>
+					<div class="record-score">💿 {{.Score}}/10</div>
+				</div>
+				<div class="record-content">
+					<div class="record-band">{{.Band}}</div>
+					<div class="record-title">{{.Recordname}}</div>
+					<ul class="record-tracks">
+						{{range .Tracks}}
+							<li>
+							{{ if .Tracklink }}
+								<a href="{{ .Tracklink}}">{{.Trackname}}</a> 
+							{{ else }}
+								{{.Trackname}} 
+							{{end}}
+							</li>
+						{{end}}
+					</ul>
+				</div>
+			</div>
+		{{end}}
+	</div>
+
+	<!-- Fallback Table (hidden by default) -->
 	<table class="recordTable">
 		<thead>
 			<tr>
@@ -59,32 +94,60 @@
 
 {{define "Footer"}}
 	<footer>
-		<p>Coded with ❤️ by <a href="https://github.com/jetzlstorfer">jetzlstorfer</a><br>Source on <a href="https://github.com/jetzlstorfer/plattentests-go">GitHub</a>. Content crawled from <a href="https://plattentests.de">Plattentests.de</a>.</p>
-		<p>{{if .GitInfo}} 
-				<a href="https://github.com/jetzlstorfer/plattentests-go/commit/{{.GitInfo}}"><img alt="GitHub last commit (branch)" src="https://img.shields.io/github/last-commit/jetzlstorfer/plattentests-go/main"></a> 
-			{{else}} 
-				<img alt="GitHub last commit (branch)" src="https://img.shields.io/github/last-commit/jetzlstorfer/plattentests-go/main">
- 			{{end}}
- 		</p>
+		<div class="container">
+			<p>Coded with ❤️ by <a href="https://github.com/jetzlstorfer">jetzlstorfer</a><br>Source on <a href="https://github.com/jetzlstorfer/plattentests-go">GitHub</a>. Content crawled from <a href="https://plattentests.de">Plattentests.de</a>.</p>
+			<p>{{if .GitInfo}} 
+					<a href="https://github.com/jetzlstorfer/plattentests-go/commit/{{.GitInfo}}"><img alt="GitHub last commit (branch)" src="https://img.shields.io/github/last-commit/jetzlstorfer/plattentests-go/main"></a> 
+				{{else}} 
+					<img alt="GitHub last commit (branch)" src="https://img.shields.io/github/last-commit/jetzlstorfer/plattentests-go/main">
+	 			{{end}}
+	 		</p>
+		</div>
 	</footer>
 {{end}}
 
 {{define "FormatTableScript" }}
 <script>
-// Get all the rows in the table
-var rows = document.getElementsByTagName("tr");
+// Get all the elements with data-imageurl (both cards and table rows)
+var cards = document.querySelectorAll('.record-card[data-imageurl]');
+var rows = document.querySelectorAll('tr[data-imageurl]');
 
-// Iterate over each row
-for (var i = 0; i < rows.length; i++) {
-    // Get the recordname and imageurl from the row attributes
-    //var recordname = rows[i].getAttribute("data-recordname");
-    var imageurl = rows[i].getAttribute("data-imageurl");
+// Apply styling to modern cards
+cards.forEach(function(card) {
+    var imageurl = card.getAttribute("data-imageurl");
+    if (imageurl) {
+        applyBackgroundColor(card, imageurl);
+        applyTextColor(card, imageurl);
+    }
+});
 
-    // Apply the background color to the row
-	if (imageurl != null) {
-    	applyBackgroundColor(rows[i], imageurl);
-		applyTextColor(rows[i], imageurl);
-	}
-}
+// Apply styling to table rows (fallback)
+rows.forEach(function(row) {
+    var imageurl = row.getAttribute("data-imageurl");
+    if (imageurl) {
+        applyBackgroundColor(row, imageurl);
+        applyTextColor(row, imageurl);
+    }
+});
+
+// Add some modern interactions
+document.addEventListener('DOMContentLoaded', function() {
+    // Smooth scroll for navigation links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            document.querySelector(this.getAttribute('href')).scrollIntoView({
+                behavior: 'smooth'
+            });
+        });
+    });
+    
+    // Add loading class removal after cards are loaded
+    setTimeout(function() {
+        document.querySelectorAll('.record-card').forEach(function(card) {
+            card.classList.remove('loading');
+        });
+    }, 100);
+});
 </script>
 {{end}}
