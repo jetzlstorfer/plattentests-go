@@ -1,11 +1,11 @@
 /* Modern 2025 Design System */
 :root {
-  /* Modern Color Palette */
-  --primary-500: #6366f1;
-  --primary-600: #4f46e5;
-  --primary-700: #4338ca;
-  --primary-50: #eef2ff;
-  --primary-100: #e0e7ff;
+  /* Modern Color Palette - Bright Cyan/Teal */
+  --primary-500: #06b6d4;
+  --primary-600: #0891b2;
+  --primary-700: #0e7490;
+  --primary-50: #ecfeff;
+  --primary-100: #cffafe;
   
   --gray-50: #f9fafb;
   --gray-100: #f3f4f6;
