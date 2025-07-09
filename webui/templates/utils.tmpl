@@ -17,9 +17,9 @@
 	<header>
 		<div class="container">
 			<nav>
-				<a href="/" aria-label="List view">📃 List</a>
-				<a href="/createPlaylist" aria-label="Test view">🔈 Test</a>
-				<a href="/createPlaylist?playlist=prod" aria-label="Production view">🔊 Prod</a>
+				<a href="/" aria-label="List view"><span class="emoji">📃</span> List</a>
+				<a href="/createPlaylist" aria-label="Test view"><span class="emoji">🔈</span> Test</a>
+				<a href="/createPlaylist?playlist=prod" aria-label="Production view"><span class="emoji">🔊</span> Prod</a>
 			</nav>
 		</div>
 	</header>
@@ -34,7 +34,7 @@
 					<a href="{{.Link}}">
 						<img src="{{.Image}}" alt="Cover art for {{.Band}} – {{.Recordname}}" loading="lazy">
 					</a>
-					<div class="record-score">💿 {{.Score}}/10</div>
+					<div class="record-score"><span class="emoji">💿</span> {{.Score}}/10</div>
 				</div>
 				<div class="record-content">
 					<div class="record-band">{{.Band}}</div>
@@ -43,9 +43,9 @@
 						{{range .Tracks}}
 							<li>
 							{{ if .Tracklink }}
-								🎵 <a href="{{ .Tracklink}}">{{.Trackname}}</a> 
+								<span class="emoji">🎵</span> <a href="{{ .Tracklink}}">{{.Trackname}}</a> 
 							{{ else }}
-								🔍 {{.Trackname}} 
+								<span class="emoji">🔍</span> {{.Trackname}} 
 							{{end}}
 							</li>
 						{{end}}
@@ -70,16 +70,16 @@
 					<td><a href="{{.Link}}"><img src="{{.Image}}" alt="{{.Band}}"></a></td>
 					<td>{{.Band}}<br>
 						<strong>{{.Recordname}}</strong><br>
-						💿 {{.Score}}/10
+						<span class="emoji">💿</span> {{.Score}}/10
 					</td>
 					<td>
 						<ul>
 						{{range .Tracks}}
 							<li>
 							{{ if .Tracklink }}
-								🎵 <a href="{{ .Tracklink}}">{{.Trackname}}</a> 
+								<span class="emoji">🎵</span> <a href="{{ .Tracklink}}">{{.Trackname}}</a> 
 							{{ else }}
-								🔍 {{.Trackname}} 
+								<span class="emoji">🔍</span> {{.Trackname}} 
 							{{end}}
 							</li>
 						{{end}}
@@ -95,7 +95,7 @@
 {{define "Footer"}}
 	<footer>
 		<div class="container">
-			<p>Coded with ❤️ by <a href="https://github.com/jetzlstorfer">jetzlstorfer</a><br>Source on <a href="https://github.com/jetzlstorfer/plattentests-go">GitHub</a>. Content crawled from <a href="https://plattentests.de">Plattentests.de</a>.</p>
+			<p>Coded with <span class="emoji">❤️</span> by <a href="https://github.com/jetzlstorfer">jetzlstorfer</a><br>Source on <a href="https://github.com/jetzlstorfer/plattentests-go">GitHub</a>. Content crawled from <a href="https://plattentests.de">Plattentests.de</a>.</p>
 			<p>{{if .GitInfo}} 
 					<a href="https://github.com/jetzlstorfer/plattentests-go/commit/{{.GitInfo}}"><img alt="GitHub last commit (branch)" src="https://img.shields.io/github/last-commit/jetzlstorfer/plattentests-go/main"></a> 
 				{{else}} 
