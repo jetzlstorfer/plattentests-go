@@ -109,8 +109,8 @@
 {{define "FormatTableScript" }}
 <script>
 // Get all the elements with data-imageurl (both cards and table rows)
-var cards = document.querySelectorAll('.record-card[data-imageurl]');
-var rows = document.querySelectorAll('tr[data-imageurl]');
+const cards = document.querySelectorAll('.record-card[data-imageurl]');
+const rows = document.querySelectorAll('tr[data-imageurl]');
 
 // Apply styling to modern cards
 cards.forEach(function(card) {
