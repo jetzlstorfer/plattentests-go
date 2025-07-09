@@ -4,15 +4,22 @@
 <body>
 	{{template "Navigation"}}
 	
-	<h1>Plattentests.de 💿 <br>Highlights of the week </h1>
+	<div class="container">
+		<div class="hero">
+			<h1>Plattentests.de 💿<br>Highlights of the week</h1>
+			<p>Discover the best music reviews and recommendations</p>
+		</div>
 
-	<p>	Sort by <a href="?sort=title">title</a> | <a href="?sort=score">score</a></p>
+		<div class="sort-controls">
+			<a href="?sort=title">Sort by Title</a>
+			<a href="?sort=score">Sort by Score</a>
+		</div>
 
-	{{template "RecordTable" .}}
+		{{template "RecordTable" .}}
+	</div>
 
 	{{template "Footer" .}}
 
-
-{{template "FormatTableScript"}}
+	{{template "FormatTableScript"}}
 </body>
 </html>

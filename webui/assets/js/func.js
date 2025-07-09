@@ -1,6 +1,6 @@
 
-function applyBackgroundColor(row, imageurl) {
-    if (row) {
+function applyBackgroundColor(element, imageurl) {
+    if (element) {
         // Create a new image element
         var img = new Image();
 
@@ -17,16 +17,30 @@ function applyBackgroundColor(row, imageurl) {
             // Calculate the average color of the image
             var color = getAverageColor(img);
 
-            // Apply the color to the background of the row
-            let transparency = 0.9;
-            row.style.backgroundColor = "rgb(" + color.r + " " + color.g + " " + color.b + " / " + transparency +")";
+            // Apply subtle gradient background to card
+            let transparency = 0.1;
+            let gradientColor = `rgba(${color.r}, ${color.g}, ${color.b}, ${transparency})`;
+            
+            // Apply to record card
+            if (element.classList.contains('record-card')) {
+                element.style.background = `linear-gradient(135deg, white 0%, ${gradientColor} 100%)`;
+                
+                // For dark mode
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    element.style.background = `linear-gradient(135deg, var(--dark-surface) 0%, rgba(${color.r}, ${color.g}, ${color.b}, 0.2) 100%)`;
+                }
+            } else {
+                // Fallback for table rows
+                element.style.backgroundColor = `rgba(${color.r}, ${color.g}, ${color.b}, ${transparency})`;
+            }
+            
             return color;
         };
     }
 }
 
-function applyTextColor(row, imageurl) {
-    if (row) {
+function applyTextColor(element, imageurl) {
+    if (element) {
         // Create a new image element
         var img = new Image();
 
@@ -42,15 +56,24 @@ function applyTextColor(row, imageurl) {
         img.onload = function() {
             // Calculate the average color of the image
             var color = getAverageColor(img);
+            var textColor = getOppositeColor(color);
 
-            // Apply the color to the background of the row
-            row.style.color = getOppositeColor(color);
+            // For modern cards, we don't need to change text color as much
+            // The design already handles contrast well
+            if (element.classList.contains('record-card')) {
+                // Only apply subtle adjustments if needed
+                return color;
+            } else {
+                // Apply to table rows (fallback)
+                element.style.color = textColor;
 
-            // Apply the color to all links in the row
-            var links = row.getElementsByTagName('a');
-            for (var i = 0; i < links.length; i++) {
-                links[i].style.color = getOppositeColor(color);
+                // Apply the color to all links in the row
+                var links = element.getElementsByTagName('a');
+                for (var i = 0; i < links.length; i++) {
+                    links[i].style.color = textColor;
+                }
             }
+            
             return color;
         };
     }
