@@ -21,6 +21,9 @@
 				<a href="/createPlaylist" aria-label="Test view"><span class="emoji">🔈</span> Test</a>
 				<a href="/createPlaylist?playlist=prod" aria-label="Production view"><span class="emoji">🔊</span> Prod</a>
 			</nav>
+			<div class="header-title" id="header-title">
+				<span>Plattentests.de 💿</span>
+			</div>
 		</div>
 	</header>
 {{end}}
@@ -130,8 +133,39 @@ rows.forEach(function(row) {
     }
 });
 
+// Header title scroll functionality
+function handleHeaderTitle() {
+    const headerTitle = document.getElementById('header-title');
+    const heroSection = document.querySelector('.hero');
+    
+    if (!headerTitle || !heroSection) return;
+    
+    const observer = new IntersectionObserver(
+        (entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    // Hero is visible, hide header title
+                    headerTitle.classList.remove('visible');
+                } else {
+                    // Hero is not visible, show header title
+                    headerTitle.classList.add('visible');
+                }
+            });
+        },
+        {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        }
+    );
+    
+    observer.observe(heroSection);
+}
+
 // Add some modern interactions
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize header title scroll functionality
+    handleHeaderTitle();
+    
     // Smooth scroll for navigation links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
