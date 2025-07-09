@@ -4,14 +4,18 @@ import (
 	"context"
 	"log"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
+	"unicode"
 
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
 	myauth "github.com/jetzlstorfer/plattentests-go/internal/auth"
 	"github.com/zmb3/spotify/v2"
 	"golang.org/x/text/encoding/charmap"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
 
 	"github.com/kelseyhightower/envconfig"
 
@@ -220,13 +224,12 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 		// TODO not only use first item!
 		item := results.Tracks.Tracks[0]
 
-		bandnameFromSearch := strings.ToLower(item.Artists[0].Name)
+		bandnameFromSearch := normalizeForComparison(item.Artists[0].Name)
 		if len(item.Artists) > 1 {
-			bandnameFromSearch += " " + strings.ToLower(item.Artists[1].Name)
+			bandnameFromSearch += " " + normalizeForComparison(item.Artists[1].Name)
 		}
-		bandnameFromSearch, _ = charmap.ISO8859_1.NewDecoder().String(bandnameFromSearch)
 
-		bandnameFromPlattentests := strings.ToLower(record.Band)
+		bandnameFromPlattentests := normalizeForComparison(record.Band)
 		distance := levenshtein.DistanceForStrings([]rune(bandnameFromSearch), []rune(bandnameFromPlattentests), levenshtein.DefaultOptions)
 		log.Println(" Levenshtein distance between", bandnameFromSearch, "and", bandnameFromPlattentests, ":", distance)
 		threshold := 0.8
@@ -241,8 +244,8 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 		}
 
 		// calculate the levenshtein distance between the trackname from the search and the trackname from the record
-		tracknameFromSearch := strings.ToLower(item.Name)
-		tracknameFromPlattentests := strings.ToLower(track)
+		tracknameFromSearch := normalizeForComparison(item.Name)
+		tracknameFromPlattentests := normalizeForComparison(track)
 		distance = levenshtein.DistanceForStrings([]rune(tracknameFromSearch), []rune(tracknameFromPlattentests), levenshtein.DefaultOptions)
 
 		calculatedThreshold = 1 - float64(distance)/float64(max(len(tracknameFromSearch), len(tracknameFromPlattentests)))
@@ -288,10 +291,50 @@ func addTracks(client spotify.Client, trackids ...spotify.ID) bool {
 // removes parts of string that should not be in search term
 func sanitizeTrackname(trackname string) string {
 	sanitizedName := trackname
+	
+	// Remove common patterns
 	sanitizedName = strings.Split(sanitizedName, "(feat. ")[0]
 	sanitizedName = strings.Split(sanitizedName, "(with ")[0]
 	sanitizedName = strings.Split(sanitizedName, "(Bonus)")[0]
+	
+	// Remove quotes and brackets
+	sanitizedName = strings.ReplaceAll(sanitizedName, "\"", "")
+	sanitizedName = strings.ReplaceAll(sanitizedName, "'", "")
+	sanitizedName = regexp.MustCompile(`\[.*?\]`).ReplaceAllString(sanitizedName, "")
+	
+	// Remove special punctuation that might interfere with search
+	specialChars := regexp.MustCompile(`[:\-&!?.,;]`)
+	sanitizedName = specialChars.ReplaceAllString(sanitizedName, " ")
+	
+	// Normalize Unicode characters (remove accents/diacritics)
+	sanitizedName = removeAccents(sanitizedName)
+	
+	// Clean up extra spaces
+	sanitizedName = regexp.MustCompile(`\s+`).ReplaceAllString(sanitizedName, " ")
+	sanitizedName = strings.TrimSpace(sanitizedName)
+	
 	return sanitizedName
+}
+
+// removeAccents removes accents and diacritics from Unicode characters
+func removeAccents(s string) string {
+	t := transform.Chain(norm.NFD, transform.RemoveFunc(func(r rune) bool {
+		return unicode.Is(unicode.Mn, r) // Mn: nonspacing marks
+	}), norm.NFC)
+	result, _, _ := transform.String(t, s)
+	return result
+}
+
+// normalizeForComparison normalizes a string for better comparison
+func normalizeForComparison(s string) string {
+	// Convert to lowercase and remove accents
+	normalized := strings.ToLower(removeAccents(s))
+	// Remove common punctuation that might interfere with comparison
+	specialChars := regexp.MustCompile(`[:\-&!?.,;'"()]`)
+	normalized = specialChars.ReplaceAllString(normalized, " ")
+	// Clean up extra spaces
+	normalized = regexp.MustCompile(`\s+`).ReplaceAllString(normalized, " ")
+	return strings.TrimSpace(normalized)
 }
 
 func removeDuplicates(sliceList []spotify.ID) []spotify.ID {
