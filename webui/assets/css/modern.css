@@ -115,6 +115,16 @@ h1 {
   margin-bottom: var(--space-6);
 }
 
+/* Preserve emoji colors by resetting text-fill-color for emoji spans */
+h1 .emoji,
+.emoji {
+  -webkit-text-fill-color: initial !important;
+  color: initial !important;
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+}
+
 h2 {
   font-size: 2rem;
 }
