@@ -1,7 +1,7 @@
 # See here for image contents: https://github.com/microsoft/vscode-dev-containers/tree/v0.238.1/containers/go/.devcontainer/base.Dockerfile
 
 # [Choice] Go version (use -bullseye variants on local arm64/Apple Silicon): 1, 1.16, 1.17, 1-bullseye, 1.16-bullseye, 1.17-bullseye, 1-buster, 1.16-buster, 1.17-buster
-ARG VARIANT="1.23"
+ARG VARIANT="1.24"
 FROM mcr.microsoft.com/vscode/devcontainers/go:${VARIANT}
 
 # [Choice] Node.js version: none, lts/*, 16, 14, 12, 10
@@ -12,12 +12,6 @@ RUN if [ "${NODE_VERSION}" != "none" ]; then su vscode -c "umask 0002 && . /usr/
 # RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 #     && apt-get -y install --no-install-recommends <your-package-list-here>
 
-# azure functions core tools
-RUN curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg \
-  && sudo mv microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg \
-  && sudo sh -c 'echo "deb [arch=amd64] https://packages.microsoft.com/debian/$(lsb_release -rs | cut -d'.' -f 1)/prod $(lsb_release -cs) main" > /etc/apt/sources.list.d/dotnetdev.list' \
-  && sudo apt-get update \
-  && sudo apt-get install azure-functions-core-tools-4
 
 # github cli
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \

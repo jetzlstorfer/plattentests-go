@@ -1,6 +1,6 @@
 module github.com/jetzlstorfer/plattentests-go
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.15.0
@@ -9,17 +9,18 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/texttheater/golang-levenshtein/levenshtein v0.0.0-20200805054039-cae8b0eaed6c
 	github.com/zmb3/spotify/v2 v2.4.3
-	golang.org/x/oauth2 v0.30.0
-	golang.org/x/text v0.28.0
+	golang.org/x/oauth2 v0.31.0
+	golang.org/x/text v0.29.0
 )
 
 require (
 	github.com/Azure/azure-pipeline-go v0.2.3 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
-	github.com/bytedance/sonic v1.14.0 // indirect
+	github.com/bytedance/gopkg v0.1.3 // indirect
+	github.com/bytedance/sonic v1.14.1 // indirect
 	github.com/bytedance/sonic/loader v0.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.9 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.10 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
@@ -36,10 +37,10 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
-	golang.org/x/arch v0.20.0 // indirect
-	golang.org/x/crypto v0.41.0 // indirect
-	golang.org/x/net v0.43.0 // indirect
-	golang.org/x/sys v0.35.0 // indirect
-	google.golang.org/protobuf v1.36.7 // indirect
+	golang.org/x/arch v0.21.0 // indirect
+	golang.org/x/crypto v0.42.0 // indirect
+	golang.org/x/net v0.44.0 // indirect
+	golang.org/x/sys v0.36.0 // indirect
+	google.golang.org/protobuf v1.36.9 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
