@@ -31,6 +31,35 @@ In the root directory, you will find the following folders:
 There is a `Makefile` with multiple targets to be used. 
 ⚠️ Make sure you have the proper `ENV` variables set in a `.env` file.
 
+## Configuration
+
+### Environment Variables vs Azure Key Vault
+
+This application supports two methods for managing secrets:
+
+1. **Environment Variables** (traditional method): Set secrets in a `.env` file or as environment variables
+2. **Azure Key Vault** (recommended for production): Store secrets securely in Azure Key Vault
+
+#### Using Azure Key Vault
+
+To use Azure Key Vault for secret management:
+
+1. Set the `AZURE_KEYVAULT_URL` environment variable to your Key Vault URL (e.g., `https://your-keyvault.vault.azure.net/`)
+2. Store the following secrets in your Key Vault with these names:
+   - `SPOTIFY-ID` - Spotify API Client ID
+   - `SPOTIFY-SECRET` - Spotify API Client Secret
+   - `PLAYLIST-ID` - Default Spotify Playlist ID
+   - `PLAYLIST-ID-PROD` - Production Spotify Playlist ID
+   - `AZ-ACCOUNT` - Azure Storage Account Name
+   - `AZ-KEY` - Azure Storage Account Key
+   - `AZ-CONTAINER` - Azure Storage Container Name
+   - `CREATOR-USER` - Basic auth username for playlist creation
+   - `CREATOR-PASSWORD` - Basic auth password for playlist creation
+
+3. Ensure your application has access to the Key Vault using Azure managed identity or other authentication methods supported by `DefaultAzureCredential`
+
+**Note:** If `AZURE_KEYVAULT_URL` is not set, the application will fall back to using environment variables with the original names (e.g., `SPOTIFY_ID`, `SPOTIFY_SECRET`, etc.).
+
 - To create a token and store it in Azure:
     ```
     make token

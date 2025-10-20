@@ -22,10 +22,7 @@ var (
 	channel              = make(chan *spotify.Client)
 	state                = "myCrazyState"
 	config               struct {
-		TokenFile       string `envconfig:"TOKEN_FILE" required:"true"`
-		AzAccountName   string `envconfig:"AZ_ACCOUNT" required:"true"`
-		AzAccountKey    string `envconfig:"AZ_KEY" required:"true"`
-		AzContainerName string `envconfig:"AZ_CONTAINER" required:"true"`
+		TokenFile string `envconfig:"TOKEN_FILE" required:"true"`
 	}
 )
 

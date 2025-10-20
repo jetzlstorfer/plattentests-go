@@ -10,3 +10,6 @@ AZ_KEY=
 
 TOKEN_FILE=token.txt
 
+# Azure Key Vault URL (e.g., https://your-keyvault.vault.azure.net/)
+# When set, secrets will be fetched from Key Vault instead of environment variables
+AZURE_KEYVAULT_URL=
