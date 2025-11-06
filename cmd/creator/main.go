@@ -196,6 +196,60 @@ func CreatePlaylist(pid string) Result {
 	}
 }
 
+// selectBestTrack selects the best matching track from search results
+// Priority:
+// 1. If track name matches record name, prioritize that
+// 2. Prefer album versions over singles/EPs
+// 3. Use first result as fallback
+func selectBestTrack(tracks []spotify.FullTrack, trackName string, record crawler.Record) *spotify.FullTrack {
+	if len(tracks) == 0 {
+		return nil
+	}
+
+	normalizedTrackName := normalizeForComparison(trackName)
+	normalizedRecordName := normalizeForComparison(record.Recordname)
+
+	type scoredTrack struct {
+		track *spotify.FullTrack
+		score int
+	}
+
+	var scored []scoredTrack
+
+	for i := range tracks {
+		track := &tracks[i]
+		score := 0
+
+		// Priority 1: Track name matches record name
+		normalizedAlbumName := normalizeForComparison(track.Album.Name)
+		if normalizedTrackName == normalizedRecordName && normalizedAlbumName == normalizedRecordName {
+			score += 1000
+			log.Printf(" [Priority] Track name '%s' matches record name '%s' on album '%s'", trackName, record.Recordname, track.Album.Name)
+		}
+
+		// Priority 2: Prefer album over single/EP
+		if track.Album.AlbumType == "album" {
+			score += 100
+		} else if track.Album.AlbumType == "single" {
+			score += 10
+		}
+		// EP gets no bonus (score += 0)
+
+		// Priority 3: Earlier results get slight tiebreaker preference (all else being equal)
+		score += (len(tracks) - i)
+
+		scored = append(scored, scoredTrack{track: track, score: score})
+		log.Printf(" [Score %d] %s - %s (%s) [%s]", score, track.Artists[0].Name, track.Name, track.Album.Name, track.Album.AlbumType)
+	}
+
+	// Sort by score descending
+	sort.Slice(scored, func(i, j int) bool {
+		return scored[i].score > scored[j].score
+	})
+
+	return scored[0].track
+}
+
 // searches a song given by the track and record name and returns spotify.ID if successful
 func searchSong(client spotify.Client, track string, record crawler.Record) spotify.ID {
 	searchTerm := sanitizeTrackname(record.Band + " " + track)
@@ -215,14 +269,26 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 	// handle track results only if tracks are available
 	if results.Tracks != nil && results.Tracks.Tracks != nil && len(results.Tracks.Tracks) > 0 {
 		for i, item := range results.Tracks.Tracks {
-			log.Printf(" found item: %s - %s  (%s)", item.Artists[0].Name, item.Name, item.Album.Name)
+			log.Printf(" found item: %s - %s  (%s) [%s]", item.Artists[0].Name, item.Name, item.Album.Name, item.Album.AlbumType)
 			// only get MAX_SEARCH_RESULTS results
 			if i >= MaxSearchResults-1 {
 				break
 			}
 		}
-		// TODO not only use first item!
-		item := results.Tracks.Tracks[0]
+		
+		// Select best match from results with prioritization
+		item := selectBestTrack(results.Tracks.Tracks, track, record)
+		if item == nil {
+			log.Printf(" no suitable match found after filtering")
+			if record.Recordname == "" {
+				return ""
+			}
+			log.Println(" nothing found, removing recordname and year from search query")
+			newRecord := record
+			newRecord.ReleaseYear = ""
+			newRecord.Recordname = ""
+			return searchSong(client, track, newRecord)
+		}
 
 		bandnameFromSearch := normalizeForComparison(item.Artists[0].Name)
 		if len(item.Artists) > 1 {
@@ -257,7 +323,7 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 			}
 		}
 
-		log.Printf(" using item: %s - %s (%s)", bandnameFromSearch, item.Name, item.Album.Name)
+		log.Printf(" using item: %s - %s (%s) [%s]", bandnameFromSearch, item.Name, item.Album.Name, item.Album.AlbumType)
 		return item.ID
 	}
 
