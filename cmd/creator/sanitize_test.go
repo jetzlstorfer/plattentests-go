@@ -122,6 +122,7 @@ func TestSelectBestTrack(t *testing.T) {
 			tracks: []spotify.FullTrack{
 				{
 					SimpleTrack: spotify.SimpleTrack{
+						ID:      "id-different-song",
 						Name:    "Different Song",
 						Artists: []spotify.SimpleArtist{{Name: "Artist"}},
 					},
@@ -132,6 +133,7 @@ func TestSelectBestTrack(t *testing.T) {
 				},
 				{
 					SimpleTrack: spotify.SimpleTrack{
+						ID:      "id-test-album-album",
 						Name:    "Test Album",
 						Artists: []spotify.SimpleArtist{{Name: "Artist"}},
 					},
@@ -142,6 +144,7 @@ func TestSelectBestTrack(t *testing.T) {
 				},
 				{
 					SimpleTrack: spotify.SimpleTrack{
+						ID:      "id-test-album-single",
 						Name:    "Test Album",
 						Artists: []spotify.SimpleArtist{{Name: "Artist"}},
 					},
@@ -164,6 +167,7 @@ func TestSelectBestTrack(t *testing.T) {
 			tracks: []spotify.FullTrack{
 				{
 					SimpleTrack: spotify.SimpleTrack{
+						ID:      "id-song-single",
 						Name:    "Song Title",
 						Artists: []spotify.SimpleArtist{{Name: "Artist"}},
 					},
@@ -174,6 +178,7 @@ func TestSelectBestTrack(t *testing.T) {
 				},
 				{
 					SimpleTrack: spotify.SimpleTrack{
+						ID:      "id-song-album",
 						Name:    "Song Title",
 						Artists: []spotify.SimpleArtist{{Name: "Artist"}},
 					},
@@ -196,6 +201,7 @@ func TestSelectBestTrack(t *testing.T) {
 			tracks: []spotify.FullTrack{
 				{
 					SimpleTrack: spotify.SimpleTrack{
+						ID:      "id-song-ep",
 						Name:    "Song Title",
 						Artists: []spotify.SimpleArtist{{Name: "Artist"}},
 					},
@@ -206,6 +212,7 @@ func TestSelectBestTrack(t *testing.T) {
 				},
 				{
 					SimpleTrack: spotify.SimpleTrack{
+						ID:      "id-song-album-2",
 						Name:    "Song Title",
 						Artists: []spotify.SimpleArtist{{Name: "Artist"}},
 					},
@@ -228,6 +235,7 @@ func TestSelectBestTrack(t *testing.T) {
 			tracks: []spotify.FullTrack{
 				{
 					SimpleTrack: spotify.SimpleTrack{
+						ID:      "id-album-one",
 						Name:    "Song Title",
 						Artists: []spotify.SimpleArtist{{Name: "Artist"}},
 					},
@@ -238,6 +246,7 @@ func TestSelectBestTrack(t *testing.T) {
 				},
 				{
 					SimpleTrack: spotify.SimpleTrack{
+						ID:      "id-album-two",
 						Name:    "Song Title",
 						Artists: []spotify.SimpleArtist{{Name: "Artist"}},
 					},
@@ -260,6 +269,7 @@ func TestSelectBestTrack(t *testing.T) {
 			tracks: []spotify.FullTrack{
 				{
 					SimpleTrack: spotify.SimpleTrack{
+						ID:      "id-masterpiece-single",
 						Name:    "Masterpiece",
 						Artists: []spotify.SimpleArtist{{Name: "Artist"}},
 					},
@@ -270,6 +280,7 @@ func TestSelectBestTrack(t *testing.T) {
 				},
 				{
 					SimpleTrack: spotify.SimpleTrack{
+						ID:      "id-other-song",
 						Name:    "Other Song",
 						Artists: []spotify.SimpleArtist{{Name: "Artist"}},
 					},
@@ -296,22 +307,23 @@ func TestSelectBestTrack(t *testing.T) {
 				t.Fatalf("selectBestTrack returned nil")
 			}
 
-			// Find which track was selected
-			selectedIndex := -1
-			for i := range tt.tracks {
-				if &tt.tracks[i] == result {
-					selectedIndex = i
-					break
+			expectedID := tt.tracks[tt.expectedIndex].ID
+			if result.ID != expectedID {
+				// Find which track was selected for error reporting
+				selectedIndex := -1
+				for i := range tt.tracks {
+					if tt.tracks[i].ID == result.ID {
+						selectedIndex = i
+						break
+					}
 				}
-			}
-
-			if selectedIndex != tt.expectedIndex {
-				t.Errorf("selectBestTrack selected track at index %d, want %d (%s)\nSelected: %s - %s (%s)\nExpected: %s - %s (%s)",
+				t.Errorf("selectBestTrack selected track at index %d, want %d (%s)\nSelected: %s - %s (%s) [ID: %s]\nExpected: %s - %s (%s) [ID: %s]",
 					selectedIndex, tt.expectedIndex, tt.expectedReason,
-					result.Artists[0].Name, result.Name, result.Album.Name,
+					result.Artists[0].Name, result.Name, result.Album.Name, result.ID,
 					tt.tracks[tt.expectedIndex].Artists[0].Name,
 					tt.tracks[tt.expectedIndex].Name,
 					tt.tracks[tt.expectedIndex].Album.Name,
+					expectedID,
 				)
 			}
 		})

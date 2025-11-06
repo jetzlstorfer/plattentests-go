@@ -235,7 +235,7 @@ func selectBestTrack(tracks []spotify.FullTrack, trackName string, record crawle
 		}
 		// EP gets no bonus (score += 0)
 
-		// Priority 3: Earlier results get slight preference (all else being equal)
+		// Priority 3: Earlier results get slight tiebreaker preference (all else being equal)
 		score += (len(tracks) - i)
 
 		scored = append(scored, scoredTrack{track: track, score: score})
