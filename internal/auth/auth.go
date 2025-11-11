@@ -9,6 +9,7 @@ import (
 	"net/url"
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
+	"github.com/jetzlstorfer/plattentests-go/internal/secrets"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/zmb3/spotify/v2"
 	"golang.org/x/oauth2"
@@ -25,10 +26,7 @@ const RedirectURI = "http://localhost:" + Port + "/callback"
 var (
 	SpotifyAuthenticator = spotifyauth.New(spotifyauth.WithRedirectURL(RedirectURI), spotifyauth.WithScopes(spotifyauth.ScopePlaylistModifyPrivate, spotifyauth.ScopePlaylistModifyPublic))
 	config               struct {
-		TokenFile       string `envconfig:"TOKEN_FILE" required:"true"`
-		AzAccountName   string `envconfig:"AZ_ACCOUNT" required:"true"`
-		AzAccountKey    string `envconfig:"AZ_KEY" required:"true"`
-		AzContainerName string `envconfig:"AZ_CONTAINER" required:"true"`
+		TokenFile string `envconfig:"TOKEN_FILE" required:"true"`
 	}
 )
 
@@ -140,10 +138,10 @@ func GetAccountInfo() (string, string, string, string) {
 		log.Fatal(err.Error())
 	}
 
-	azrKey := config.AzAccountKey
-	azrBlobAccountName := config.AzAccountName
+	azrKey := secrets.GetSecretWithFallback("AZ-KEY", "AZ_KEY")
+	azrBlobAccountName := secrets.GetSecretWithFallback("AZ-ACCOUNT", "AZ_ACCOUNT")
 	azrPrimaryBlobServiceEndpoint := fmt.Sprintf("https://%s.blob.core.windows.net/", azrBlobAccountName)
-	azrBlobContainer := config.AzContainerName
+	azrBlobContainer := secrets.GetSecretWithFallback("AZ-CONTAINER", "AZ_CONTAINER")
 
 	return azrKey, azrBlobAccountName, azrPrimaryBlobServiceEndpoint, azrBlobContainer
 }
