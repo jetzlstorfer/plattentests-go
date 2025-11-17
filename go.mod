@@ -4,13 +4,13 @@ go 1.24.0
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.15.0
-	github.com/PuerkitoBio/goquery v1.10.3
+	github.com/PuerkitoBio/goquery v1.11.0
 	github.com/gin-gonic/gin v1.11.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/texttheater/golang-levenshtein/levenshtein v0.0.0-20200805054039-cae8b0eaed6c
 	github.com/zmb3/spotify/v2 v2.4.3
 	golang.org/x/oauth2 v0.33.0
-	golang.org/x/text v0.30.0
+	golang.org/x/text v0.31.0
 )
 
 require (
@@ -42,8 +42,8 @@ require (
 	github.com/ugorji/go/codec v1.3.1 // indirect
 	go.uber.org/mock v0.6.0 // indirect
 	golang.org/x/arch v0.23.0 // indirect
-	golang.org/x/crypto v0.43.0 // indirect
-	golang.org/x/net v0.46.0 // indirect
+	golang.org/x/crypto v0.44.0 // indirect
+	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 )
