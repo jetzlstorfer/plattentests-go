@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
 	creator "github.com/jetzlstorfer/plattentests-go/cmd/creator"
+	"github.com/jetzlstorfer/plattentests-go/internal/secrets"
 	"golang.org/x/text/encoding/charmap"
 )
 
@@ -103,9 +104,9 @@ func main() {
 		}
 
 		playlist := c.DefaultQuery("playlist", "")
-		playlistID := os.Getenv("PLAYLIST_ID")
+		playlistID := secrets.GetSecretWithFallback("PLAYLIST-ID", "PLAYLIST_ID")
 		if playlist == "prod" {
-			playlistID = os.Getenv("PLAYLIST_ID_PROD")
+			playlistID = secrets.GetSecretWithFallback("PLAYLIST-ID-PROD", "PLAYLIST_ID_PROD")
 		}
 
 		results := creator.CreatePlaylist(playlistID)
@@ -156,7 +157,9 @@ func main() {
 }
 
 func checkAuth(username, password string) bool {
-	if username != os.Getenv(("CREATOR_USER")) || password != os.Getenv("CREATOR_PASSWORD") {
+	creatorUser := secrets.GetSecretWithFallback("CREATOR-USER", "CREATOR_USER")
+	creatorPassword := secrets.GetSecretWithFallback("CREATOR-PASSWORD", "CREATOR_PASSWORD")
+	if username != creatorUser || password != creatorPassword {
 		log.Println("wrong credentials")
 		return false
 	}

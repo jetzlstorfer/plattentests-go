@@ -12,6 +12,7 @@ import (
 
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
 	myauth "github.com/jetzlstorfer/plattentests-go/internal/auth"
+	"github.com/jetzlstorfer/plattentests-go/internal/secrets"
 	"github.com/zmb3/spotify/v2"
 	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/transform"
@@ -30,13 +31,10 @@ const MaxRecordsOfTheWeek = 25
 
 var (
 	config struct {
-		TargetPlaylist  string `envconfig:"PLAYLIST_ID" required:"true"`
-		ProdPlaylist    string `envconfig:"PROD_PLAYLIST_ID"`
-		LogFile         string `envConfig:"LOG_FILE" required:"false"`
-		TokenFile       string `envconfig:"TOKEN_FILE" required:"true"`
-		AzAccountName   string `envconfig:"AZ_ACCOUNT" required:"true"`
-		AzAccountKey    string `envconfig:"AZ_KEY" required:"true"`
-		AzContainerName string `envconfig:"AZ_CONTAINER" required:"true"`
+		TargetPlaylist string `envconfig:"PLAYLIST_ID" required:"false"`
+		ProdPlaylist   string `envconfig:"PROD_PLAYLIST_ID" required:"false"`
+		LogFile        string `envConfig:"LOG_FILE" required:"false"`
+		TokenFile      string `envconfig:"TOKEN_FILE" required:"true"`
 	}
 )
 
@@ -55,8 +53,7 @@ func CreatePlaylist(pid string) Result {
 	}
 
 	if pid == "" {
-		playlistID = spotify.ID(os.Getenv("PLAYLIST_ID"))
-
+		playlistID = spotify.ID(secrets.GetSecretWithFallback("PLAYLIST-ID", "PLAYLIST_ID"))
 	} else {
 		playlistID = spotify.ID(pid)
 	}
@@ -64,7 +61,10 @@ func CreatePlaylist(pid string) Result {
 	log.Println("Plattentests.de Highlights of the week playlist generator")
 	log.Println()
 
-	if playlistID == "" || os.Getenv("SPOTIFY_ID") == "" || os.Getenv("SPOTIFY_SECRET") == "" {
+	spotifyID := secrets.GetSecretWithFallback("SPOTIFY-ID", "SPOTIFY_ID")
+	spotifySecret := secrets.GetSecretWithFallback("SPOTIFY-SECRET", "SPOTIFY_SECRET")
+
+	if playlistID == "" || spotifyID == "" || spotifySecret == "" {
 		log.Fatalln("PLAYLIST_ID, SPOTIFY_ID, or SPOTIFY_SECRET missing.")
 	}
 
