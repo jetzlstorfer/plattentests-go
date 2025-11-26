@@ -4,22 +4,54 @@
 [![CodeQL](https://github.com/jetzlstorfer/plattentests-go/actions/workflows/codeql.yml/badge.svg)](https://github.com/jetzlstorfer/plattentests-go/actions/workflows/codeql.yml)
 [![Dependency Review](https://github.com/jetzlstorfer/plattentests-go/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/jetzlstorfer/plattentests-go/actions/workflows/dependency-review.yml)
 
-👩‍💻 **Please note that this project currently serves multiple purposes** 👨‍💻
-
-1. The original purpose of generating a [Spotify playlist](https://open.spotify.com/playlist/2Bc5TRdMTj6OHwt32x5T6Y?si=c7cf976d4d124bef) that lists all "highlights" of the week of my personal favourite music website [Plattentests.de](https://plattentests.de).
-1. The purpose of getting to know more about serverless, Azure functions, and Azure Container Apps
-1. A playground for features like
-   - Codespaces & devcontainers,
-   - GitHub actions,
-   - GitHub Copilot and other features of GitHub.
-
-Therefore, some commit messages might not be useful at the moment :)
 
 # Structure
 
-In the root directory, you will find the following folders:
-- `cmd`: Contains the main function of the project for the Azure Function
-- `webui`: Contains the web frontend of the project --> this is an Azure Container App with its own Dockerfile
+This project is a Go-based application for crawling and displaying music album reviews from Plattentests.de. It consists of multiple components:
+
+## Project Layout
+
+```
+plattentests-go/
+├── cmd/                    # Command-line applications
+│   ├── crawler/           # Web crawler for fetching album reviews
+│   │   └── main.go
+│   ├── creator/           # Playlist creation functionality
+│   │   ├── main.go
+│   │   └── sanitize_test.go
+│   └── token/             # Authentication token management
+│       └── main.go
+├── internal/              # Private application code
+│   └── auth/             # Authentication logic
+│       └── auth.go
+├── webui/                # Web frontend
+│   ├── main.go           # Web server
+│   ├── Dockerfile        # Container image for web UI
+│   ├── assets/           # Static web assets
+│   │   ├── css/          # Stylesheets
+│   │   │   ├── modern.css
+│   │   │   └── style.css
+│   │   └── js/           # JavaScript files
+│   │       └── func.js   # Frontend functions for UI interactions
+│   └── templates/        # HTML templates
+│       ├── createPlaylist.tmpl
+│       ├── records.tmpl
+│       └── utils.tmpl
+├── go.mod                # Go module definition
+├── Makefile             # Build automation
+├── LICENSE              # Project license
+├── blog.md              # Blog/documentation
+└── env                  # Environment configuration template
+```
+
+## Components
+
+- **Crawler** (`cmd/crawler`): Fetches album reviews and data from Plattentests.de
+- **Creator** (`cmd/creator`): Creates playlists based on crawled data with sanitization features
+- **Token Manager** (`cmd/token`): Handles authentication tokens for external services
+- **Web UI** (`webui`): Modern web interface for browsing and interacting with album data
+- **Auth** (`internal/auth`): Internal authentication and authorization logic
+
 
 
 # Usage
@@ -50,21 +82,5 @@ There is a `Makefile` with multiple targets to be used.
     make web
     ```
 
-
-## As Docker container
-
-You can also run the project as a Docker container.
-
-- Azure Function: 
-    ```
-    docker build -t plattentests-go .
-    docker run -p 8080:8080 plattentests-go
-    ```
-- Web Frontend (make sure it points to the correct function URL)
-    ```
-    cd webui
-    docker build -t plattentests-go-web .
-    docker run -p 8081:8081 plattentests-go-web
-    ```
 
 
