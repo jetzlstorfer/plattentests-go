@@ -5,7 +5,7 @@ go 1.24.0
 toolchain go1.24.6
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.3.2
+	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.3
 	github.com/PuerkitoBio/goquery v1.11.0
 	github.com/gin-gonic/gin v1.11.0
 	github.com/kelseyhightower/envconfig v1.4.0
@@ -16,8 +16,8 @@ require (
 )
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.11.1 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/internal v1.5.2 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.20.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
 	github.com/bytedance/sonic v1.14.2 // indirect
@@ -29,7 +29,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.28.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
-	github.com/goccy/go-yaml v1.18.0 // indirect
+	github.com/goccy/go-yaml v1.19.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect

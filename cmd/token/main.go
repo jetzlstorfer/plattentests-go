@@ -95,6 +95,6 @@ func completeAuth(w http.ResponseWriter, r *http.Request) {
 	httpClient := spotifyauth.New().Client(context.Background(), token)
 	client := spotify.New(httpClient)
 	user, _ := client.CurrentUser(context.Background())
-	fmt.Fprintf(w, "Login Completed!\nYou are now logged in as "+user.ID)
+	fmt.Fprintf(w, "%s", "Login Completed!\nYou are now logged in as "+user.ID)
 	channel <- client
 }
