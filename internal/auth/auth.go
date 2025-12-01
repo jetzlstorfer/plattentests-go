@@ -5,10 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
-	"net/url"
 
-	"github.com/Azure/azure-storage-blob-go/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/zmb3/spotify/v2"
 	"golang.org/x/oauth2"
@@ -40,7 +40,7 @@ func VerifyLogin() spotify.Client {
 
 	log.Println("Connecting to Azure to download token")
 
-	buff, err := DownloadBlogToBytes("")
+	buff, err := DownloadBlobToBytes("")
 	if err != nil {
 		log.Fatalf("Could not download token from Azure: %v", err)
 	}
@@ -85,52 +85,56 @@ func VerifyLogin() spotify.Client {
 	return *client
 }
 
-func DownloadBlogToBytes(string) ([]byte, error) {
-	azrKey, accountName, endPoint, container := GetAccountInfo()
-	u, _ := url.Parse(fmt.Sprint(endPoint, container, "/", config.TokenFile))
-	credential, errC := azblob.NewSharedKeyCredential(accountName, azrKey)
-	if errC != nil {
-		return nil, errC
+func DownloadBlobToBytes(string) ([]byte, error) {
+	azrKey, accountName, _, container := GetAccountInfo()
+	serviceURL := fmt.Sprintf("https://%s.blob.core.windows.net/", accountName)
+
+	cred, err := azblob.NewSharedKeyCredential(accountName, azrKey)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := azblob.NewClientWithSharedKeyCredential(serviceURL, cred, nil)
+	if err != nil {
+		return nil, err
 	}
 
 	ctx := context.Background()
-	blockBlobUrl := azblob.NewBlockBlobURL(*u, azblob.NewPipeline(credential, azblob.PipelineOptions{}))
-	get, err := blockBlobUrl.Download(ctx, 0, 0, azblob.BlobAccessConditions{}, false, azblob.ClientProvidedKeyOptions{})
+	response, err := client.DownloadStream(ctx, container, config.TokenFile, nil)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	blobData := &bytes.Buffer{}
-	reader := get.Body(azblob.RetryReaderOptions{})
-	_, err = blobData.ReadFrom(reader)
-	if err != nil {
-		log.Fatal(err)
-	}
-	reader.Close() // The client must close the response body when finished with it
-	// fmt.Println(blobData)
+	defer response.Body.Close()
 
-	return blobData.Bytes(), nil
+	blobData, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return blobData, nil
 }
 
 func UploadBytesToBlob(b []byte) (string, error) {
+	azrKey, accountName, _, container := GetAccountInfo()
+	serviceURL := fmt.Sprintf("https://%s.blob.core.windows.net/", accountName)
 
-	azrKey, accountName, endPoint, container := GetAccountInfo()
-	u, _ := url.Parse(fmt.Sprint(endPoint, container, "/", config.TokenFile))
-	credential, errC := azblob.NewSharedKeyCredential(accountName, azrKey)
-	if errC != nil {
-		return "", errC
+	cred, err := azblob.NewSharedKeyCredential(accountName, azrKey)
+	if err != nil {
+		return "", err
 	}
 
-	blockBlobUrl := azblob.NewBlockBlobURL(*u, azblob.NewPipeline(credential, azblob.PipelineOptions{}))
+	client, err := azblob.NewClientWithSharedKeyCredential(serviceURL, cred, nil)
+	if err != nil {
+		return "", err
+	}
 
 	ctx := context.Background()
-	o := azblob.UploadToBlockBlobOptions{
-		BlobHTTPHeaders: azblob.BlobHTTPHeaders{
-			ContentType: "application/json",
-		},
-	}
+	blobURL := fmt.Sprintf("%s/%s/%s", serviceURL, container, config.TokenFile)
 
-	_, errU := azblob.UploadBufferToBlockBlob(ctx, b, blockBlobUrl, o)
-	return blockBlobUrl.String(), errU
+	reader := bytes.NewReader(b)
+	_, err = client.UploadStream(ctx, container, config.TokenFile, reader, nil)
+
+	return blobURL, err
 }
 
 func GetAccountInfo() (string, string, string, string) {
