@@ -40,7 +40,7 @@ func VerifyLogin() spotify.Client {
 
 	log.Println("Connecting to Azure to download token")
 
-	buff, err := DownloadBlogToBytes("")
+	buff, err := DownloadBlobToBytes("")
 	if err != nil {
 		log.Fatalf("Could not download token from Azure: %v", err)
 	}
@@ -85,7 +85,7 @@ func VerifyLogin() spotify.Client {
 	return *client
 }
 
-func DownloadBlogToBytes(string) ([]byte, error) {
+func DownloadBlobToBytes(string) ([]byte, error) {
 	azrKey, accountName, _, container := GetAccountInfo()
 	serviceURL := fmt.Sprintf("https://%s.blob.core.windows.net/", accountName)
 
