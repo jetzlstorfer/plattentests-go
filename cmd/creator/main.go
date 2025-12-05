@@ -19,7 +19,7 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 
-	"github.com/texttheater/golang-levenshtein/levenshtein"
+	"github.com/agnivade/levenshtein"
 )
 
 // MaxSearchResults is the maximum number of search results to return
@@ -275,7 +275,7 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 				break
 			}
 		}
-		
+
 		// Select best match from results with prioritization
 		item := selectBestTrack(results.Tracks.Tracks, track, record)
 		if item == nil {
@@ -296,7 +296,7 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 		}
 
 		bandnameFromPlattentests := normalizeForComparison(record.Band)
-		distance := levenshtein.DistanceForStrings([]rune(bandnameFromSearch), []rune(bandnameFromPlattentests), levenshtein.DefaultOptions)
+		distance := levenshtein.ComputeDistance(bandnameFromSearch, bandnameFromPlattentests)
 		log.Println(" Levenshtein distance between", bandnameFromSearch, "and", bandnameFromPlattentests, ":", distance)
 		threshold := 0.8
 
@@ -312,7 +312,7 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 		// calculate the levenshtein distance between the trackname from the search and the trackname from the record
 		tracknameFromSearch := normalizeForComparison(item.Name)
 		tracknameFromPlattentests := normalizeForComparison(track)
-		distance = levenshtein.DistanceForStrings([]rune(tracknameFromSearch), []rune(tracknameFromPlattentests), levenshtein.DefaultOptions)
+		distance = levenshtein.ComputeDistance(tracknameFromSearch, tracknameFromPlattentests)
 
 		calculatedThreshold = 1 - float64(distance)/float64(max(len(tracknameFromSearch), len(tracknameFromPlattentests)))
 		if (calculatedThreshold) < threshold {
@@ -357,28 +357,28 @@ func addTracks(client spotify.Client, trackids ...spotify.ID) bool {
 // removes parts of string that should not be in search term
 func sanitizeTrackname(trackname string) string {
 	sanitizedName := trackname
-	
+
 	// Remove common patterns
 	sanitizedName = strings.Split(sanitizedName, "(feat. ")[0]
 	sanitizedName = strings.Split(sanitizedName, "(with ")[0]
 	sanitizedName = strings.Split(sanitizedName, "(Bonus)")[0]
-	
+
 	// Remove quotes and brackets
 	sanitizedName = strings.ReplaceAll(sanitizedName, "\"", "")
 	sanitizedName = strings.ReplaceAll(sanitizedName, "'", "")
 	sanitizedName = regexp.MustCompile(`\[.*?\]`).ReplaceAllString(sanitizedName, "")
-	
+
 	// Remove special punctuation that might interfere with search
 	specialChars := regexp.MustCompile(`[:\-&!?.,;]`)
 	sanitizedName = specialChars.ReplaceAllString(sanitizedName, " ")
-	
+
 	// Normalize Unicode characters (remove accents/diacritics)
 	sanitizedName = removeAccents(sanitizedName)
-	
+
 	// Clean up extra spaces
 	sanitizedName = regexp.MustCompile(`\s+`).ReplaceAllString(sanitizedName, " ")
 	sanitizedName = strings.TrimSpace(sanitizedName)
-	
+
 	return sanitizedName
 }
 
