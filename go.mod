@@ -9,21 +9,21 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.3
 	github.com/PuerkitoBio/goquery v1.11.0
 
+	// String algorithms
+	github.com/agnivade/levenshtein v1.2.1
+
 	// Web framework and HTTP utilities
 	github.com/gin-gonic/gin v1.11.0
 
 	// Configuration management
 	github.com/kelseyhightower/envconfig v1.4.0
 
-	// String algorithms
-	github.com/agnivade/levenshtein v1.2.1
-
 	// Spotify API
 	github.com/zmb3/spotify/v2 v2.4.3
 
 	// OAuth2 and text processing
-	golang.org/x/oauth2 v0.33.0
-	golang.org/x/text v0.31.0
+	golang.org/x/oauth2 v0.34.0
+	golang.org/x/text v0.32.0
 )
 
 require (
@@ -54,8 +54,8 @@ require (
 	github.com/ugorji/go/codec v1.3.1 // indirect
 	go.uber.org/mock v0.6.0 // indirect
 	golang.org/x/arch v0.23.0 // indirect
-	golang.org/x/crypto v0.45.0 // indirect
-	golang.org/x/net v0.47.0 // indirect
-	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/crypto v0.46.0 // indirect
+	golang.org/x/net v0.48.0 // indirect
+	golang.org/x/sys v0.39.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 )
