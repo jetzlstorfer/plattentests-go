@@ -9,6 +9,11 @@
 
 This project is a Go-based application for crawling and displaying music album reviews from Plattentests.de. It consists of multiple components:
 
+## Requirements
+
+- **Go 1.25.6** or later
+- Environment variables configured in `.env` file (see `env` template)
+
 ## Project Layout
 
 ```
@@ -40,7 +45,6 @@ plattentests-go/
 ├── go.mod                # Go module definition
 ├── Makefile             # Build automation
 ├── LICENSE              # Project license
-├── blog.md              # Blog/documentation
 └── env                  # Environment configuration template
 ```
 
