@@ -1,8 +1,6 @@
 module github.com/jetzlstorfer/plattentests-go
 
-go 1.24.0
-
-toolchain go1.24.6
+go 1.25.6
 
 require (
 	// Azure services
@@ -55,7 +53,7 @@ require (
 	go.uber.org/mock v0.6.0 // indirect
 	golang.org/x/arch v0.24.0 // indirect
 	golang.org/x/crypto v0.48.0 // indirect
-	golang.org/x/net v0.50.0 // indirect
+	golang.org/x/net v0.51.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
