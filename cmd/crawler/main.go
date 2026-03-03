@@ -1,7 +1,6 @@
 package crawler
 
 import (
-	"log"
 	"net/http"
 	"regexp"
 	"sort"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gin-gonic/gin"
+	"github.com/jetzlstorfer/plattentests-go/internal/logging"
 	"golang.org/x/text/encoding/charmap"
 )
 
@@ -39,19 +39,19 @@ func GetRecordsOfTheWeek() []Record {
 	// Request the HTML page.
 	res, err := http.Get(plattentestsUrl)
 	if err != nil {
-		log.Fatal(err)
+		logging.Fatal("Failed to fetch plattentests URL: %v", err)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+		logging.Fatal("status code error: %d %s", res.StatusCode, res.Status)
 	}
 
 	// Load the HTML document
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
-		log.Fatal(err)
+		logging.Fatal("Failed to parse HTML document: %v", err)
 	}
-	//log.Printf(doc.Find("body").Text())
+	//logging.Debug(doc.Find("body").Text())
 
 	var highlights []Record
 	// Find the review items
@@ -101,17 +101,17 @@ func GetRecord(c *gin.Context) {
 func getHighlightsByRecordLink(recordLink string) Record {
 	res, err := http.Get(recordLink)
 	if err != nil {
-		log.Fatal(err)
+		logging.Fatal("Failed to fetch record link: %v", err)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+		logging.Fatal("status code error: %d %s", res.StatusCode, res.Status)
 	}
 
 	// Load the HTML document
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
-		log.Fatal(err)
+		logging.Fatal("Failed to parse HTML document: %v", err)
 	}
 
 	image := doc.Find(".headerbox img").First().AttrOr("src", "no image found")
@@ -151,12 +151,12 @@ func getHighlightsByRecordLink(recordLink string) Record {
 	description := strings.Join(paragraphs, " ")
 	description, err = charmap.ISO8859_1.NewDecoder().String(description)
 	if err != nil {
-		log.Printf("Could not convert description to UTF8: %v", err)
+		logging.Warn("Could not convert description to UTF8: %v", err)
 	}
 
 	var tracks []Track
 	record := Record{image, bandname, recordname, recordLink, score, releaseYear, tracks, description}
-	log.Printf("%s - %s\n", bandname, recordname)
+	logging.Debug("%s - %s\n", bandname, recordname)
 	doc.Find("#rezihighlights li").Each(func(i int, s *goquery.Selection) {
 		// For each item found, get the band and title
 		track := Track{}
@@ -166,16 +166,16 @@ func getHighlightsByRecordLink(recordLink string) Record {
 			// decode into utf-8
 			trackname, err = charmap.ISO8859_1.NewDecoder().String(trackname)
 			if err != nil {
-				log.Printf("Could not convert trackname to UTF8: %v", err)
+				logging.Warn("Could not convert trackname to UTF8: %v", err)
 			}
-			log.Printf(" Track %d: %s\n", i+1, trackname)
+			logging.Debug(" Track %d: %s\n", i+1, trackname)
 			track.Band = bandname
 			track.Trackname = trackname
 			tracks = append(tracks, track)
 		}
 	})
 	record.Tracks = tracks
-	//log.Println(len(record.Tracks), " highlights found for", record.Name)
+	//logging.Debug("%d highlights found for %s", len(record.Tracks), record.Name)
 	return record
 }
 
@@ -184,17 +184,17 @@ func GetRecordOfTheWeekBandName() string {
 	// Request the HTML page.
 	res, err := http.Get(plattentestsUrl)
 	if err != nil {
-		log.Fatal(err)
+		logging.Fatal("Failed to fetch plattentests URL: %v", err)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+		logging.Fatal("status code error: %d %s", res.StatusCode, res.Status)
 	}
 
 	// Load the HTML document
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
-		log.Fatal(err)
+		logging.Fatal("Failed to parse HTML document: %v", err)
 	}
 
 	return strings.Split(doc.Find("div.adw h3 a").Text(), " - ")[0]

@@ -2,7 +2,6 @@ package creator
 
 import (
 	"context"
-	"log"
 	"os"
 	"regexp"
 	"sort"
@@ -12,6 +11,7 @@ import (
 
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
 	myauth "github.com/jetzlstorfer/plattentests-go/internal/auth"
+	"github.com/jetzlstorfer/plattentests-go/internal/logging"
 	"github.com/zmb3/spotify/v2"
 	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/transform"
@@ -51,7 +51,7 @@ var playlistID spotify.ID
 func CreatePlaylist(pid string) Result {
 	err := envconfig.Process("", &config)
 	if err != nil {
-		log.Fatal(err.Error())
+		logging.Fatal("Failed to process environment config: %v", err)
 	}
 
 	if pid == "" {
@@ -61,14 +61,14 @@ func CreatePlaylist(pid string) Result {
 		playlistID = spotify.ID(pid)
 	}
 
-	log.Println("Plattentests.de Highlights of the week playlist generator")
-	log.Println()
+	logging.Info("Plattentests.de Highlights of the week playlist generator")
+	logging.Info("")
 
 	if playlistID == "" || os.Getenv("SPOTIFY_ID") == "" || os.Getenv("SPOTIFY_SECRET") == "" {
-		log.Fatalln("PLAYLIST_ID, SPOTIFY_ID, or SPOTIFY_SECRET missing.")
+		logging.Fatal("PLAYLIST_ID, SPOTIFY_ID, or SPOTIFY_SECRET missing.")
 	}
 
-	log.Println("Getting tracks of the week...")
+	logging.Info("Getting tracks of the week...")
 	highlights := crawler.GetRecordsOfTheWeek()
 
 	// only use the first records up to MAX_RECORDS_OF_THE_WEEK
@@ -77,23 +77,23 @@ func CreatePlaylist(pid string) Result {
 		highlights = highlights[0:MaxRecordsOfTheWeek]
 	}
 
-	log.Println("Size of records of the week: ", len(highlights))
+	logging.Info("Size of records of the week: %d", len(highlights))
 
-	log.Println("---")
-	log.Println("Connecting to Spotify")
-	log.Println("---")
+	logging.Info("---")
+	logging.Info("Connecting to Spotify")
+	logging.Info("---")
 
 	// login to spotify, all error messages are dealt within the function
 	client := myauth.VerifyLogin()
 	ctx := context.Background()
 
-	log.Println("Emptying playlist...")
+	logging.Info("Emptying playlist...")
 	err = client.ReplacePlaylistTracks(ctx, playlistID)
 	if err != nil {
-		log.Fatal(err)
+		logging.Fatal("Failed to empty playlist: %v", err)
 	}
 
-	log.Println("Adding highlights of the week to playlist...")
+	logging.Info("Adding highlights of the week to playlist...")
 	total := 0
 	// var newTracks []spotify.ID
 	var notFound []string
@@ -112,7 +112,7 @@ func CreatePlaylist(pid string) Result {
 		go func(i int, record crawler.Record) {
 			defer wg1.Done()
 
-			log.Println(record.Band + " - " + record.Recordname + ": " + record.Link)
+			logging.Info("%s - %s: %s", record.Band, record.Recordname, record.Link)
 
 			for j, track := range record.Tracks {
 				wg2.Add(1)
@@ -121,7 +121,7 @@ func CreatePlaylist(pid string) Result {
 					defer wg2.Done()
 					itemID := searchSong(client, track.Trackname, record)
 					if itemID != "" {
-						log.Println("adding item to collection to be added: " + itemID)
+						logging.Debug("adding item to collection to be added: %s", itemID)
 						// add new result to itemsToAdd
 						r := result{itemID: itemID, bandname: record.Band, recordIndex: record.Score}
 						itemsToAdd = append(itemsToAdd, r)
@@ -162,27 +162,27 @@ func CreatePlaylist(pid string) Result {
 	}
 
 	// remove duplicates
-	log.Println("removing duplicates...")
+	logging.Info("removing duplicates...")
 	noDuplicateTracks := removeDuplicates(itemsToAddIDs)
 
 	// sort notfound tracks
 	sort.Strings(notFound)
 
 	// now add tracks to playlist
-	log.Println("adding tracks to playlist...")
+	logging.Info("adding tracks to playlist...")
 	addTracks(client, noDuplicateTracks...)
 
-	log.Println()
-	log.Println("--- RESULTS ---")
-	log.Println()
-	log.Println("total tracks:     ", total)
-	log.Println("found tracks:     ", total-len(notFound))
-	log.Println("not found tracks: ", len(notFound))
-	log.Println()
-	log.Println("Not found items: ")
+	logging.Info("")
+	logging.Info("--- RESULTS ---")
+	logging.Info("")
+	logging.Info("total tracks:      %d", total)
+	logging.Info("found tracks:      %d", total-len(notFound))
+	logging.Info("not found tracks:  %d", len(notFound))
+	logging.Info("")
+	logging.Info("Not found items: ")
 
 	for _, track := range notFound {
-		log.Println(" " + track)
+		logging.Info(" %s", track)
 	}
 
 	// out some json with all records that should have been added and the once that have not been added
@@ -224,7 +224,7 @@ func selectBestTrack(tracks []spotify.FullTrack, trackName string, record crawle
 		normalizedAlbumName := normalizeForComparison(track.Album.Name)
 		if normalizedTrackName == normalizedRecordName && normalizedAlbumName == normalizedRecordName {
 			score += 1000
-			log.Printf(" [Priority] Track name '%s' matches record name '%s' on album '%s'", trackName, record.Recordname, track.Album.Name)
+			logging.Debug(" [Priority] Track name '%s' matches record name '%s' on album '%s'", trackName, record.Recordname, track.Album.Name)
 		}
 
 		// Priority 2: Prefer album over single/EP
@@ -239,7 +239,7 @@ func selectBestTrack(tracks []spotify.FullTrack, trackName string, record crawle
 		score += (len(tracks) - i)
 
 		scored = append(scored, scoredTrack{track: track, score: score})
-		log.Printf(" [Score %d] %s - %s (%s) [%s]", score, track.Artists[0].Name, track.Name, track.Album.Name, track.Album.AlbumType)
+		logging.Debug(" [Score %d] %s - %s (%s) [%s]", score, track.Artists[0].Name, track.Name, track.Album.Name, track.Album.AlbumType)
 	}
 
 	// Sort by score descending
@@ -261,15 +261,15 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 		searchTerm += " year:" + record.ReleaseYear
 	}
 
-	log.Printf(" searching term: %s", searchTerm)
+	logging.Debug(" searching term: %s", searchTerm)
 	results, err := client.Search(context.Background(), searchTerm, spotify.SearchTypeTrack)
 	if err != nil {
-		log.Fatal(err)
+		logging.Fatal("Failed to search Spotify: %v", err)
 	}
 	// handle track results only if tracks are available
 	if results.Tracks != nil && results.Tracks.Tracks != nil && len(results.Tracks.Tracks) > 0 {
 		for i, item := range results.Tracks.Tracks {
-			log.Printf(" found item: %s - %s  (%s) [%s]", item.Artists[0].Name, item.Name, item.Album.Name, item.Album.AlbumType)
+			logging.Debug(" found item: %s - %s  (%s) [%s]", item.Artists[0].Name, item.Name, item.Album.Name, item.Album.AlbumType)
 			// only get MAX_SEARCH_RESULTS results
 			if i >= MaxSearchResults-1 {
 				break
@@ -279,11 +279,11 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 		// Select best match from results with prioritization
 		item := selectBestTrack(results.Tracks.Tracks, track, record)
 		if item == nil {
-			log.Printf(" no suitable match found after filtering")
+			logging.Debug(" no suitable match found after filtering")
 			if record.Recordname == "" {
 				return ""
 			}
-			log.Println(" nothing found, removing recordname and year from search query")
+			logging.Debug(" nothing found, removing recordname and year from search query")
 			newRecord := record
 			newRecord.ReleaseYear = ""
 			newRecord.Recordname = ""
@@ -297,13 +297,13 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 
 		bandnameFromPlattentests := normalizeForComparison(record.Band)
 		distance := levenshtein.ComputeDistance(bandnameFromSearch, bandnameFromPlattentests)
-		log.Println(" Levenshtein distance between", bandnameFromSearch, "and", bandnameFromPlattentests, ":", distance)
+		logging.Debug(" Levenshtein distance between %s and %s: %d", bandnameFromSearch, bandnameFromPlattentests, distance)
 		threshold := 0.8
 
 		calculatedThreshold := 1 - float64(distance)/float64(max(len(bandnameFromSearch), len(bandnameFromPlattentests)))
 		if (calculatedThreshold) < threshold {
-			log.Println(" Levenshtein distance too large")
-			log.Printf(" not adding item %s - %s (%s) since artists don't match (%s != %s)", bandnameFromSearch, item.Name, item.Album.Name, bandnameFromPlattentests, bandnameFromSearch)
+			logging.Debug(" Levenshtein distance too large")
+			logging.Debug(" not adding item %s - %s (%s) since artists don't match (%s != %s)", bandnameFromSearch, item.Name, item.Album.Name, bandnameFromPlattentests, bandnameFromSearch)
 			if record.ReleaseYear == "" {
 				return ""
 			}
@@ -316,22 +316,22 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 
 		calculatedThreshold = 1 - float64(distance)/float64(max(len(tracknameFromSearch), len(tracknameFromPlattentests)))
 		if (calculatedThreshold) < threshold {
-			log.Println(" Levenshtein distance too large")
-			log.Printf(" not adding item %s - %s (%s) since tracknames don't match (%s != %s)", bandnameFromSearch, item.Name, item.Album.Name, tracknameFromPlattentests, tracknameFromSearch)
+			logging.Debug(" Levenshtein distance too large")
+			logging.Debug(" not adding item %s - %s (%s) since tracknames don't match (%s != %s)", bandnameFromSearch, item.Name, item.Album.Name, tracknameFromPlattentests, tracknameFromSearch)
 			if record.ReleaseYear == "" {
 				return ""
 			}
 		}
 
-		log.Printf(" using item: %s - %s (%s) [%s]", bandnameFromSearch, item.Name, item.Album.Name, item.Album.AlbumType)
+		logging.Debug(" using item: %s - %s (%s) [%s]", bandnameFromSearch, item.Name, item.Album.Name, item.Album.AlbumType)
 		return item.ID
 	}
 
 	if record.Recordname == "" {
-		log.Printf(" nothing found for %s", searchTerm)
+		logging.Debug(" nothing found for %s", searchTerm)
 		return ""
 	}
-	log.Println(" nothing found, removing recordname and year from search query")
+	logging.Debug(" nothing found, removing recordname and year from search query")
 	newRecord := record
 	newRecord.ReleaseYear = ""
 	newRecord.Recordname = ""
@@ -342,12 +342,12 @@ func searchSong(client spotify.Client, track string, record crawler.Record) spot
 // adds tracks to global playlist ID
 func addTracks(client spotify.Client, trackids ...spotify.ID) bool {
 	if len(trackids) == 0 {
-		log.Println("no tracks to add")
+		logging.Info("no tracks to add")
 		return false
 	}
 	_, err := client.AddTracksToPlaylist(context.Background(), playlistID, trackids...)
 	if err != nil {
-		log.Fatalf("could not add tracks to playlist: %s", err)
+		logging.Fatal("could not add tracks to playlist: %v", err)
 		return false
 	}
 	return true

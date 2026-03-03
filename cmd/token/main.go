@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
 	myauth "github.com/jetzlstorfer/plattentests-go/internal/auth"
+	"github.com/jetzlstorfer/plattentests-go/internal/logging"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/zmb3/spotify/v2"
 	spotifyauth "github.com/zmb3/spotify/v2/auth"
@@ -30,20 +30,26 @@ var (
 )
 
 func main() {
+	// Initialize OpenTelemetry logging
+	if err := logging.Init(); err != nil {
+		logging.Fatal("Failed to initialize logging: %v", err)
+	}
+	defer logging.Shutdown()
+
 	// start an HTTP server
 	http.HandleFunc("/callback", completeAuth)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Got request for:", r.URL.String())
+		logging.Info("Got request for: %s", r.URL.String())
 	})
 	go func() {
 		err := http.ListenAndServe(":"+myauth.Port, nil)
 		if err != nil {
-			log.Fatal(err)
+			logging.Fatal("Failed to start HTTP server: %v", err)
 		}
 	}()
 
 	url := myauth.SpotifyAuthenticator.AuthURL(state)
-	log.Println("Please log in to Spotify by visiting the following page in your browser:", url)
+	logging.Info("Please log in to Spotify by visiting the following page in your browser: %s", url)
 
 	// wait for auth to complete
 	client := <-channel
@@ -51,45 +57,45 @@ func main() {
 	// use the client to make calls that require authorization
 	user, err := client.CurrentUser(context.Background())
 	if err != nil {
-		log.Fatal(err)
+		logging.Fatal("Failed to get current user: %v", err)
 	}
 	fmt.Println("You are logged in as:", user.ID)
-	log.Printf("You are logged in as: %s (%s)", user.DisplayName, user.ID)
+	logging.Info("You are logged in as: %s (%s)", user.DisplayName, user.ID)
 }
 
 func completeAuth(w http.ResponseWriter, r *http.Request) {
 	err := envconfig.Process("", &config)
 	if err != nil {
-		log.Fatal(err.Error())
+		logging.Fatal("Failed to process environment config: %v", err)
 	}
 
 	token, err := SpotifyAuthenticator.Token(r.Context(), state, r)
 	if err != nil {
 		http.Error(w, "Couldn't get token", http.StatusForbidden)
-		log.Fatal(err)
+		logging.Fatal("Failed to get token: %v", err)
 	}
 	if st := r.FormValue("state"); st != state {
 		http.NotFound(w, r)
-		log.Fatalf("State mismatch: %s != %s\n", st, state)
+		logging.Fatal("State mismatch: %s != %s\n", st, state)
 	}
 
 	// we have a valid token, lets proceed
 
 	btys, err := json.Marshal(token)
 	if err != nil {
-		log.Fatalf("could not marshal token: %v", err)
+		logging.Fatal("could not marshal token: %v", err)
 	}
 
 	err = os.WriteFile(config.TokenFile, btys, 0644)
 	if err != nil {
-		log.Fatalf("could not write file: %v", err)
+		logging.Fatal("could not write file: %v", err)
 	}
 
 	_, err = myauth.UploadBytesToBlob(btys)
 	if err != nil {
-		log.Fatalf("Could not upload token: %v", err)
+		logging.Fatal("Could not upload token: %v", err)
 	}
-	log.Println("Token uploaded as: " + config.TokenFile)
+	logging.Info("Token uploaded as: %s", config.TokenFile)
 
 	// use the token to get an authenticated client
 	httpClient := spotifyauth.New().Client(context.Background(), token)

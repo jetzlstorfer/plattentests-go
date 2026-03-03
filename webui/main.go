@@ -2,7 +2,6 @@ package main
 
 import (
 	"html/template"
-	"log"
 	"net/http"
 	"os"
 	"runtime/debug"
@@ -12,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
 	creator "github.com/jetzlstorfer/plattentests-go/cmd/creator"
+	"github.com/jetzlstorfer/plattentests-go/internal/logging"
 	"golang.org/x/text/encoding/charmap"
 )
 
@@ -43,6 +43,12 @@ type Highlights struct {
 }
 
 func main() {
+	// Initialize OpenTelemetry logging
+	if err := logging.Init(); err != nil {
+		logging.Fatal("Failed to initialize logging: %v", err)
+	}
+	defer logging.Shutdown()
+
 	// Create a new Gin router
 	r := gin.Default()
 	r.Static("./assets", "./assets")
@@ -67,18 +73,18 @@ func main() {
 			// put record of the week on top of the playlist
 			for i, record := range records {
 				if record.Band == recordOfTheWeek {
-					log.Println("record of the week found: " + recordOfTheWeek)
+					logging.Info("record of the week found: %s", recordOfTheWeek)
 					records[0], records[i] = records[i], records[0]
 					break
 				}
-				log.Println("record of the week not found: " + record.Band + " vs " + recordOfTheWeek)
+				logging.Debug("record of the week not found: %s vs %s", record.Band, recordOfTheWeek)
 			}
 		}
 
 		// Load the template file
 		tmpl, err := template.ParseFiles("templates/records.tmpl", "templates/utils.tmpl")
 		if err != nil {
-			log.Fatalf("Error parsing template: %v", err)
+			logging.Fatal("Error parsing template: %v", err)
 		}
 
 		data := make(map[string]interface{})
@@ -87,7 +93,7 @@ func main() {
 
 		// Execute the template with the record data
 		if err := tmpl.Execute(c.Writer, data); err != nil {
-			log.Fatalf("Error executing template: %v", err)
+			logging.Fatal("Error executing template: %v", err)
 		}
 
 	})
@@ -99,7 +105,7 @@ func main() {
 		if !ok || !checkAuth(user, password) {
 			c.Header("WWW-Authenticate", "Basic realm=\"Restricted Content\"")
 			c.AbortWithStatus(http.StatusUnauthorized)
-			log.Println("could not authenticate user")
+			logging.Warn("could not authenticate user")
 			return
 		}
 
@@ -137,7 +143,7 @@ func main() {
 		// Load the template file
 		tmpl, err := template.ParseFiles("templates/createPlaylist.tmpl", "templates/utils.tmpl")
 		if err != nil {
-			log.Fatalf("Error parsing template: %v", err)
+			logging.Fatal("Error parsing template: %v", err)
 		}
 
 		data := make(map[string]interface{})
@@ -146,28 +152,29 @@ func main() {
 
 		// Execute the template with the record data
 		if err := tmpl.Execute(c.Writer, data); err != nil {
-			log.Fatalf("Error executing template: %v", err)
+			logging.Fatal("Error executing template: %v", err)
 		}
 	})
 
 	// Start the server
 	if err := r.Run(":8081"); err != nil {
-		log.Fatalf("Error starting server: %v", err)
+		logging.Fatal("Error starting server: %v", err)
 	}
 }
 
 func checkAuth(username, password string) bool {
 	if username != os.Getenv(("CREATOR_USER")) || password != os.Getenv("CREATOR_PASSWORD") {
-		log.Println("wrong credentials")
+		logging.Warn("wrong credentials")
 		return false
 	}
 	return true
 }
 
 func getCommitInfo() string {
-	log.Println("get commit info: " + os.Getenv("GIT_SHA"))
-	if os.Getenv("GIT_SHA") != "" {
-		return os.Getenv("GIT_SHA")
+	sha := os.Getenv("GIT_SHA")
+	logging.Debug("get commit info: %s", sha)
+	if sha != "" {
+		return sha
 	} else {
 		if info, ok := debug.ReadBuildInfo(); ok {
 			for _, setting := range info.Settings {
