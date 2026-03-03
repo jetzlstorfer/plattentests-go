@@ -404,6 +404,72 @@ nav a:hover {
   font-weight: 500;
 }
 
+/* Record Description (collapsible) */
+.record-description {
+  margin-top: var(--space-4);
+  border-top: 1px solid var(--gray-100);
+  padding-top: var(--space-4);
+}
+
+@media (prefers-color-scheme: dark) {
+  .record-description {
+    border-top: 1px solid var(--dark-border);
+  }
+}
+
+.record-description summary {
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--primary-600);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  user-select: none;
+}
+
+.record-description summary::-webkit-details-marker {
+  display: none;
+}
+
+.record-description summary::after {
+  content: ' ▼';
+  font-size: 0.7rem;
+  transition: transform var(--transition-fast);
+  display: inline-block;
+}
+
+.record-description[open] summary::after {
+  transform: rotate(-180deg);
+}
+
+.record-description summary:hover {
+  color: var(--primary-700);
+}
+
+@media (prefers-color-scheme: dark) {
+  .record-description summary {
+    color: var(--primary-400);
+  }
+  .record-description summary:hover {
+    color: var(--primary-300);
+  }
+}
+
+.record-description p {
+  margin-top: var(--space-3);
+  font-size: 0.875rem;
+  color: var(--gray-700);
+  line-height: 1.7;
+}
+
+@media (prefers-color-scheme: dark) {
+  .record-description p {
+    color: var(--dark-text-secondary);
+  }
+}
+
 /* Spotify Embed */
 .spotify-embed {
   margin: var(--space-16) 0;

@@ -26,6 +26,7 @@ type Record struct {
 	Score       int
 	ReleaseYear string
 	Tracks      []Track
+	Description string
 }
 type Track struct {
 	Band      string
@@ -129,8 +130,14 @@ func getHighlightsByRecordLink(recordLink string) Record {
 
 	score, _ := strconv.Atoi(strings.Split(doc.Find("p.bewertung strong").First().Text(), "/")[0])
 
+	description := strings.TrimSpace(doc.Find(".rezitext").First().Text())
+	description, err = charmap.ISO8859_1.NewDecoder().String(description)
+	if err != nil {
+		log.Printf("Could not convert description to UTF8: %v", err)
+	}
+
 	var tracks []Track
-	record := Record{image, bandname, recordname, recordLink, score, releaseYear, tracks}
+	record := Record{image, bandname, recordname, recordLink, score, releaseYear, tracks, description}
 	log.Printf("%s - %s\n", bandname, recordname)
 	doc.Find("#rezihighlights li").Each(func(i int, s *goquery.Selection) {
 		// For each item found, get the band and title
