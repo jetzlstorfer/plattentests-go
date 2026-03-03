@@ -236,7 +236,6 @@ nav a:hover {
 /* Hero Section */
 .hero {
   text-align: center;
-  padding: var(--space-20) 0 var(--space-16) 0;
 }
 
 .hero h1 {
@@ -667,9 +666,6 @@ footer p {
     gap: var(--space-3);
   }
   
-  .hero {
-    padding: var(--space-16) 0 var(--space-12) 0;
-  }
 }
 
 /* Loading Animation */
