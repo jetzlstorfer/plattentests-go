@@ -49,6 +49,12 @@ func main() {
 	}
 	defer logging.Shutdown()
 
+	// Initialize OpenTelemetry tracing
+	if err := logging.InitTracing("plattentests-webui"); err != nil {
+		logging.Fatal("Failed to initialize tracing: %v", err)
+	}
+	defer logging.ShutdownTracing()
+
 	// Create a new Gin router
 	r := gin.Default()
 	r.Static("./assets", "./assets")
@@ -56,11 +62,16 @@ func main() {
 
 	// Define a handler function for the root endpoint
 	r.GET("/", func(c *gin.Context) {
+		ctx, span := logging.StartSpan(c.Request.Context(), "GET /")
+		defer span.End()
 
+		logging.InfoWithSpan(ctx, "Fetching records of the week")
 		records := crawler.GetRecordsOfTheWeek()
+		logging.AddSpanEvent(ctx, "Records fetched", logging.Attribute("count", len(records)))
 
 		// sort by score
 		if c.DefaultQuery("sort", "score") == "score" {
+			ctx, sortSpan := logging.StartSpan(ctx, "sort-records")
 			sort.Slice(records, func(i, j int) bool {
 				return records[i].Score > records[j].Score
 			})
@@ -74,16 +85,20 @@ func main() {
 			for i, record := range records {
 				if record.Band == recordOfTheWeek {
 					logging.Info("record of the week found: %s", recordOfTheWeek)
+					logging.AddSpanEvent(ctx, "Record of the week found", logging.Attribute("band", recordOfTheWeek))
 					records[0], records[i] = records[i], records[0]
 					break
 				}
 				logging.Debug("record of the week not found: %s vs %s", record.Band, recordOfTheWeek)
 			}
+			sortSpan.End()
 		}
 
 		// Load the template file
+		ctx, templateSpan := logging.StartSpan(ctx, "render-template")
 		tmpl, err := template.ParseFiles("templates/records.tmpl", "templates/utils.tmpl")
 		if err != nil {
+			logging.ErrorWithSpan(ctx, err, "Error parsing template: %v", err)
 			logging.Fatal("Error parsing template: %v", err)
 		}
 
@@ -93,12 +108,16 @@ func main() {
 
 		// Execute the template with the record data
 		if err := tmpl.Execute(c.Writer, data); err != nil {
+			logging.ErrorWithSpan(ctx, err, "Error executing template: %v", err)
 			logging.Fatal("Error executing template: %v", err)
 		}
+		templateSpan.End()
 
 	})
 
 	r.GET("/createPlaylist", func(c *gin.Context) {
+		ctx, span := logging.StartSpan(c.Request.Context(), "GET /createPlaylist")
+		defer span.End()
 
 		// Check if the user is authenticated
 		user, password, ok := c.Request.BasicAuth()
@@ -106,20 +125,29 @@ func main() {
 			c.Header("WWW-Authenticate", "Basic realm=\"Restricted Content\"")
 			c.AbortWithStatus(http.StatusUnauthorized)
 			logging.Warn("could not authenticate user")
+			logging.AddSpanEvent(ctx, "Authentication failed")
 			return
 		}
+		logging.AddSpanEvent(ctx, "User authenticated", logging.Attribute("user", user))
 
 		playlist := c.DefaultQuery("playlist", "")
 		playlistID := os.Getenv("PLAYLIST_ID")
 		if playlist == "prod" {
 			playlistID = os.Getenv("PLAYLIST_ID_PROD")
 		}
+		logging.AddSpanAttributes(ctx, logging.Attribute("playlist_id", playlistID), logging.Attribute("playlist_type", playlist))
 
+		ctx, createSpan := logging.StartSpan(ctx, "create-playlist")
+		logging.InfoWithSpan(ctx, "Creating playlist")
 		results := creator.CreatePlaylist(playlistID)
 		var highlights creator.Result
 		highlights.Records = results.Records
 		highlights.NotFound = results.NotFound
 		highlights.PlaylistID = playlistID
+		logging.AddSpanEvent(ctx, "Playlist created",
+			logging.Attribute("tracks_found", len(results.Records)),
+			logging.Attribute("tracks_not_found", len(results.NotFound)))
+		createSpan.End()
 
 		// sort by score
 		if c.DefaultQuery("sort", "score") == "score" {
@@ -141,8 +169,10 @@ func main() {
 		}
 
 		// Load the template file
+		ctx, templateSpan := logging.StartSpan(ctx, "render-playlist-template")
 		tmpl, err := template.ParseFiles("templates/createPlaylist.tmpl", "templates/utils.tmpl")
 		if err != nil {
+			logging.ErrorWithSpan(ctx, err, "Error parsing template: %v", err)
 			logging.Fatal("Error parsing template: %v", err)
 		}
 
@@ -152,8 +182,10 @@ func main() {
 
 		// Execute the template with the record data
 		if err := tmpl.Execute(c.Writer, data); err != nil {
+			logging.ErrorWithSpan(ctx, err, "Error executing template: %v", err)
 			logging.Fatal("Error executing template: %v", err)
 		}
+		templateSpan.End()
 	})
 
 	// Start the server

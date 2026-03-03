@@ -49,8 +49,13 @@ type Result struct {
 var playlistID spotify.ID
 
 func CreatePlaylist(pid string) Result {
+	ctx := context.Background()
+	ctx, span := logging.StartSpan(ctx, "CreatePlaylist")
+	defer span.End()
+
 	err := envconfig.Process("", &config)
 	if err != nil {
+		logging.ErrorWithSpan(ctx, err, "Failed to process environment config: %v", err)
 		logging.Fatal("Failed to process environment config: %v", err)
 	}
 
@@ -60,6 +65,7 @@ func CreatePlaylist(pid string) Result {
 	} else {
 		playlistID = spotify.ID(pid)
 	}
+	logging.AddSpanAttributes(ctx, logging.Attribute("playlist_id", string(playlistID)))
 
 	logging.Info("Plattentests.de Highlights of the week playlist generator")
 	logging.Info("")
@@ -68,7 +74,8 @@ func CreatePlaylist(pid string) Result {
 		logging.Fatal("PLAYLIST_ID, SPOTIFY_ID, or SPOTIFY_SECRET missing.")
 	}
 
-	logging.Info("Getting tracks of the week...")
+	ctx, fetchSpan := logging.StartSpan(ctx, "fetch-records")
+	logging.InfoWithSpan(ctx, "Getting tracks of the week...")
 	highlights := crawler.GetRecordsOfTheWeek()
 
 	// only use the first records up to MAX_RECORDS_OF_THE_WEEK
@@ -78,21 +85,28 @@ func CreatePlaylist(pid string) Result {
 	}
 
 	logging.Info("Size of records of the week: %d", len(highlights))
+	logging.AddSpanEvent(ctx, "Records fetched", logging.Attribute("count", len(highlights)))
+	fetchSpan.End()
 
 	logging.Info("---")
 	logging.Info("Connecting to Spotify")
 	logging.Info("---")
 
 	// login to spotify, all error messages are dealt within the function
+	ctx, authSpan := logging.StartSpan(ctx, "spotify-auth")
 	client := myauth.VerifyLogin()
-	ctx := context.Background()
+	authSpan.End()
 
+	ctx, emptySpan := logging.StartSpan(ctx, "empty-playlist")
 	logging.Info("Emptying playlist...")
 	err = client.ReplacePlaylistTracks(ctx, playlistID)
 	if err != nil {
+		logging.ErrorWithSpan(ctx, err, "Failed to empty playlist: %v", err)
 		logging.Fatal("Failed to empty playlist: %v", err)
 	}
+	emptySpan.End()
 
+	ctx, searchSpan := logging.StartSpan(ctx, "search-and-add-tracks")
 	logging.Info("Adding highlights of the week to playlist...")
 	total := 0
 	// var newTracks []spotify.ID
@@ -136,6 +150,11 @@ func CreatePlaylist(pid string) Result {
 		}(i, record)
 	}
 	wg1.Wait()
+	logging.AddSpanEvent(ctx, "All tracks searched",
+		logging.Attribute("total_tracks", total),
+		logging.Attribute("found", len(itemsToAdd)),
+		logging.Attribute("not_found", len(notFound)))
+	searchSpan.End()
 
 	// sort items by highest score and bandname
 	sort.Slice(itemsToAdd[:], func(i, j int) bool {

@@ -36,6 +36,12 @@ func main() {
 	}
 	defer logging.Shutdown()
 
+	// Initialize OpenTelemetry tracing
+	if err := logging.InitTracing("plattentests-token"); err != nil {
+		logging.Fatal("Failed to initialize tracing: %v", err)
+	}
+	defer logging.ShutdownTracing()
+
 	// start an HTTP server
 	http.HandleFunc("/callback", completeAuth)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
