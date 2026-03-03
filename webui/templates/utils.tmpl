@@ -8,7 +8,7 @@
 	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 	<link rel="stylesheet" href="/assets/css/modern.css">
 	<link rel="stylesheet" href="/assets/css/style.css">
-	<script src="/assets/js/func.js"></script>
+
 	<title>Plattentests.de 💿 - Highlights of the week</title>
 </head>
 {{end}}
@@ -117,29 +117,6 @@
 
 {{define "FormatTableScript" }}
 <script>
-// Get all the elements with data-imageurl (both cards and table rows)
-const cards = document.querySelectorAll('.record-card[data-imageurl]');
-const rows = document.querySelectorAll('tr[data-imageurl]');
-
-// Apply styling to modern cards
-cards.forEach(function(card) {
-    var imageurl = card.getAttribute("data-imageurl");
-    if (imageurl) {
-        applyBackgroundColor(card, imageurl);
-        applyTextColor(card, imageurl);
-    }
-});
-
-// Apply styling to table rows (fallback)
-rows.forEach(function(row) {
-    var imageurl = row.getAttribute("data-imageurl");
-    if (imageurl) {
-        applyBackgroundColor(row, imageurl);
-        applyTextColor(row, imageurl);
-    }
-});
-
-// Header title scroll functionality
 function handleHeaderTitle() {
     const headerTitle = document.getElementById('header-title');
     const heroSection = document.querySelector('.hero');
