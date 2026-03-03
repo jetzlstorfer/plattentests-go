@@ -33,11 +33,9 @@ plattentests-go/
 │   ├── main.go           # Web server
 │   ├── Dockerfile        # Container image for web UI
 │   ├── assets/           # Static web assets
-│   │   ├── css/          # Stylesheets
-│   │   │   ├── modern.css
-│   │   │   └── style.css
-│   │   └── js/           # JavaScript files
-│   │       └── func.js   # Frontend functions for UI interactions
+│   │   └── css/          # Stylesheets
+│   │       ├── modern.css
+│   │       └── style.css
 │   └── templates/        # HTML templates
 │       ├── createPlaylist.tmpl
 │       ├── records.tmpl
