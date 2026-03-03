@@ -53,6 +53,12 @@
 							</li>
 						{{end}}
 					</ul>
+					{{if .Description}}
+					<details class="record-description">
+						<summary><span class="emoji">📖</span> Read review</summary>
+						<p>{{.Description}}</p>
+					</details>
+					{{end}}
 				</div>
 			</div>
 		{{end}}
