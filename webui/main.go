@@ -48,6 +48,7 @@ type Record struct {
 	Score       int     `json:"Score"`
 	ReleaseYear string  `json:"ReleaseYear"`
 	Tracks      []Track `json:"Tracks"`
+	Description string  `json:"Description"`
 }
 
 type Track struct {

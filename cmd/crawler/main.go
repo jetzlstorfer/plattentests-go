@@ -26,6 +26,7 @@ type Record struct {
 	Score       int
 	ReleaseYear string
 	Tracks      []Track
+	Description string
 }
 type Track struct {
 	Band      string
@@ -129,8 +130,32 @@ func getHighlightsByRecordLink(recordLink string) Record {
 
 	score, _ := strconv.Atoi(strings.Split(doc.Find("p.bewertung strong").First().Text(), "/")[0])
 
+	// Extract description - the content follows h2 headings
+	// The layout changed from .rezitext class to regular paragraphs after h2
+	var paragraphs []string
+	doc.Find("h2").Each(func(i int, h2 *goquery.Selection) {
+		if i == 0 {
+			// Get siblings after h2 that are paragraphs, until next h2/h3/h4
+			h2.NextUntil("h2, h3, h4, hr").Each(func(j int, elem *goquery.Selection) {
+				if goquery.NodeName(elem) == "p" {
+					pText := strings.TrimSpace(elem.Text())
+					// Skip very short paragraphs (metadata) and footer/nav text
+					if len(pText) > 100 && !strings.Contains(pText, "Startseite") && !strings.Contains(pText, "Referenzen") {
+						paragraphs = append(paragraphs, pText)
+					}
+				}
+			})
+		}
+	})
+
+	description := strings.Join(paragraphs, " ")
+	description, err = charmap.ISO8859_1.NewDecoder().String(description)
+	if err != nil {
+		log.Printf("Could not convert description to UTF8: %v", err)
+	}
+
 	var tracks []Track
-	record := Record{image, bandname, recordname, recordLink, score, releaseYear, tracks}
+	record := Record{image, bandname, recordname, recordLink, score, releaseYear, tracks, description}
 	log.Printf("%s - %s\n", bandname, recordname)
 	doc.Find("#rezihighlights li").Each(func(i int, s *goquery.Selection) {
 		// For each item found, get the band and title
