@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+{{template "HtmlHead"}}
+<body>
+	{{template "Navigation"}}
+
+	<div class="container">
+		<div class="hero">
+			<h1>Plattentests.de <span class="emoji">💿</span></h1>
+			<p>Please sign in to continue</p>
+		</div>
+
+		<div class="login-form-wrapper">
+			<form class="login-form" method="POST" action="/login">
+				{{if .Error}}
+				<div class="login-error">{{.Error}}</div>
+				{{end}}
+				<div class="form-group">
+					<label for="username">Username</label>
+					<input type="text" id="username" name="username" required autocomplete="username" placeholder="Enter your username">
+				</div>
+				<div class="form-group">
+					<label for="password">Password</label>
+					<input type="password" id="password" name="password" required autocomplete="current-password" placeholder="Enter your password">
+				</div>
+				<button type="submit" class="btn-login">Sign In</button>
+			</form>
+		</div>
+	</div>
+
+	{{template "Footer" .}}
+</body>
+</html>

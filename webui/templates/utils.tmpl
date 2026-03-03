@@ -18,8 +18,13 @@
 		<div class="container">
 			<nav>
 				<a href="/" aria-label="List view"><span class="emoji">📃</span> List</a>
+				{{if .IsLoggedIn}}
 				<a href="/createPlaylist" aria-label="Test view"><span class="emoji">🔈</span> Test</a>
 				<a href="/createPlaylist?playlist=prod" aria-label="Production view"><span class="emoji">🔊</span> Prod</a>
+				<a href="/logout" aria-label="Sign out"><span class="emoji">🔓</span> Sign out</a>
+				{{else}}
+				<a href="/login" aria-label="Sign in"><span class="emoji">🔐</span> Sign in</a>
+				{{end}}
 			</nav>
 			<div class="header-title" id="header-title">
 				<span>Plattentests.de 💿</span>
