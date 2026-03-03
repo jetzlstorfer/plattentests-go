@@ -236,6 +236,7 @@ nav a:hover {
 /* Hero Section */
 .hero {
   text-align: center;
+  padding: var(--space-8) 0;
 }
 
 .hero h1 {
