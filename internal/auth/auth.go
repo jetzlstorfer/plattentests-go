@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/jetzlstorfer/plattentests-go/internal/logging"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/zmb3/spotify/v2"
 	"golang.org/x/oauth2"
@@ -35,52 +35,52 @@ var (
 func VerifyLogin() spotify.Client {
 	err := envconfig.Process("", &config)
 	if err != nil {
-		log.Fatal(err.Error())
+		logging.Fatal("Failed to process environment config: %v", err)
 	}
 
-	log.Println("Connecting to Azure to download token")
+	logging.Info("Connecting to Azure to download token")
 
 	buff, err := DownloadBlobToBytes("")
 	if err != nil {
-		log.Fatalf("Could not download token from Azure: %v", err)
+		logging.Fatal("Could not download token from Azure: %v", err)
 	}
 
-	log.Println("Token downloaded from Azure")
+	logging.Info("Token downloaded from Azure")
 	token := new(oauth2.Token)
 	if err := json.Unmarshal(buff, token); err != nil {
-		log.Fatalf("could not unmarshal token: %v", err)
+		logging.Fatal("could not unmarshal token: %v", err)
 	}
 
 	// Create a Spotify authenticator with the oauth2 token.
 	// If the token is expired, the oauth2 package will automatically refresh
 	// so the new token is checked against the old one to see if it should be updated.
-	log.Println("Creating Spotify Authenticator")
+	logging.Info("Creating Spotify Authenticator")
 	ctx := context.Background()
 	httpClient := spotifyauth.New().Client(ctx, token)
 	client := spotify.New(httpClient)
 
-	log.Println("Creating new Client Token")
+	logging.Info("Creating new Client Token")
 	newToken, err := client.Token()
 	if err != nil {
-		log.Fatalf("Could not retrieve token from client: %v", err)
+		logging.Fatal("Could not retrieve token from client: %v", err)
 	}
 	if newToken.AccessToken != token.AccessToken {
-		log.Println("Got refreshed token, saving it")
+		logging.Info("Got refreshed token, saving it")
 	}
 
 	_, err = UploadBytesToBlob(buff)
 	if err != nil {
-		log.Fatalf("Could not upload token: %v", err)
+		logging.Fatal("Could not upload token: %v", err)
 	}
 
-	log.Println("Token uploaded.")
+	logging.Info("Token uploaded.")
 
 	// use the client to make calls that require authorization
 	user, err := client.CurrentUser(ctx)
 	if err != nil {
-		log.Fatalf("Could not identify as user: %v", err)
+		logging.Fatal("Could not identify as user: %v", err)
 	}
-	log.Printf("Logged in as: %v", user.ID)
+	logging.Info("Logged in as: %v", user.ID)
 
 	return *client
 }
@@ -141,7 +141,7 @@ func GetAccountInfo() (string, string, string, string) {
 	// making sure all config variables are set
 	err := envconfig.Process("", &config)
 	if err != nil {
-		log.Fatal(err.Error())
+		logging.Fatal("Failed to process environment config: %v", err)
 	}
 
 	azrKey := config.AzAccountKey
