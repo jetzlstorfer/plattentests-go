@@ -26,3 +26,4 @@ log.txt
 *token.txt
 .env*
 plattentests-go
+webui/webui
