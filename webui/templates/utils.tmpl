@@ -189,13 +189,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }, 100);
 
-    // Auto-expand review descriptions on desktop
-    const DESKTOP_BREAKPOINT = 769;
-    if (window.innerWidth >= DESKTOP_BREAKPOINT) {
-        document.querySelectorAll('.record-description').forEach(function(el) {
-            el.setAttribute('open', '');
-        });
-    }
 });
 </script>
 {{end}}
