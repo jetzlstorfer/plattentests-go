@@ -32,7 +32,7 @@
 	<!-- Modern Cards Grid -->
 	<div class="records-grid">
 		{{range .Records}}
-			<div class="record-card" data-imageurl="{{.Image}}">
+			<div class="record-card" data-imageurl="{{.Image}}" data-score="{{.Score}}" data-sort-title="{{.Band}} {{.Recordname}}">
 				<div class="record-image">
 					<a href="{{.Link}}">
 						<img src="{{.Image}}" alt="Cover art for {{.Band}} – {{.Recordname}}" loading="lazy">
@@ -188,6 +188,55 @@ document.addEventListener('DOMContentLoaded', function() {
             card.classList.remove('loading');
         });
     }, 100);
+
+    // --- Grid layout toggle ---
+    const grid = document.querySelector('.records-grid');
+
+    function setGridCols(cols) {
+        if (!grid) return;
+        grid.className = grid.className.replace(/\bgrid-\d+\b/g, '').trim();
+        grid.classList.add('grid-' + cols);
+        document.querySelectorAll('.grid-btn').forEach(function(btn) {
+            btn.classList.toggle('active', btn.dataset.cols === String(cols));
+        });
+        localStorage.setItem('gridCols', cols);
+    }
+
+    document.querySelectorAll('.grid-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            setGridCols(this.dataset.cols);
+        });
+    });
+
+    // Restore saved grid preference (default: 3)
+    setGridCols(localStorage.getItem('gridCols') || '3');
+
+    // --- Client-side sort ---
+    function sortRecords(by) {
+        if (!grid) return;
+        const cards = Array.from(grid.querySelectorAll('.record-card'));
+        cards.sort(function(a, b) {
+            if (by === 'title') {
+                return (a.dataset.sortTitle || '').localeCompare(b.dataset.sortTitle || '', undefined, { sensitivity: 'base' });
+            }
+            // score descending (default)
+            return parseInt(b.dataset.score || '0', 10) - parseInt(a.dataset.score || '0', 10);
+        });
+        cards.forEach(function(card) { grid.appendChild(card); });
+        document.querySelectorAll('.sort-btn').forEach(function(btn) {
+            btn.classList.toggle('active', btn.dataset.sort === by);
+        });
+        localStorage.setItem('sortBy', by);
+    }
+
+    document.querySelectorAll('.sort-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            sortRecords(this.dataset.sort);
+        });
+    });
+
+    // Restore saved sort preference (default: score)
+    sortRecords(localStorage.getItem('sortBy') || 'score');
 
 });
 </script>

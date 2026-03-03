@@ -10,9 +10,28 @@
 			<p>Discover the best music reviews and recommendations</p>
 		</div>
 
-		<div class="sort-controls">
-			<a href="?sort=title">Sort by Title</a>
-			<a href="?sort=score">Sort by Score</a>
+		<div class="controls-bar">
+			<div class="controls-section">
+				<span class="controls-label">Sort by</span>
+				<div class="controls-group">
+					<button class="control-btn sort-btn" data-sort="title"><span class="emoji">🔤</span> Title</button>
+					<button class="control-btn sort-btn" data-sort="score"><span class="emoji">⭐</span> Score</button>
+				</div>
+			</div>
+			<div class="controls-section">
+				<span class="controls-label">Layout</span>
+				<div class="controls-group">
+					<button class="control-btn grid-btn" data-cols="2" title="2 columns">
+						<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="1" y="1" width="6" height="14" rx="1"/><rect x="9" y="1" width="6" height="14" rx="1"/></svg>
+					</button>
+					<button class="control-btn grid-btn" data-cols="3" title="3 columns">
+						<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="1" y="1" width="4" height="14" rx="1"/><rect x="6" y="1" width="4" height="14" rx="1"/><rect x="11" y="1" width="4" height="14" rx="1"/></svg>
+					</button>
+					<button class="control-btn grid-btn" data-cols="4" title="4 columns">
+						<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="1" y="1" width="3" height="14" rx="0.5"/><rect x="5" y="1" width="3" height="14" rx="0.5"/><rect x="9" y="1" width="3" height="14" rx="0.5"/><rect x="13" y="1" width="3" height="14" rx="0.5"/></svg>
+					</button>
+				</div>
+			</div>
 		</div>
 
 		{{template "RecordTable" .}}
