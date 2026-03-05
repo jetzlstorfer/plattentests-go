@@ -40,7 +40,7 @@ jobs:
           password: ${{ secrets.PLATTENTESTS_REGISTRY_PASSWORD }}
 
       - name: Build and push container image to registry
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           push: true
           tags: jetzlstorfer/plattentests-web:${{ github.sha }}
