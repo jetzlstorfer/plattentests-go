@@ -47,6 +47,7 @@ func main() {
 	r := gin.Default()
 	r.Static("./assets", "./assets")
 	r.StaticFile("./favicon.ico", "./assets/favicon.ico")
+	r.StaticFile("/manifest.json", "./assets/manifest.json")
 
 	// Define a handler function for the root endpoint
 	r.GET("/", func(c *gin.Context) {
