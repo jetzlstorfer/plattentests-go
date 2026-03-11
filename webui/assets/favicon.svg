@@ -1,14 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Outer disc body -->
-  <circle cx="50" cy="50" r="49" fill="#c8c8c8"/>
-  <!-- Iridescent rainbow rings (CD effect) -->
-  <circle cx="50" cy="50" r="46" fill="none" stroke="#e040fb" stroke-width="5" opacity="0.55"/>
-  <circle cx="50" cy="50" r="40" fill="none" stroke="#7c4dff" stroke-width="5" opacity="0.55"/>
-  <circle cx="50" cy="50" r="34" fill="none" stroke="#40c4ff" stroke-width="5" opacity="0.55"/>
-  <circle cx="50" cy="50" r="28" fill="none" stroke="#69f0ae" stroke-width="5" opacity="0.55"/>
-  <!-- Inner hub ring -->
-  <circle cx="50" cy="50" r="20" fill="#b8b8b8"/>
-  <circle cx="50" cy="50" r="15" fill="#e8e8e8"/>
-  <!-- Center hole -->
-  <circle cx="50" cy="50" r="7" fill="#1a1a2e"/>
+  <!-- Outer vinyl record body -->
+  <circle cx="50" cy="50" r="49" fill="#1a1a1a"/>
+  <!-- Groove rings -->
+  <circle cx="50" cy="50" r="44" fill="none" stroke="#333333" stroke-width="1"/>
+  <circle cx="50" cy="50" r="40" fill="none" stroke="#333333" stroke-width="1"/>
+  <circle cx="50" cy="50" r="36" fill="none" stroke="#333333" stroke-width="1"/>
+  <!-- Red center label -->
+  <circle cx="50" cy="50" r="24" fill="#cc0000"/>
+  <!-- White center hole -->
+  <circle cx="50" cy="50" r="5" fill="#ffffff"/>
 </svg>
