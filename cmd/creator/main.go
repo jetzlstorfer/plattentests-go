@@ -13,7 +13,6 @@ import (
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
 	myauth "github.com/jetzlstorfer/plattentests-go/internal/auth"
 	"github.com/zmb3/spotify/v2"
-	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
 
@@ -147,7 +146,6 @@ func CreatePlaylist(pid string) Result {
 
 	// put record of the week on top of the playlist
 	recordOfTheWeek := crawler.GetRecordOfTheWeekBandName()
-	recordOfTheWeek, _ = charmap.ISO8859_1.NewDecoder().String(recordOfTheWeek)
 
 	for _, item := range itemsToAdd {
 		if item.bandname == recordOfTheWeek {

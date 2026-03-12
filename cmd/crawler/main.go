@@ -11,7 +11,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gin-gonic/gin"
-	"golang.org/x/text/encoding/charmap"
 )
 
 const plattentestsUrl = "https://www.plattentests.de/index.php"
@@ -48,7 +47,7 @@ func GetRecordsOfTheWeek() []Record {
 	}
 
 	// Load the HTML document
-	doc, err := goquery.NewDocumentFromReader(res.Body)
+	doc, err := goquery.NewDocumentFromResponse(res)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -110,7 +109,7 @@ func getHighlightsByRecordLink(recordLink string) Record {
 	}
 
 	// Load the HTML document
-	doc, err := goquery.NewDocumentFromReader(res.Body)
+	doc, err := goquery.NewDocumentFromResponse(res)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -120,10 +119,8 @@ func getHighlightsByRecordLink(recordLink string) Record {
 		image = baseurl + image
 	}
 	bandname := strings.Split(doc.Find("h1").Text(), " - ")[0]
-	bandname, _ = charmap.ISO8859_1.NewDecoder().String(bandname)
 	bandname = strings.Trim(bandname, " ")
 	recordname := strings.Split(doc.Find("h1").Text(), " - ")[1]
-	recordname, _ = charmap.ISO8859_1.NewDecoder().String(recordname)
 	// for the releaseYear, find the following pattern ": dd.mm.yyyy"
 	regex, _ := regexp.Compile(": [0-9]+.[0-9]+.[0-9]+")
 	match := regex.FindString(doc.Find("p").Text())
@@ -151,15 +148,7 @@ func getHighlightsByRecordLink(recordLink string) Record {
 		}
 	})
 
-	headline, err = charmap.ISO8859_1.NewDecoder().String(headline)
-	if err != nil {
-		log.Printf("Could not convert headline to UTF8: %v", err)
-	}
 	description := strings.Join(paragraphs, " ")
-	description, err = charmap.ISO8859_1.NewDecoder().String(description)
-	if err != nil {
-		log.Printf("Could not convert description to UTF8: %v", err)
-	}
 
 	var tracks []Track
 	record := Record{
@@ -180,11 +169,6 @@ func getHighlightsByRecordLink(recordLink string) Record {
 		trackname := s.Text()
 		// only proceed if there are highlights available
 		if strings.Trim(trackname, " ") != "-" {
-			// decode into utf-8
-			trackname, err = charmap.ISO8859_1.NewDecoder().String(trackname)
-			if err != nil {
-				log.Printf("Could not convert trackname to UTF8: %v", err)
-			}
 			log.Printf(" Track %d: %s\n", i+1, trackname)
 			track.Band = bandname
 			track.Trackname = trackname
@@ -209,7 +193,7 @@ func GetRecordOfTheWeekBandName() string {
 	}
 
 	// Load the HTML document
-	doc, err := goquery.NewDocumentFromReader(res.Body)
+	doc, err := goquery.NewDocumentFromResponse(res)
 	if err != nil {
 		log.Fatal(err)
 	}
