@@ -27,6 +27,7 @@ type Record struct {
 	Score       int     `json:"Score"`
 	ReleaseYear string  `json:"ReleaseYear"`
 	Tracks      []Track `json:"Tracks"`
+	Headline    string  `json:"Headline"`
 	Description string  `json:"Description"`
 }
 
