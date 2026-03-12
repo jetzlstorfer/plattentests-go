@@ -12,7 +12,6 @@ import (
 	"github.com/gin-gonic/gin"
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
 	creator "github.com/jetzlstorfer/plattentests-go/cmd/creator"
-	"golang.org/x/text/encoding/charmap"
 )
 
 //const RecordEndPoint = "https://plattentests-go.azurewebsites.net/api/records/"
@@ -63,7 +62,6 @@ func main() {
 
 			// put record of the week on top of the playlist
 			recordOfTheWeek := crawler.GetRecordOfTheWeekBandName()
-			recordOfTheWeek, _ = charmap.ISO8859_1.NewDecoder().String(recordOfTheWeek)
 			recordOfTheWeek = strings.Trim(recordOfTheWeek, " ")
 
 			// put record of the week on top of the playlist
@@ -125,7 +123,6 @@ func main() {
 
 			// put record of the week on top of the playlist
 			recordOfTheWeek := crawler.GetRecordOfTheWeekBandName()
-			recordOfTheWeek, _ = charmap.ISO8859_1.NewDecoder().String(recordOfTheWeek)
 
 			// put record of the week on top of the playlist
 			for i, record := range highlights.Records {
