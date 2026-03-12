@@ -1,0 +1,11 @@
+# Normalize text files to LF in this repository.
+* text=auto eol=lf
+
+# Keep Windows command scripts with CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Explicitly enforce LF for Go sources and module files.
+*.go text eol=lf
+go.mod text eol=lf
+go.sum text eol=lf
