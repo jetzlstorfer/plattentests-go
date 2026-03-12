@@ -11,10 +11,19 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/net/html/charset"
 )
 
 const plattentestsUrl = "https://www.plattentests.de/index.php"
 const baseurl = "https://www.plattentests.de/"
+
+func newDocumentFromPlattentestsResponse(res *http.Response) (*goquery.Document, error) {
+	decodedReader, err := charset.NewReader(res.Body, res.Header.Get("Content-Type"))
+	if err != nil {
+		return nil, err
+	}
+	return goquery.NewDocumentFromReader(decodedReader)
+}
 
 // Record holds all information for a record
 type Record struct {
@@ -46,8 +55,8 @@ func GetRecordsOfTheWeek() []Record {
 		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
 	}
 
-	// Load the HTML document
-	doc, err := goquery.NewDocumentFromResponse(res)
+	// Plattentests uses ISO-8859-1; decode before parsing to preserve umlauts/special chars.
+	doc, err := newDocumentFromPlattentestsResponse(res)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -108,8 +117,8 @@ func getHighlightsByRecordLink(recordLink string) Record {
 		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
 	}
 
-	// Load the HTML document
-	doc, err := goquery.NewDocumentFromResponse(res)
+	// Plattentests uses ISO-8859-1; decode before parsing to preserve umlauts/special chars.
+	doc, err := newDocumentFromPlattentestsResponse(res)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -192,8 +201,8 @@ func GetRecordOfTheWeekBandName() string {
 		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
 	}
 
-	// Load the HTML document
-	doc, err := goquery.NewDocumentFromResponse(res)
+	// Plattentests uses ISO-8859-1; decode before parsing to preserve umlauts/special chars.
+	doc, err := newDocumentFromPlattentestsResponse(res)
 	if err != nil {
 		log.Fatal(err)
 	}
