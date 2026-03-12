@@ -10,10 +10,31 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/sessions"
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
 	creator "github.com/jetzlstorfer/plattentests-go/cmd/creator"
 	"golang.org/x/text/encoding/charmap"
 )
+
+const sessionName = "plattentests-session"
+
+var store *sessions.CookieStore
+
+func initStore() {
+	secret := os.Getenv("SESSION_SECRET")
+	if secret == "" {
+		log.Fatal("SESSION_SECRET environment variable is not set")
+	}
+	store = sessions.NewCookieStore([]byte(secret))
+	secure := os.Getenv("SESSION_SECURE") == "true"
+	store.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   86400 * 7, // 7 days
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
+	}
+}
 
 //const RecordEndPoint = "https://plattentests-go.azurewebsites.net/api/records/"
 //const CreatePlaylistEndpoint = "https://plattentests-go.azurewebsites.net/api/createPlaylist/"
@@ -42,12 +63,101 @@ type Highlights struct {
 	PlaylistID string   `json:"PlaylistID"`
 }
 
+func isAuthenticated(c *gin.Context) bool {
+	session, err := store.Get(c.Request, sessionName)
+	if err != nil {
+		return false
+	}
+	auth, ok := session.Values["authenticated"].(bool)
+	return ok && auth
+}
+
+func requireAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if !isAuthenticated(c) {
+			c.Redirect(http.StatusFound, "/login")
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
 func main() {
+	initStore()
+
 	// Create a new Gin router
 	r := gin.Default()
 	r.Static("./assets", "./assets")
 	r.StaticFile("./favicon.ico", "./assets/favicon.ico")
 	r.StaticFile("/manifest.json", "./assets/manifest.json")
+
+	r.GET("/login", func(c *gin.Context) {
+		if isAuthenticated(c) {
+			c.Redirect(http.StatusFound, "/")
+			return
+		}
+		tmpl, err := template.ParseFiles("templates/login.tmpl", "templates/utils.tmpl")
+		if err != nil {
+			log.Printf("Error parsing login template: %v", err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		data := make(map[string]interface{})
+		data["GitInfo"] = getCommitInfo()
+		if err := tmpl.Execute(c.Writer, data); err != nil {
+			log.Printf("Error executing login template: %v", err)
+		}
+	})
+
+	r.POST("/login", func(c *gin.Context) {
+		username := c.PostForm("username")
+		password := c.PostForm("password")
+
+		if !checkAuth(username, password) {
+			tmpl, err := template.ParseFiles("templates/login.tmpl", "templates/utils.tmpl")
+			if err != nil {
+				log.Printf("Error parsing login template: %v", err)
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+			data := make(map[string]interface{})
+			data["GitInfo"] = getCommitInfo()
+			data["Error"] = "Invalid username or password"
+			c.Writer.WriteHeader(http.StatusUnauthorized)
+			if err := tmpl.Execute(c.Writer, data); err != nil {
+				log.Printf("Error executing login template: %v", err)
+			}
+			return
+		}
+
+		session, err := store.Get(c.Request, sessionName)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		session.Values["authenticated"] = true
+		if err := session.Save(c.Request, c.Writer); err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		c.Redirect(http.StatusFound, "/")
+	})
+
+	r.GET("/logout", func(c *gin.Context) {
+		session, err := store.Get(c.Request, sessionName)
+		if err != nil {
+			c.Redirect(http.StatusFound, "/login")
+			return
+		}
+		session.Values["authenticated"] = false
+		session.Options.MaxAge = -1
+		if err := session.Save(c.Request, c.Writer); err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		c.Redirect(http.StatusFound, "/login")
+	})
 
 	// Define a handler function for the root endpoint
 	r.GET("/", func(c *gin.Context) {
@@ -85,6 +195,7 @@ func main() {
 		data := make(map[string]interface{})
 		data["Records"] = records
 		data["GitInfo"] = getCommitInfo()
+		data["IsLoggedIn"] = isAuthenticated(c)
 
 		// Execute the template with the record data
 		if err := tmpl.Execute(c.Writer, data); err != nil {
@@ -93,16 +204,7 @@ func main() {
 
 	})
 
-	r.GET("/createPlaylist", func(c *gin.Context) {
-
-		// Check if the user is authenticated
-		user, password, ok := c.Request.BasicAuth()
-		if !ok || !checkAuth(user, password) {
-			c.Header("WWW-Authenticate", "Basic realm=\"Restricted Content\"")
-			c.AbortWithStatus(http.StatusUnauthorized)
-			log.Println("could not authenticate user")
-			return
-		}
+	r.GET("/createPlaylist", requireAuth(), func(c *gin.Context) {
 
 		playlist := c.DefaultQuery("playlist", "")
 		playlistID := os.Getenv("PLAYLIST_ID")
@@ -144,6 +246,7 @@ func main() {
 		data := make(map[string]interface{})
 		data["Records"] = highlights
 		data["GitInfo"] = getCommitInfo()
+		data["IsLoggedIn"] = true
 
 		// Execute the template with the record data
 		if err := tmpl.Execute(c.Writer, data); err != nil {
