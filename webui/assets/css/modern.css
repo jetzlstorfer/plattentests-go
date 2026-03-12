@@ -1,11 +1,13 @@
 /* Modern 2025 Design System */
 :root {
-  /* Modern Color Palette - Bright Cyan/Teal */
-  --primary-500: #06b6d4;
-  --primary-600: #0891b2;
-  --primary-700: #0e7490;
-  --primary-50: #ecfeff;
-  --primary-100: #cffafe;
+  /* Modern Color Palette - Red/Black/White */
+  --primary-300: #fca5a5;
+  --primary-400: #f87171;
+  --primary-500: #e53e3e;
+  --primary-600: #cc0000;
+  --primary-700: #9b0000;
+  --primary-50: #fef2f2;
+  --primary-100: #fee2e2;
   
   --gray-50: #f9fafb;
   --gray-100: #f3f4f6;
@@ -94,7 +96,7 @@ body {
 /* Dark mode */
 @media (prefers-color-scheme: dark) {
   body {
-    background: linear-gradient(135deg, var(--dark-bg) 0%, #1a1a2e 100%);
+    background: linear-gradient(135deg, var(--dark-bg) 0%, #1a0000 100%);
     color: var(--dark-text);
   }
 }

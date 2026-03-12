@@ -4,8 +4,8 @@
   "description": "Weekly music highlights from Plattentests.de",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#06b6d4",
+  "background_color": "#0a0a0b",
+  "theme_color": "#cc0000",
   "icons": [
     {
       "src": "/assets/apple-touch-icon.png",
