@@ -60,6 +60,7 @@
 					{{if .Description}}
 					<details class="record-description">
 						<summary><span class="emoji">📖</span> Read review</summary>
+						{{if .Headline}}<h4 class="review-headline">{{.Headline}}</h4>{{end}}
 						<p>{{.Description}}</p>
 					</details>
 					{{end}}
