@@ -36,7 +36,7 @@
 	<!-- Modern Cards Grid -->
 	<div class="records-grid">
 		{{range .Records}}
-			<div class="record-card" data-imageurl="{{.Image}}" data-score="{{.Score}}" data-sort-title="{{.Band}} {{.Recordname}}">
+			<div class="record-card" data-imageurl="{{.Image}}" data-score="{{.Score}}" data-sort-title="{{.Band}} {{.Recordname}}" data-record-of-week="{{.IsRecordOfTheWeek}}">
 				<div class="record-image">
 					<a href="{{.Link}}">
 						<img src="{{.Image}}" alt="Cover art for {{.Band}} – {{.Recordname}}" loading="lazy">
@@ -201,7 +201,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (by === 'title') {
                 return (a.dataset.sortTitle || '').localeCompare(b.dataset.sortTitle || '', undefined, { sensitivity: 'base' });
             }
-            // score descending (default)
+            // score descending (default), record of the week always on top
+            const aIsRotw = a.dataset.recordOfWeek === 'true';
+            const bIsRotw = b.dataset.recordOfWeek === 'true';
+            if (aIsRotw) return -1;
+            if (bIsRotw) return 1;
             return parseInt(b.dataset.score || '0', 10) - parseInt(a.dataset.score || '0', 10);
         });
         cards.forEach(function(card) { grid.appendChild(card); });

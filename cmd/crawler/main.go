@@ -27,15 +27,16 @@ func newDocumentFromPlattentestsResponse(res *http.Response) (*goquery.Document,
 
 // Record holds all information for a record
 type Record struct {
-	Image       string
-	Band        string
-	Recordname  string
-	Link        string
-	Score       int
-	ReleaseYear string
-	Tracks      []Track
-	Headline    string
-	Description string
+	Image             string
+	Band              string
+	Recordname        string
+	Link              string
+	Score             int
+	ReleaseYear       string
+	Tracks            []Track
+	Headline          string
+	Description       string
+	IsRecordOfTheWeek bool
 }
 type Track struct {
 	Band      string

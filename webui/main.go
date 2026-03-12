@@ -68,6 +68,7 @@ func main() {
 			for i, record := range records {
 				if record.Band == recordOfTheWeek {
 					log.Println("record of the week found: " + recordOfTheWeek)
+					records[i].IsRecordOfTheWeek = true
 					records[0], records[i] = records[i], records[0]
 					break
 				}
@@ -127,6 +128,7 @@ func main() {
 			// put record of the week on top of the playlist
 			for i, record := range highlights.Records {
 				if record.Band == recordOfTheWeek {
+					highlights.Records[i].IsRecordOfTheWeek = true
 					highlights.Records[0], highlights.Records[i] = highlights.Records[i], highlights.Records[0]
 					break
 				}
