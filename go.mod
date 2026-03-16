@@ -5,7 +5,7 @@ go 1.25.6
 require (
 	// Azure services
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.4
-	github.com/PuerkitoBio/goquery v1.11.0
+	github.com/PuerkitoBio/goquery v1.12.0
 
 	// String algorithms
 	github.com/agnivade/levenshtein v1.2.1
