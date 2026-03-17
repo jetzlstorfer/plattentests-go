@@ -5,9 +5,10 @@
 [![Dependency Review](https://github.com/jetzlstorfer/plattentests-go/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/jetzlstorfer/plattentests-go/actions/workflows/dependency-review.yml)
 
 
-# Structure
+This project is a Go-based application for crawling and displaying music album reviews from Plattentests.de. It consists of multiple components, including a web crawler, playlist creator, token manager, and a modern web UI for browsing the data. The project is organized into separate directories for each component, with a clear structure for maintainability and scalability.
 
-This project is a Go-based application for crawling and displaying music album reviews from Plattentests.de. It consists of multiple components:
+![Project Structure](./screenshots/screenshot-dark-mode.png)
+
 
 ## Requirements
 
