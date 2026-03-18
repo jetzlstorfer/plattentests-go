@@ -16,6 +16,7 @@
 
 		{{template "RecordTable" .Records}}
 		
+		{{if .Records.NotFound}}
 		<div class="not-found">
 			<h3>Not Found</h3>
 			<ul>
@@ -24,6 +25,7 @@
 				{{end}}
 			</ul>
 		</div>
+		{{end}}
 	</div>
 
 	{{template "Footer" .}}
