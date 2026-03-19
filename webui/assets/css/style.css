@@ -3,6 +3,96 @@
     padding-inline-start: 20px;
 }
 
+/* Login form styles */
+.login-form-wrapper {
+    display: flex;
+    justify-content: center;
+    padding: var(--space-8) 0;
+}
+
+.login-form {
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-xl);
+    padding: var(--space-8);
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.form-group label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--gray-700);
+}
+
+.form-group input {
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-md);
+    font-size: 1rem;
+    font-family: var(--font-sans);
+    background: white;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--primary-500);
+    box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
+}
+
+.btn-login {
+    padding: var(--space-3) var(--space-6);
+    background: var(--primary-500);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.btn-login:hover {
+    background: var(--primary-600);
+}
+
+.login-error {
+    padding: var(--space-3) var(--space-4);
+    background: #fee2e2;
+    border: 1px solid #fca5a5;
+    border-radius: var(--radius-md);
+    color: #b91c1c;
+    font-size: 0.9rem;
+}
+
+@media (prefers-color-scheme: dark) {
+    .login-form {
+        background: var(--dark-surface);
+        border-color: var(--dark-border);
+    }
+
+    .form-group label {
+        color: var(--dark-text-secondary);
+    }
+
+    .form-group input {
+        background: var(--dark-surface-elevated);
+        border-color: var(--dark-border);
+        color: var(--dark-text);
+    }
+}
+
 /* Additional modern enhancements */
 .record-card img {
     transition: transform 0.3s ease;
