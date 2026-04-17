@@ -1,52 +1,8 @@
 # GitHub Copilot Instructions
 
-This is a Go-based application that crawls music album reviews from [Plattentests.de](https://www.plattentests.de) and automatically creates Spotify playlists from the weekly highlights. Please follow these guidelines when contributing:
-
-## Project Overview
-
-The application consists of:
-- A **web crawler** that fetches album reviews and highlight tracks from Plattentests.de
-- A **Spotify playlist creator** that searches for and adds highlight tracks to a Spotify playlist
-- A **web UI** (Gin-based) that displays the current weekly highlights and allows playlist creation
-- An **authentication module** that manages Spotify OAuth2 tokens stored in Azure Blob Storage
-
-## Repository Structure
-
-- `cmd/crawler/` — Web crawler for fetching album reviews and highlight tracks from Plattentests.de
-- `cmd/creator/` — Playlist creation logic; searches Spotify and builds playlists from crawled data
-- `cmd/token/` — CLI tool for generating and uploading a Spotify OAuth2 token to Azure Blob Storage
-- `internal/auth/` — Spotify OAuth2 authentication and Azure Blob Storage token management
-- `webui/` — Gin web server with HTML templates and static assets; runs on port 8081
-- `env` — Template for required environment variables (copy to `.env` and fill in values)
-- `Makefile` — Build and run targets
-
-## Development Setup
-
-1. Copy `env` to `.env` and fill in all required values:
-   - `SPOTIFY_ID` and `SPOTIFY_SECRET` — Spotify API credentials
-   - `PLAYLIST_ID` and `PLAYLIST_ID_PROD` — Target Spotify playlist IDs
-   - `AZ_ACCOUNT`, `AZ_KEY`, `AZ_CONTAINER` — Azure Blob Storage credentials for token persistence
-   - `TOKEN_FILE` — Filename of the token blob (default: `token.txt`)
-
-2. Use the devcontainer (`.devcontainer/`) or GitHub Codespaces for a pre-configured environment.
+Go application that crawls music album reviews from [Plattentests.de](https://www.plattentests.de) and creates Spotify playlists from the weekly highlights.
 
 ## Build & Run
-
-```bash
-# Run the web UI (port 8081)
-make web
-
-# Generate and store a Spotify OAuth2 token in Azure
-make token
-
-# Build and push Docker image for the web UI
-make docker-web-build
-
-# Build Go packages directly
-cd webui && go build ./...
-```
-
-## Testing
 
 ```bash
 # Run all tests
@@ -54,22 +10,40 @@ go test ./...
 
 # Run tests for a specific package
 go test ./cmd/creator/...
+
+# Run a single test by name
+go test ./cmd/creator/... -run TestSanitizeTrackname
+
+# Build the web UI
+cd webui && go build ./...
+
+# Run the web UI locally (port 8081, requires .env)
+make web
+
+# Build Docker image
+make docker-web-build
 ```
 
-Tests use the standard Go `testing` package with table-driven test patterns. Unit tests live alongside the code they test (e.g., `cmd/creator/sanitize_test.go`).
+## Architecture
 
-## Code Standards
+The web UI (`webui/main.go`) is the only `main` package and the sole entry point. It imports and orchestrates:
 
-- Follow standard Go conventions and idiomatic patterns
-- Use table-driven tests when writing unit tests
-- Keep packages focused: crawler logic in `cmd/crawler`, Spotify logic in `cmd/creator`, auth in `internal/auth`
-- Character encoding: the source website uses ISO-8859-1; always decode to UTF-8 using `charmap.ISO8859_1.NewDecoder()`
-- String matching uses Levenshtein distance (threshold 0.8) to handle minor spelling differences between Plattentests.de and Spotify
+- `cmd/crawler` — library package (not `main`) that scrapes Plattentests.de for weekly album reviews and highlight tracks using goquery. Fetches individual record pages concurrently with goroutines.
+- `cmd/creator` — library package (not `main`) that searches Spotify for crawled tracks and builds a playlist. Uses a scoring system to select the best match: album type (album > single > EP) and track/record name matching.
+- `internal/auth` — handles Spotify OAuth2 token lifecycle, persisting tokens as JSON in Azure Blob Storage.
+- `cmd/token` — standalone CLI (`main` package) for initial token generation; not imported by the web UI.
 
-## Key Guidelines
+Data flows: `crawler.GetRecordsOfTheWeek()` → `creator.CreatePlaylist(playlistID)` → Spotify API.
 
-1. The `cmd/crawler` and `cmd/creator` packages are not `main` packages — they export functions used by `webui/main.go` and other entry points
-2. Spotify search uses a scoring system: album type (album > single > EP) and track/record name matching affect which result is selected
-3. Environment variables are loaded via `github.com/kelseyhightower/envconfig` — add new config fields to the `config` struct in the relevant package
-4. The web UI runs on port 8081; it requires all environment variables to be set (including Azure and Spotify credentials) to create playlists
-5. Docker builds use `webui/Dockerfile` and are deployed to Azure Container Apps via GitHub Actions
+The `Record` and `Track` types are defined in `cmd/crawler` and re-used by `cmd/creator` and `webui`.
+
+## Key Conventions
+
+- **Character encoding**: Plattentests.de serves ISO-8859-1. Always decode responses using `charset.NewReader()` (see `crawler.newDocumentFromPlattentestsResponse`). Never use `ioutil.ReadAll` directly on Plattentests responses.
+- **Fuzzy matching**: Artist and track names are compared between Plattentests and Spotify using Levenshtein distance with a 0.8 similarity threshold. Use `normalizeForComparison()` before comparing strings — it lowercases, removes accents/diacritics, and strips punctuation.
+- **Search sanitization**: Track names are cleaned via `sanitizeTrackname()` before Spotify API queries — removes feat/with annotations, quotes, brackets, accents, and special punctuation.
+- **Config injection**: Environment variables are loaded via `github.com/kelseyhightower/envconfig` into per-package `config` structs. Add new config fields to the relevant struct with `envconfig` tags.
+- **Testing pattern**: All tests use table-driven style with `t.Run()` subtests. Crawler tests use `httptest.NewServer` with mock HTML. See `cmd/creator/sanitize_test.go` and `cmd/crawler/crawler_test.go` for reference.
+- **Web UI auth**: The `/createPlaylist` endpoint uses HTTP Basic Auth checked against `CREATOR_USER` and `CREATOR_PASSWORD` env vars.
+- **Templates**: Gin serves HTML templates from `webui/templates/` with static assets from `webui/assets/`. Templates are parsed with `template.ParseFiles`, not Gin's built-in template loading.
+- **Deployment**: Docker image built from `webui/Dockerfile`, deployed to Azure Container Apps via GitHub Actions (`deploy-aca.yml`).
