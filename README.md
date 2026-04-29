@@ -57,13 +57,24 @@ plattentests-go/
 
 
 
-# Usage
+## Authentication
 
+The `/createPlaylist` endpoint is protected by authentication. Two modes are supported:
+
+| Mode | When active | How it works |
+|------|-------------|--------------|
+| **Azure AD Easy Auth** | Production (Azure Container Apps) | Azure's built-in authentication layer intercepts requests and forwards the signed-in user's identity via HTTP headers. No credentials need to be embedded in the app. |
+| **HTTP Basic Auth** | Local development | Credentials are checked against `CREATOR_USER` and `CREATOR_PASSWORD` env vars from `.env`. |
+
+See **[`docs/easy-auth-setup.md`](docs/easy-auth-setup.md)** for the full guide, including which manual steps are required (App Registration creation, GitHub secrets, etc.).
+
+
+
+# Usage
 
 💡 For your own convenience, make use of Codespaces or run it locally as devcontainer.
 
 There is a `Makefile` with multiple targets to be used. 
-⚠️ Make sure you have the proper `ENV` variables set in a `.env` file.
 
 - To create a token and store it in Azure:
     ```

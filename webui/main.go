@@ -95,13 +95,17 @@ func main() {
 
 	r.GET("/createPlaylist", func(c *gin.Context) {
 
-		// Check if the user is authenticated
-		user, password, ok := c.Request.BasicAuth()
-		if !ok || !checkAuth(user, password) {
-			c.Header("WWW-Authenticate", "Basic realm=\"Restricted Content\"")
-			c.AbortWithStatus(http.StatusUnauthorized)
-			log.Println("could not authenticate user")
-			return
+		// Check if the user is authenticated via Easy Auth (Azure Container Apps) or Basic Auth (local dev)
+		if principal := easyAuthPrincipal(c); principal != "" {
+			log.Printf("user authenticated via Easy Auth: %s", principal)
+		} else {
+			user, password, ok := c.Request.BasicAuth()
+			if !ok || !checkAuth(user, password) {
+				c.Header("WWW-Authenticate", "Basic realm=\"Restricted Content\"")
+				c.AbortWithStatus(http.StatusUnauthorized)
+				log.Println("could not authenticate user")
+				return
+			}
 		}
 
 		playlist := c.DefaultQuery("playlist", "")
@@ -163,6 +167,14 @@ func checkAuth(username, password string) bool {
 		return false
 	}
 	return true
+}
+
+// easyAuthPrincipal returns the authenticated user's display name forwarded by Azure Container Apps
+// Easy Auth (https://learn.microsoft.com/azure/container-apps/authentication). Returns an empty
+// string when the header is absent, which means Easy Auth is not active or the request is
+// unauthenticated.
+func easyAuthPrincipal(c *gin.Context) string {
+	return c.GetHeader("X-MS-CLIENT-PRINCIPAL-NAME")
 }
 
 func getCommitInfo() string {

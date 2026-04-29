@@ -1,7 +1,10 @@
 package main
 
 import (
+	"net/http/httptest"
 	"testing"
+
+	"github.com/gin-gonic/gin"
 )
 
 func TestCheckAuth(t *testing.T) {
@@ -95,4 +98,41 @@ func TestGetCommitInfo(t *testing.T) {
 		// Just ensure the function returns without panicking and returns a string value
 		_ = result
 	})
+}
+
+func TestEasyAuthPrincipal(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	tests := []struct {
+		name           string
+		headerValue    string
+		expectedResult string
+	}{
+		{
+			name:           "header present with username",
+			headerValue:    "jane.doe@example.com",
+			expectedResult: "jane.doe@example.com",
+		},
+		{
+			name:           "header absent",
+			headerValue:    "",
+			expectedResult: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(w)
+			ctx.Request = httptest.NewRequest("GET", "/createPlaylist", nil)
+			if tt.headerValue != "" {
+				ctx.Request.Header.Set("X-MS-CLIENT-PRINCIPAL-NAME", tt.headerValue)
+			}
+
+			result := easyAuthPrincipal(ctx)
+			if result != tt.expectedResult {
+				t.Errorf("easyAuthPrincipal() = %q, want %q", result, tt.expectedResult)
+			}
+		})
+	}
 }
