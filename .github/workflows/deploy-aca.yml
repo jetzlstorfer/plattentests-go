@@ -80,7 +80,7 @@ jobs:
       # setup). See docs/easy-auth-setup.md for how to create the App Registration and store the
       # secrets PLATTENTESTS_AAD_CLIENT_ID and PLATTENTESTS_AAD_CLIENT_SECRET in GitHub.
       - name: Configure Easy Auth on containerapp
-        if: ${{ secrets.PLATTENTESTS_AAD_CLIENT_ID != '' && secrets.PLATTENTESTS_AAD_CLIENT_SECRET != '' }}
+        if: secrets.PLATTENTESTS_AAD_CLIENT_ID != '' && secrets.PLATTENTESTS_AAD_CLIENT_SECRET != ''
         uses: azure/CLI@v3
         with:
           inlineScript: |

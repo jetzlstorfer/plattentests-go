@@ -159,10 +159,11 @@ func main() {
 	}
 }
 
-// easyAuthPrincipal returns the authenticated user's display name forwarded by Azure Container Apps
-// Easy Auth (https://learn.microsoft.com/azure/container-apps/authentication). Returns an empty
-// string when the header is absent, which means Easy Auth is not active or the request is
-// unauthenticated.
+// easyAuthPrincipal returns the value of the X-MS-CLIENT-PRINCIPAL-NAME header injected by
+// Azure Container Apps Easy Auth (https://learn.microsoft.com/azure/container-apps/authentication).
+// The value is the authenticated user's display name or User Principal Name (UPN), depending on
+// the identity provider configuration. Returns an empty string when the header is absent, meaning
+// the request is unauthenticated or Easy Auth is not enabled.
 func easyAuthPrincipal(c *gin.Context) string {
 	return c.GetHeader("X-MS-CLIENT-PRINCIPAL-NAME")
 }
