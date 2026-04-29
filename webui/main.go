@@ -95,18 +95,16 @@ func main() {
 
 	r.GET("/createPlaylist", func(c *gin.Context) {
 
-		// Check if the user is authenticated via Easy Auth (Azure Container Apps) or Basic Auth (local dev)
-		if principal := easyAuthPrincipal(c); principal != "" {
-			log.Printf("user authenticated via Easy Auth: %s", principal)
-		} else {
-			user, password, ok := c.Request.BasicAuth()
-			if !ok || !checkAuth(user, password) {
-				c.Header("WWW-Authenticate", "Basic realm=\"Restricted Content\"")
-				c.AbortWithStatus(http.StatusUnauthorized)
-				log.Println("could not authenticate user")
-				return
-			}
+		// Require authentication via Azure Container Apps Easy Auth.
+		// The X-MS-CLIENT-PRINCIPAL-NAME header is injected by the platform after a successful
+		// login; its absence means the request is unauthenticated.
+		principal := easyAuthPrincipal(c)
+		if principal == "" {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			log.Println("unauthenticated request to /createPlaylist")
+			return
 		}
+		log.Printf("user authenticated via Easy Auth: %s", principal)
 
 		playlist := c.DefaultQuery("playlist", "")
 		playlistID := os.Getenv("PLAYLIST_ID")
@@ -159,14 +157,6 @@ func main() {
 	if err := r.Run(":8081"); err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
-}
-
-func checkAuth(username, password string) bool {
-	if username != os.Getenv(("CREATOR_USER")) || password != os.Getenv("CREATOR_PASSWORD") {
-		log.Println("wrong credentials")
-		return false
-	}
-	return true
 }
 
 // easyAuthPrincipal returns the authenticated user's display name forwarded by Azure Container Apps

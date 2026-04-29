@@ -20,9 +20,8 @@ is a built-in authentication layer managed by the Azure platform. When enabled i
    | `X-MS-CLIENT-PRINCIPAL`      | Base64-encoded JSON of all claims |
 
 The application reads the `X-MS-CLIENT-PRINCIPAL-NAME` header in the `/createPlaylist` handler.
-If the header is present the request is considered authenticated (Easy Auth in production).
-If the header is absent the handler falls back to HTTP Basic Auth so local development still works
-without any Azure dependency.
+If the header is present the request is considered authenticated. If it is absent (Easy Auth not
+active, or the token is invalid) the handler returns HTTP 401 Unauthorized.
 
 ---
 
@@ -115,21 +114,24 @@ Browser → Azure Container Apps ingress
 ```
 
 The public `/` route remains accessible to anonymous users because the Container App is configured
-with `--unauthenticated-client-action AllowAnonymous`.
+with `--unauthenticated-client-action AllowAnonymous`. Only `/createPlaylist` enforces
+authentication — the platform forwards the identity header only for authenticated sessions, and
+the application returns HTTP 401 when the header is absent.
 
 ---
 
 ## Local development
 
-Easy Auth headers are not present when running locally. The `/createPlaylist` endpoint
-automatically falls back to HTTP Basic Auth using the `CREATOR_USER` and `CREATOR_PASSWORD`
-environment variables defined in your `.env` file.
+To test the `/createPlaylist` endpoint locally you need to simulate the Easy Auth header.
+You can use `curl` or any HTTP client:
 
+```bash
+curl -H "X-MS-CLIENT-PRINCIPAL-NAME: you@example.com" http://localhost:8081/createPlaylist
 ```
-GET /createPlaylist
-  → X-MS-CLIENT-PRINCIPAL-NAME header absent
-  → prompt for Basic Auth credentials (CREATOR_USER / CREATOR_PASSWORD)
-```
+
+> **Note**: locally the header is not validated cryptographically — it is only checked for
+> presence. Do not expose the application directly to the internet without Easy Auth enabled on
+> the Container App.
 
 ---
 
