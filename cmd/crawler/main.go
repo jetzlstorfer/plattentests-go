@@ -3,6 +3,7 @@ package crawler
 import (
 	"log"
 	"net/http"
+	"net/url"
 	"regexp"
 	"sort"
 	"strconv"
@@ -16,6 +17,12 @@ import (
 
 const plattentestsUrl = "https://www.plattentests.de/index.php"
 const baseurl = "https://www.plattentests.de/"
+const searchUrl = "https://www.plattentests.de/suche.php"
+
+// maxSearchResults limits how many record pages we fetch for a single search
+// query to avoid hammering Plattentests.de when a query matches a lot of
+// reviews. The native search may return hundreds of matches.
+const maxSearchResults = 25
 
 func newDocumentFromPlattentestsResponse(res *http.Response) (*goquery.Document, error) {
 	decodedReader, err := charset.NewReader(res.Body, res.Header.Get("Content-Type"))
@@ -209,4 +216,133 @@ func GetRecordOfTheWeekBandName() string {
 	}
 
 	return strings.Split(doc.Find("div.adw h3 a").Text(), " - ")[0]
+}
+
+// SearchResult represents a single hit from the Plattentests.de search page,
+// pointing at an album review. It is the lightweight intermediate type we
+// produce while parsing the search HTML, before fetching the full record.
+type SearchResult struct {
+	Title string // Display title from the link, e.g. "Radiohead - Kid A"
+	Link  string // Absolute URL to the rezi.php page
+}
+
+// Search queries Plattentests.de for the given term and returns the matching
+// album reviews as fully populated Records (band, title, score, tracks, …).
+//
+// The native search at https://www.plattentests.de/suche.php is a POST form
+// that returns multiple result sections (Interpreten, Titel, Tracks,
+// Referenzen, Autor, Specials, Forum). We only consider the album-review
+// sections ("Interpreten" and "Titel") because the other sections either
+// link to non-review pages or duplicate the review hits.
+//
+// Results are capped at maxSearchResults to limit load on Plattentests.de.
+func Search(query string) []Record {
+	return searchAt(searchUrl, query)
+}
+
+// searchAt is the testable variant of Search that allows pointing at a
+// different (e.g. mocked) base URL.
+func searchAt(endpoint, query string) []Record {
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return nil
+	}
+
+	// Resolve relative rezi.php links against the search endpoint so tests
+	// (and any future deployment behind a different host) work correctly.
+	base, err := url.Parse(endpoint)
+	if err != nil {
+		log.Printf("invalid search endpoint %q: %v", endpoint, err)
+		return nil
+	}
+
+	form := url.Values{}
+	form.Set("suche", query)
+	form.Set("parameter", "all")
+
+	res, err := http.PostForm(endpoint, form)
+	if err != nil {
+		log.Printf("search request failed: %v", err)
+		return nil
+	}
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		log.Printf("search status code error: %d %s", res.StatusCode, res.Status)
+		return nil
+	}
+
+	doc, err := newDocumentFromPlattentestsResponse(res)
+	if err != nil {
+		log.Printf("failed to parse search response: %v", err)
+		return nil
+	}
+
+	hits := parseSearchResults(doc, base)
+	if len(hits) > maxSearchResults {
+		hits = hits[:maxSearchResults]
+	}
+
+	records := make([]Record, len(hits))
+	var wg sync.WaitGroup
+	wg.Add(len(hits))
+	for i, hit := range hits {
+		go func(i int, link string) {
+			defer wg.Done()
+			records[i] = getHighlightsByRecordLink(link)
+		}(i, hit.Link)
+	}
+	wg.Wait()
+
+	return records
+}
+
+// parseSearchResults extracts album-review hits from a parsed Plattentests.de
+// search results page. It walks the h3 section headings inside the #suche
+// container and only collects rezi.php links from the "Interpreten" and
+// "Titel" sections; duplicates are removed (the same album can match both).
+// Relative hrefs are resolved against base.
+func parseSearchResults(doc *goquery.Document, base *url.URL) []SearchResult {
+	var results []SearchResult
+	seen := make(map[string]bool)
+
+	doc.Find("#suche h3").Each(func(_ int, h *goquery.Selection) {
+		text := h.Text()
+		if !strings.Contains(text, "Interpreten") && !strings.Contains(text, "Titel") {
+			return
+		}
+		// The matching <ul> is the next sibling element after the h3.
+		h.NextFiltered("ul").Find("a").Each(func(_ int, a *goquery.Selection) {
+			href, ok := a.Attr("href")
+			if !ok {
+				return
+			}
+			if !strings.HasPrefix(href, "rezi.php?show=") {
+				return
+			}
+			if seen[href] {
+				return
+			}
+			seen[href] = true
+
+			absolute := href
+			if base != nil {
+				if u, err := base.Parse(href); err == nil {
+					absolute = u.String()
+				}
+			}
+			results = append(results, SearchResult{
+				Title: strings.TrimSpace(a.Text()),
+				Link:  absolute,
+			})
+		})
+	})
+
+	return results
+}
+
+// SearchRecords is a Gin handler that exposes Search as a JSON endpoint.
+// It expects the search term in the "q" query parameter.
+func SearchRecords(c *gin.Context) {
+	query := c.Query("q")
+	c.IndentedJSON(http.StatusOK, Search(query))
 }

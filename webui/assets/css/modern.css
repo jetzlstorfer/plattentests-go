@@ -726,3 +726,48 @@ footer p {
 .recordTable {
   display: none;
 }
+/* Search form */
+.search-form {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.search-input {
+  flex: 1 1 240px;
+  padding: var(--space-3) var(--space-4);
+  font-size: 1rem;
+  font-family: var(--font-sans);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  background: white;
+  color: var(--gray-700);
+  transition: var(--transition-fast);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary-600);
+  box-shadow: 0 0 0 3px rgba(204, 0, 0, 0.15);
+}
+
+.search-submit {
+  flex: 0 0 auto;
+}
+
+.search-meta {
+  margin-bottom: var(--space-6);
+  color: var(--gray-700);
+}
+
+@media (prefers-color-scheme: dark) {
+  .search-input {
+    background: var(--dark-surface);
+    border-color: var(--dark-border);
+    color: var(--dark-text);
+  }
+  .search-meta {
+    color: var(--dark-text-secondary);
+  }
+}

@@ -94,6 +94,33 @@ func main() {
 
 	})
 
+	r.GET("/search", func(c *gin.Context) {
+		query := strings.TrimSpace(c.Query("q"))
+
+		var records []crawler.Record
+		if query != "" {
+			records = crawler.Search(query)
+			// sort by score, descending — same default as the home page
+			sort.Slice(records, func(i, j int) bool {
+				return records[i].Score > records[j].Score
+			})
+		}
+
+		tmpl, err := template.ParseFiles("templates/search.tmpl", "templates/utils.tmpl")
+		if err != nil {
+			log.Fatalf("Error parsing template: %v", err)
+		}
+
+		data := make(map[string]interface{})
+		data["Query"] = query
+		data["Records"] = records
+		data["GitInfo"] = getCommitInfo()
+
+		if err := tmpl.Execute(c.Writer, data); err != nil {
+			log.Fatalf("Error executing template: %v", err)
+		}
+	})
+
 	r.GET("/createPlaylist", func(c *gin.Context) {
 
 		// Require authentication via Azure Container Apps Easy Auth.
