@@ -64,3 +64,23 @@ func TestEasyAuthPrincipal(t *testing.T) {
 		})
 	}
 }
+
+func TestEasyAuthLoginURL(t *testing.T) {
+	t.Run("redirects to aad login and preserves default route", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/createPlaylist", nil)
+
+		result := easyAuthLoginURL(req)
+		if result != "/.auth/login/aad?post_login_redirect_uri=%2FcreatePlaylist" {
+			t.Errorf("easyAuthLoginURL() = %q, want %q", result, "/.auth/login/aad?post_login_redirect_uri=%2FcreatePlaylist")
+		}
+	})
+
+	t.Run("redirects to aad login and preserves query string", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/createPlaylist?playlist=prod", nil)
+
+		result := easyAuthLoginURL(req)
+		if result != "/.auth/login/aad?post_login_redirect_uri=%2FcreatePlaylist%3Fplaylist%3Dprod" {
+			t.Errorf("easyAuthLoginURL() = %q, want %q", result, "/.auth/login/aad?post_login_redirect_uri=%2FcreatePlaylist%3Fplaylist%3Dprod")
+		}
+	})
+}

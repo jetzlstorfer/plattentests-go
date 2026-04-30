@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"runtime/debug"
 	"sort"
@@ -100,8 +101,9 @@ func main() {
 		// login; its absence means the request is unauthenticated.
 		principal := easyAuthPrincipal(c)
 		if principal == "" {
-			c.AbortWithStatus(http.StatusUnauthorized)
-			log.Println("unauthenticated request to /createPlaylist")
+			loginURL := easyAuthLoginURL(c.Request)
+			log.Printf("unauthenticated request to /createPlaylist, redirecting to Easy Auth login: %s", loginURL)
+			c.Redirect(http.StatusTemporaryRedirect, loginURL)
 			return
 		}
 		log.Printf("user authenticated via Easy Auth: %s", principal)
@@ -166,6 +168,15 @@ func main() {
 // the request is unauthenticated or Easy Auth is not enabled.
 func easyAuthPrincipal(c *gin.Context) string {
 	return c.GetHeader("X-MS-CLIENT-PRINCIPAL-NAME")
+}
+
+func easyAuthLoginURL(r *http.Request) string {
+	requestURI := "/createPlaylist"
+	if r != nil && r.URL != nil {
+		requestURI = r.URL.RequestURI()
+	}
+
+	return "/.auth/login/aad?post_login_redirect_uri=" + url.QueryEscape(requestURI)
 }
 
 func getCommitInfo() string {

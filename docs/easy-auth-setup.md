@@ -21,7 +21,8 @@ is a built-in authentication layer managed by the Azure platform. When enabled i
 
 The application reads the `X-MS-CLIENT-PRINCIPAL-NAME` header in the `/createPlaylist` handler.
 If the header is present the request is considered authenticated. If it is absent (Easy Auth not
-active, or the token is invalid) the handler returns HTTP 401 Unauthorized.
+active, or the session cookie is missing), the handler redirects the browser to
+`/.auth/login/aad` and returns the user to the original `/createPlaylist` URL after sign-in.
 
 ---
 
@@ -96,8 +97,9 @@ Expected output:
 }
 ```
 
-Open `https://<FQDN>/createPlaylist` in a browser. Azure should redirect you to the Microsoft
-login page before the application handles the request.
+Open `https://<FQDN>/createPlaylist` in a browser. The application should redirect you to
+`/.auth/login/aad`, Azure should send you through the Microsoft login page, and after sign-in you
+should be returned to `/createPlaylist`.
 
 ---
 
@@ -116,7 +118,8 @@ Browser → Azure Container Apps ingress
 The public `/` route remains accessible to anonymous users because the Container App is configured
 with `--unauthenticated-client-action AllowAnonymous`. Only `/createPlaylist` enforces
 authentication — the platform forwards the identity header only for authenticated sessions, and
-the application returns HTTP 401 when the header is absent.
+the application redirects anonymous browser requests into the Easy Auth login flow when the header
+is absent.
 
 ---
 
