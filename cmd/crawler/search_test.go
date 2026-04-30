@@ -1,6 +1,7 @@
 package crawler
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/gin-gonic/gin"
 )
 
 // mockSearchHTML returns a minimal Plattentests.de search results page that
@@ -226,4 +228,26 @@ func TestParseSearchResults_RealisticStructure(t *testing.T) {
 	if len(results) != 2 {
 		t.Fatalf("got %d results, want 2", len(results))
 	}
+}
+func TestSearchRecords_ReturnsJSONForEmptyQuery(t *testing.T) {
+gin.SetMode(gin.TestMode)
+w := httptest.NewRecorder()
+ctx, _ := gin.CreateTestContext(w)
+ctx.Request = httptest.NewRequest("GET", "/search?q=", nil)
+
+SearchRecords(ctx)
+
+if w.Code != http.StatusOK {
+t.Errorf("status = %d, want 200", w.Code)
+}
+// Empty query yields a nil/empty result, which marshals to "null" or "[]".
+body := strings.TrimSpace(w.Body.String())
+if body != "null" && body != "[]" {
+t.Errorf("body = %q, want \"null\" or \"[]\"", body)
+}
+// Sanity-check: response is valid JSON.
+var v interface{}
+if err := json.Unmarshal(w.Body.Bytes(), &v); err != nil {
+t.Errorf("response is not valid JSON: %v", err)
+}
 }

@@ -108,7 +108,7 @@ func main() {
 
 		tmpl, err := template.ParseFiles("templates/search.tmpl", "templates/utils.tmpl")
 		if err != nil {
-			log.Fatalf("Error parsing template: %v", err)
+			log.Fatalf("Error parsing search templates: %v", err)
 		}
 
 		data := make(map[string]interface{})
@@ -117,7 +117,7 @@ func main() {
 		data["GitInfo"] = getCommitInfo()
 
 		if err := tmpl.Execute(c.Writer, data); err != nil {
-			log.Fatalf("Error executing template: %v", err)
+			log.Fatalf("Error executing search template: %v", err)
 		}
 	})
 
