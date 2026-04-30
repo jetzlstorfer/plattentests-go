@@ -102,7 +102,6 @@ jobs:
               --resource-group aca-plattentests \
               --client-id "$PLATTENTESTS_AAD_CLIENT_ID" \
               --client-secret "$PLATTENTESTS_AAD_CLIENT_SECRET" \
-              --issuer "https://login.microsoftonline.com/${{ secrets.PLATTENTESTS_AZURE_TENANT_ID }}/v2.0" \
               --tenant-id ${{ secrets.PLATTENTESTS_AZURE_TENANT_ID }} \
               --yes
 
