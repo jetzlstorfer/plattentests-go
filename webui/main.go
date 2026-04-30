@@ -95,14 +95,16 @@ func main() {
 
 	r.GET("/createPlaylist", func(c *gin.Context) {
 
-		// Check if the user is authenticated
-		user, password, ok := c.Request.BasicAuth()
-		if !ok || !checkAuth(user, password) {
-			c.Header("WWW-Authenticate", "Basic realm=\"Restricted Content\"")
+		// Require authentication via Azure Container Apps Easy Auth.
+		// The X-MS-CLIENT-PRINCIPAL-NAME header is injected by the platform after a successful
+		// login; its absence means the request is unauthenticated.
+		principal := easyAuthPrincipal(c)
+		if principal == "" {
 			c.AbortWithStatus(http.StatusUnauthorized)
-			log.Println("could not authenticate user")
+			log.Println("unauthenticated request to /createPlaylist")
 			return
 		}
+		log.Printf("user authenticated via Easy Auth: %s", principal)
 
 		playlist := c.DefaultQuery("playlist", "")
 		playlistID := os.Getenv("PLAYLIST_ID")
@@ -157,12 +159,13 @@ func main() {
 	}
 }
 
-func checkAuth(username, password string) bool {
-	if username != os.Getenv(("CREATOR_USER")) || password != os.Getenv("CREATOR_PASSWORD") {
-		log.Println("wrong credentials")
-		return false
-	}
-	return true
+// easyAuthPrincipal returns the value of the X-MS-CLIENT-PRINCIPAL-NAME header injected by
+// Azure Container Apps Easy Auth (https://learn.microsoft.com/azure/container-apps/authentication).
+// The value is the authenticated user's display name or User Principal Name (UPN), depending on
+// the identity provider configuration. Returns an empty string when the header is absent, meaning
+// the request is unauthenticated or Easy Auth is not enabled.
+func easyAuthPrincipal(c *gin.Context) string {
+	return c.GetHeader("X-MS-CLIENT-PRINCIPAL-NAME")
 }
 
 func getCommitInfo() string {

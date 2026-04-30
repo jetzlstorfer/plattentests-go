@@ -1,80 +1,11 @@
 package main
 
 import (
+	"net/http/httptest"
 	"testing"
+
+	"github.com/gin-gonic/gin"
 )
-
-func TestCheckAuth(t *testing.T) {
-	tests := []struct {
-		name           string
-		creatorUser    string
-		creatorPass    string
-		inputUser      string
-		inputPass      string
-		expectedResult bool
-	}{
-		{
-			name:           "valid credentials",
-			creatorUser:    "admin",
-			creatorPass:    "secret",
-			inputUser:      "admin",
-			inputPass:      "secret",
-			expectedResult: true,
-		},
-		{
-			name:           "wrong username",
-			creatorUser:    "admin",
-			creatorPass:    "secret",
-			inputUser:      "wronguser",
-			inputPass:      "secret",
-			expectedResult: false,
-		},
-		{
-			name:           "wrong password",
-			creatorUser:    "admin",
-			creatorPass:    "secret",
-			inputUser:      "admin",
-			inputPass:      "wrongpass",
-			expectedResult: false,
-		},
-		{
-			name:           "both wrong",
-			creatorUser:    "admin",
-			creatorPass:    "secret",
-			inputUser:      "hacker",
-			inputPass:      "hack",
-			expectedResult: false,
-		},
-		{
-			name:           "empty credentials when env vars not set",
-			creatorUser:    "",
-			creatorPass:    "",
-			inputUser:      "",
-			inputPass:      "",
-			expectedResult: true,
-		},
-		{
-			name:           "empty input against non-empty env",
-			creatorUser:    "admin",
-			creatorPass:    "secret",
-			inputUser:      "",
-			inputPass:      "",
-			expectedResult: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv("CREATOR_USER", tt.creatorUser)
-			t.Setenv("CREATOR_PASSWORD", tt.creatorPass)
-
-			result := checkAuth(tt.inputUser, tt.inputPass)
-			if result != tt.expectedResult {
-				t.Errorf("checkAuth(%q, %q) = %v, want %v", tt.inputUser, tt.inputPass, result, tt.expectedResult)
-			}
-		})
-	}
-}
 
 func TestGetCommitInfo(t *testing.T) {
 	t.Run("returns GIT_SHA env var when set", func(t *testing.T) {
@@ -95,4 +26,41 @@ func TestGetCommitInfo(t *testing.T) {
 		// Just ensure the function returns without panicking and returns a string value
 		_ = result
 	})
+}
+
+func TestEasyAuthPrincipal(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	tests := []struct {
+		name           string
+		headerValue    string
+		expectedResult string
+	}{
+		{
+			name:           "header present with username",
+			headerValue:    "jane.doe@example.com",
+			expectedResult: "jane.doe@example.com",
+		},
+		{
+			name:           "header absent",
+			headerValue:    "",
+			expectedResult: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(w)
+			ctx.Request = httptest.NewRequest("GET", "/createPlaylist", nil)
+			if tt.headerValue != "" {
+				ctx.Request.Header.Set("X-MS-CLIENT-PRINCIPAL-NAME", tt.headerValue)
+			}
+
+			result := easyAuthPrincipal(ctx)
+			if result != tt.expectedResult {
+				t.Errorf("easyAuthPrincipal() = %q, want %q", result, tt.expectedResult)
+			}
+		})
+	}
 }

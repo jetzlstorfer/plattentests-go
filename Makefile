@@ -8,7 +8,7 @@ GIT_SHA=$(shell git rev-parse HEAD)
 token:
 	go run cmd/token/main.go
 
-web:
+run:
 	cd webui && go run main.go
 
 docker-web-build:

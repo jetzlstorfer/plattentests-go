@@ -74,3 +74,28 @@ jobs:
             az config set extension.use_dynamic_install=yes_without_prompt
             az containerapp registry set -n plattentests -g aca-plattentests --server docker.io --username  ${{ secrets.PLATTENTESTS_REGISTRY_USERNAME }} --password ${{ secrets.PLATTENTESTS_REGISTRY_PASSWORD }}
             az containerapp update -n plattentests -g aca-plattentests --image jetzlstorfer/plattentests-web:${{ github.sha }}
+
+      # Configure Easy Auth (Azure AD) on the Container App.
+      # This step is skipped when the required secrets are not present (e.g. on forks or first-time
+      # setup). See docs/easy-auth-setup.md for how to create the App Registration and store the
+      # secrets PLATTENTESTS_AAD_CLIENT_ID and PLATTENTESTS_AAD_CLIENT_SECRET in GitHub.
+      - name: Configure Easy Auth on containerapp
+        if: secrets.PLATTENTESTS_AAD_CLIENT_ID != '' && secrets.PLATTENTESTS_AAD_CLIENT_SECRET != ''
+        uses: azure/CLI@v3
+        with:
+          inlineScript: |
+            az config set extension.use_dynamic_install=yes_without_prompt
+            # Enable authentication and allow unauthenticated traffic so the public "/" route
+            # remains accessible while "/createPlaylist" is gated by the application itself.
+            az containerapp auth update \
+              --name plattentests \
+              --resource-group aca-plattentests \
+              --enabled true \
+              --unauthenticated-client-action AllowAnonymous
+            # Configure Azure AD (Microsoft) as identity provider.
+            az containerapp auth microsoft update \
+              --name plattentests \
+              --resource-group aca-plattentests \
+              --client-id ${{ secrets.PLATTENTESTS_AAD_CLIENT_ID }} \
+              --client-secret ${{ secrets.PLATTENTESTS_AAD_CLIENT_SECRET }} \
+              --tenant-id ${{ secrets.PLATTENTESTS_AZURE_TENANT_ID }}
