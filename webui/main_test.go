@@ -66,6 +66,8 @@ func TestEasyAuthPrincipal(t *testing.T) {
 }
 
 func TestEasyAuthLoginURL(t *testing.T) {
+	t.Setenv("EASY_AUTH_ENABLED", "true")
+
 	t.Run("redirects to aad login and preserves default route", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/createPlaylist", nil)
 
@@ -81,6 +83,18 @@ func TestEasyAuthLoginURL(t *testing.T) {
 		result := easyAuthLoginURL(req)
 		if result != "/.auth/login/aad?post_login_redirect_uri=%2FcreatePlaylist%3Fplaylist%3Dprod" {
 			t.Errorf("easyAuthLoginURL() = %q, want %q", result, "/.auth/login/aad?post_login_redirect_uri=%2FcreatePlaylist%3Fplaylist%3Dprod")
+		}
+	})
+}
+
+func TestEasyAuthLoginURLLocalFallback(t *testing.T) {
+	t.Run("returns createPlaylist path on localhost when EASY_AUTH_ENABLED is unset", func(t *testing.T) {
+		t.Setenv("EASY_AUTH_ENABLED", "")
+		req := httptest.NewRequest("GET", "http://localhost:8081/", nil)
+
+		result := easyAuthLoginURL(req)
+		if result != "/createPlaylist" {
+			t.Errorf("easyAuthLoginURL() = %q, want %q", result, "/createPlaylist")
 		}
 	})
 }

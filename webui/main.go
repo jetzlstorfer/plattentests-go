@@ -3,11 +3,13 @@ package main
 import (
 	"html/template"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"runtime/debug"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -83,9 +85,8 @@ func main() {
 			log.Fatalf("Error parsing template: %v", err)
 		}
 
-		data := make(map[string]interface{})
+		data := commonTemplateData(c)
 		data["Records"] = records
-		data["GitInfo"] = getCommitInfo()
 
 		// Execute the template with the record data
 		if err := tmpl.Execute(c.Writer, data); err != nil {
@@ -111,13 +112,28 @@ func main() {
 			log.Fatalf("Error parsing search templates: %v", err)
 		}
 
-		data := make(map[string]interface{})
+		data := commonTemplateData(c)
 		data["Query"] = query
 		data["Records"] = records
-		data["GitInfo"] = getCommitInfo()
 
 		if err := tmpl.Execute(c.Writer, data); err != nil {
 			log.Fatalf("Error executing search template: %v", err)
+		}
+	})
+
+	r.GET("/playlist", func(c *gin.Context) {
+		playlistID := os.Getenv("PLAYLIST_ID_PROD")
+
+		tmpl, err := template.ParseFiles("templates/playlist.tmpl", "templates/utils.tmpl")
+		if err != nil {
+			log.Fatalf("Error parsing playlist templates: %v", err)
+		}
+
+		data := commonTemplateData(c)
+		data["PlaylistID"] = playlistID
+
+		if err := tmpl.Execute(c.Writer, data); err != nil {
+			log.Fatalf("Error executing playlist template: %v", err)
 		}
 	})
 
@@ -127,13 +143,18 @@ func main() {
 		// The X-MS-CLIENT-PRINCIPAL-NAME header is injected by the platform after a successful
 		// login; its absence means the request is unauthenticated.
 		principal := easyAuthPrincipal(c)
-		if principal == "" {
+		requireEasyAuth := easyAuthEnabled(c.Request)
+		if requireEasyAuth && principal == "" {
 			loginURL := easyAuthLoginURL(c.Request)
 			log.Printf("unauthenticated request to /createPlaylist, redirecting to Easy Auth login: %s", loginURL)
 			c.Redirect(http.StatusTemporaryRedirect, loginURL)
 			return
 		}
-		log.Printf("user authenticated via Easy Auth: %s", principal)
+		if requireEasyAuth {
+			log.Printf("user authenticated via Easy Auth: %s", principal)
+		} else {
+			log.Printf("Easy Auth disabled for this request, allowing local access to /createPlaylist")
+		}
 
 		playlist := c.DefaultQuery("playlist", "")
 		playlistID := os.Getenv("PLAYLIST_ID")
@@ -172,9 +193,8 @@ func main() {
 			log.Fatalf("Error parsing template: %v", err)
 		}
 
-		data := make(map[string]interface{})
+		data := commonTemplateData(c)
 		data["Records"] = highlights
-		data["GitInfo"] = getCommitInfo()
 
 		// Execute the template with the record data
 		if err := tmpl.Execute(c.Writer, data); err != nil {
@@ -198,12 +218,61 @@ func easyAuthPrincipal(c *gin.Context) string {
 }
 
 func easyAuthLoginURL(r *http.Request) string {
+	if !easyAuthEnabled(r) {
+		return "/createPlaylist"
+	}
+
 	requestURI := "/createPlaylist"
 	if r != nil && r.URL != nil {
 		requestURI = r.URL.RequestURI()
 	}
 
 	return "/.auth/login/aad?post_login_redirect_uri=" + url.QueryEscape(requestURI)
+}
+
+// easyAuthEnabled controls whether Easy Auth should be enforced for this request.
+// It can be explicitly set with EASY_AUTH_ENABLED=true|false. When unset, localhost
+// requests default to disabled to support local development without ACA Easy Auth.
+func easyAuthEnabled(r *http.Request) bool {
+	if configured := strings.TrimSpace(os.Getenv("EASY_AUTH_ENABLED")); configured != "" {
+		enabled, err := strconv.ParseBool(configured)
+		if err == nil {
+			return enabled
+		}
+		log.Printf("invalid EASY_AUTH_ENABLED value %q, falling back to host-based default", configured)
+	}
+
+	return !isLocalHostRequest(r)
+}
+
+func isLocalHostRequest(r *http.Request) bool {
+	if r == nil {
+		return false
+	}
+
+	host := strings.TrimSpace(r.Host)
+	if host == "" {
+		return false
+	}
+
+	if parsedHost, _, err := net.SplitHostPort(host); err == nil {
+		host = parsedHost
+	}
+
+	host = strings.ToLower(host)
+	return host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "0.0.0.0"
+}
+
+func commonTemplateData(c *gin.Context) map[string]interface{} {
+	principal := easyAuthPrincipal(c)
+	authEnabled := easyAuthEnabled(c.Request)
+
+	data := make(map[string]interface{})
+	data["GitInfo"] = getCommitInfo()
+	data["IsAuthenticated"] = !authEnabled || principal != ""
+	data["LoginURL"] = easyAuthLoginURL(c.Request)
+
+	return data
 }
 
 func getCommitInfo() string {

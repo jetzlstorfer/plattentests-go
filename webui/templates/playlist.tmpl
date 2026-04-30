@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+{{template "HtmlHead"}}
+<body>
+	{{template "Navigation" .}}
+
+	<div class="container">
+		<div class="hero">
+			<h1>Plattentests.de <span class="emoji">🎧</span><br>Highlights of the week</h1>
+			<p>Listen to playlist on Spotify</p>
+		</div>
+
+		<div class="spotify-embed">
+			<iframe style="border-radius:12px" src="https://open.spotify.com/embed/playlist/{{ .PlaylistID }}?utm_source=generator&theme=0" width="100%" height="600" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" title="Spotify playlist embed"></iframe>
+		</div>
+	</div>
+
+	{{template "Footer" .}}
+</body>
+</html>
