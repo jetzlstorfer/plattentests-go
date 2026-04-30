@@ -94,11 +94,13 @@ jobs:
               --name plattentests \
               --resource-group aca-plattentests \
               --enabled true \
-              --unauthenticated-client-action AllowAnonymous
+              --unauthenticated-client-action AllowAnonymous \
+              --yes
             # Configure Azure AD (Microsoft) as identity provider.
             az containerapp auth microsoft update \
               --name plattentests \
               --resource-group aca-plattentests \
               --client-id "$PLATTENTESTS_AAD_CLIENT_ID" \
               --client-secret "$PLATTENTESTS_AAD_CLIENT_SECRET" \
-              --tenant-id ${{ secrets.PLATTENTESTS_AZURE_TENANT_ID }}
+              --tenant-id ${{ secrets.PLATTENTESTS_AZURE_TENANT_ID }} \
+              --yes
