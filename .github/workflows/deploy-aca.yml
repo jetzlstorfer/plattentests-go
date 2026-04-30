@@ -102,5 +102,21 @@ jobs:
               --resource-group aca-plattentests \
               --client-id "$PLATTENTESTS_AAD_CLIENT_ID" \
               --client-secret "$PLATTENTESTS_AAD_CLIENT_SECRET" \
+              --issuer "https://login.microsoftonline.com/${{ secrets.PLATTENTESTS_AZURE_TENANT_ID }}/v2.0" \
               --tenant-id ${{ secrets.PLATTENTESTS_AZURE_TENANT_ID }} \
               --yes
+
+      - name: Show Easy Auth configuration
+        if: env.PLATTENTESTS_AAD_CLIENT_ID != '' && env.PLATTENTESTS_AAD_CLIENT_SECRET != ''
+        uses: azure/CLI@v3
+        with:
+          inlineScript: |
+            az config set extension.use_dynamic_install=yes_without_prompt
+            az containerapp auth show \
+              --name plattentests \
+              --resource-group aca-plattentests \
+              --query "{platformEnabled:platform.enabled, unauthenticatedAction:globalValidation.unauthenticatedClientAction}"
+            az containerapp auth microsoft show \
+              --name plattentests \
+              --resource-group aca-plattentests \
+              --query "{enabled:enabled, clientId:registration.clientId, openIdIssuer:registration.openIdIssuer}"

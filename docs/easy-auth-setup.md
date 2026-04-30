@@ -101,6 +101,10 @@ Open `https://<FQDN>/createPlaylist` in a browser. The application should redire
 `/.auth/login/aad`, Azure should send you through the Microsoft login page, and after sign-in you
 should be returned to `/createPlaylist`.
 
+Do not validate Easy Auth by opening `/.auth/login/aad/callback` directly in the browser address
+bar. That endpoint only works when Microsoft Entra redirects back with the expected auth state and
+parameters; direct access commonly returns HTTP 401.
+
 ---
 
 ## Authentication flow in production
@@ -151,3 +155,24 @@ az containerapp auth update \
 
 Remove the `PLATTENTESTS_AAD_CLIENT_ID` and `PLATTENTESTS_AAD_CLIENT_SECRET` GitHub secrets to
 prevent the workflow from re-enabling it.
+
+---
+
+## Troubleshooting callback 401
+
+If `/.auth/login/aad/callback` returns 401 after an actual login flow (not direct browsing),
+check these items:
+
+1. App Registration has redirect URI exactly set to
+  `https://<FQDN>/.auth/login/aad/callback`.
+2. App Registration has ID token issuance enabled:
+  ```bash
+  az ad app update --id <APP_ID> --enable-id-token-issuance true
+  ```
+3. The configured tenant matches `PLATTENTESTS_AZURE_TENANT_ID`.
+4. Easy Auth provider config contains `clientId`, `tenantId`, and issuer pointing to that tenant:
+  ```bash
+  az containerapp auth microsoft show \
+    --name plattentests \
+    --resource-group aca-plattentests
+  ```
