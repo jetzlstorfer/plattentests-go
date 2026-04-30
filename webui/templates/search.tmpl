@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+{{template "HtmlHead"}}
+<body>
+	{{template "Navigation" .}}
+
+	<div class="container">
+		<div class="hero">
+			<h1>Search <span class="emoji">🔍</span><br>Plattentests.de archive</h1>
+			<p>Search the full Plattentests.de review archive</p>
+		</div>
+
+		<form class="search-form" method="get" action="/search" role="search">
+			<input
+				class="search-input"
+				type="search"
+				name="q"
+				value="{{.Query}}"
+				placeholder="Band or album name…"
+				aria-label="Search query"
+				autofocus>
+			<button type="submit" class="control-btn search-submit">
+				<span class="emoji">🔍</span> Search
+			</button>
+		</form>
+
+		{{if .Query}}
+			{{if .Records}}
+				<p class="search-meta">Found {{len .Records}} matching review(s) for &ldquo;{{.Query}}&rdquo;.</p>
+				{{template "RecordTable" .}}
+			{{else}}
+				<p class="search-meta">No reviews found for &ldquo;{{.Query}}&rdquo;.</p>
+			{{end}}
+		{{end}}
+	</div>
+
+	{{template "Footer" .}}
+
+	{{template "FormatTableScript"}}
+</body>
+</html>
