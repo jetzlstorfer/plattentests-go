@@ -629,6 +629,52 @@ nav a:hover {
   border-bottom: none;
 }
 
+/* Status Messages */
+.status-message {
+  border-radius: var(--radius-2xl);
+  padding: var(--space-8);
+  margin: var(--space-8) 0 var(--space-16) 0;
+  box-shadow: var(--shadow-lg);
+}
+
+.status-message h2 {
+  margin-bottom: var(--space-3);
+}
+
+.status-message p {
+  margin-bottom: var(--space-3);
+}
+
+.status-message p:last-child {
+  margin-bottom: 0;
+}
+
+.status-error {
+  background: linear-gradient(180deg, #fff5f5 0%, #ffe8e8 100%);
+  border: 1px solid #f3b3b3;
+  color: #7a1414;
+}
+
+.status-error h2 {
+  color: #9b0000;
+}
+
+.status-error .error-reason {
+  font-weight: 600;
+}
+
+@media (prefers-color-scheme: dark) {
+  .status-error {
+    background: linear-gradient(180deg, #2a1010 0%, #200909 100%);
+    border: 1px solid #663131;
+    color: #ffd8d8;
+  }
+
+  .status-error h2 {
+    color: #ffb4b4;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   .not-found li {
     color: var(--dark-text-secondary);

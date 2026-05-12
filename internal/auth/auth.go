@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strings"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/kelseyhightower/envconfig"
@@ -60,7 +62,7 @@ func VerifyLogin() (spotify.Client, error) {
 	client := spotify.New(httpClient)
 
 	log.Println("Creating new Client Token")
-	newToken, err := client.Token()
+	newToken, err := retrieveTokenWithRetry(client)
 	if err != nil {
 		return spotify.Client{}, fmt.Errorf("retrieve token from client: %w", err)
 	}
@@ -68,7 +70,12 @@ func VerifyLogin() (spotify.Client, error) {
 		log.Println("Got refreshed token, saving it")
 	}
 
-	_, err = UploadBytesToBlob(buff)
+	persistedToken, err := json.Marshal(newToken)
+	if err != nil {
+		return spotify.Client{}, fmt.Errorf("marshal refreshed token: %w", err)
+	}
+
+	_, err = UploadBytesToBlob(persistedToken)
 	if err != nil {
 		return spotify.Client{}, fmt.Errorf("upload token to Azure: %w", err)
 	}
@@ -83,6 +90,42 @@ func VerifyLogin() (spotify.Client, error) {
 	log.Printf("Logged in as: %v", user.ID)
 
 	return *client, nil
+}
+
+func retrieveTokenWithRetry(client *spotify.Client) (*oauth2.Token, error) {
+	const maxAttempts = 4
+	const baseDelay = 2 * time.Second
+
+	var lastErr error
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		token, err := client.Token()
+		if err == nil {
+			return token, nil
+		}
+
+		lastErr = err
+		if !isRetryableOAuthError(err) || attempt == maxAttempts {
+			break
+		}
+
+		delay := time.Duration(attempt) * baseDelay
+		log.Printf("temporary Spotify OAuth error while retrieving token (attempt %d/%d): %v; retrying in %s", attempt, maxAttempts, err, delay)
+		time.Sleep(delay)
+	}
+
+	return nil, lastErr
+}
+
+func isRetryableOAuthError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "temporarily_unavailable") ||
+		strings.Contains(msg, "timeout") ||
+		strings.Contains(msg, "connection reset") ||
+		strings.Contains(msg, "server error")
 }
 
 func DownloadBlobToBytes(string) ([]byte, error) {

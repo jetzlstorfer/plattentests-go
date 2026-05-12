@@ -171,10 +171,22 @@ func main() {
 			playlistID = os.Getenv("PLAYLIST_ID_PROD")
 		}
 
+		tmpl, err := template.ParseFiles("templates/createPlaylist.tmpl", "templates/utils.tmpl")
+		if err != nil {
+			log.Fatalf("Error parsing template: %v", err)
+		}
+
+		data := commonTemplateData(c)
+		data["Records"] = creator.Result{PlaylistID: playlistID}
+
 		results, err := creator.CreatePlaylist(playlistID)
 		if err != nil {
 			log.Printf("failed to create playlist: %v", err)
-			c.String(http.StatusInternalServerError, "Could not create playlist: %v", err)
+			data["CreatePlaylistError"] = friendlyCreatePlaylistError(err)
+			c.Status(http.StatusServiceUnavailable)
+			if execErr := tmpl.Execute(c.Writer, data); execErr != nil {
+				log.Fatalf("Error executing template: %v", execErr)
+			}
 			return
 		}
 		var highlights creator.Result
@@ -205,13 +217,6 @@ func main() {
 			}
 		}
 
-		// Load the template file
-		tmpl, err := template.ParseFiles("templates/createPlaylist.tmpl", "templates/utils.tmpl")
-		if err != nil {
-			log.Fatalf("Error parsing template: %v", err)
-		}
-
-		data := commonTemplateData(c)
 		data["Records"] = highlights
 
 		// Execute the template with the record data
@@ -307,4 +312,17 @@ func getCommitInfo() string {
 		}
 	}
 	return ""
+}
+
+func friendlyCreatePlaylistError(err error) string {
+	if err == nil {
+		return "Unknown error"
+	}
+
+	msg := err.Error()
+	if strings.Contains(strings.ToLower(msg), "temporarily_unavailable") {
+		return "Spotify authentication is temporarily unavailable. Please try again in a minute. Technical details: " + msg
+	}
+
+	return msg
 }

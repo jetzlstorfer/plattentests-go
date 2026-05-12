@@ -10,6 +10,15 @@
 			<p>Discover the best music reviews and recommendations</p>
 		</div>
 
+		{{if .CreatePlaylistError}}
+		<div class="status-message status-error" role="alert">
+			<h2>Playlist Creation Failed</h2>
+			<p>The website is up, but creating the playlist did not succeed.</p>
+			<p class="error-reason">Reason: {{.CreatePlaylistError}}</p>
+			<p>Please try again shortly.</p>
+		</div>
+		{{else}}
+
 		<div class="spotify-embed">
 			<iframe style="border-radius:12px" src="https://open.spotify.com/embed/playlist/{{ .Records.PlaylistID }}?utm_source=generator&theme=0" width="100%" height="600" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" title="Spotify playlist embed"></iframe>
 		</div>
@@ -25,6 +34,7 @@
 				{{end}}
 			</ul>
 		</div>
+		{{end}}
 		{{end}}
 	</div>
 
