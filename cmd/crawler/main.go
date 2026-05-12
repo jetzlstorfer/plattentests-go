@@ -1,6 +1,7 @@
 package crawler
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -53,20 +54,30 @@ type Track struct {
 
 // GetRecordsOfTheWeek return array of names for highlights of the week
 func GetRecordsOfTheWeek() []Record {
+	highlights, err := GetRecordsOfTheWeekSafe()
+	if err != nil {
+		log.Printf("failed to fetch records of the week: %v", err)
+		return nil
+	}
+	return highlights
+}
+
+// GetRecordsOfTheWeekSafe returns records and propagates HTTP/parse errors to caller.
+func GetRecordsOfTheWeekSafe() ([]Record, error) {
 	// Request the HTML page.
 	res, err := http.Get(plattentestsUrl)
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("request highlights page: %w", err)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+		return nil, fmt.Errorf("highlights page status: %d %s", res.StatusCode, res.Status)
 	}
 
 	// Plattentests uses ISO-8859-1; decode before parsing to preserve umlauts/special chars.
 	doc, err := newDocumentFromPlattentestsResponse(res)
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("parse highlights page: %w", err)
 	}
 	//log.Printf(doc.Find("body").Text())
 
@@ -77,25 +88,40 @@ func GetRecordsOfTheWeek() []Record {
 	var wg sync.WaitGroup
 	wg.Add(newReviews.Length())
 
+	var firstErr error
+	var mu sync.Mutex
+
 	newReviews.Each(func(i int, s *goquery.Selection) {
 
 		go func(i int, s *goquery.Selection) {
 			defer wg.Done()
 			// For each item found, get the link
 			link, _ := s.Find("a").Attr("href")
-			highlights = append(highlights, getHighlightsByRecordLink(baseurl+link))
+			record, err := getHighlightsByRecordLinkSafe(baseurl + link)
+			mu.Lock()
+			defer mu.Unlock()
+			if err != nil {
+				if firstErr == nil {
+					firstErr = err
+				}
+				return
+			}
+			highlights = append(highlights, record)
 		}(i, s)
 
 	})
 
 	wg.Wait()
+	if firstErr != nil {
+		return nil, firstErr
+	}
 
 	// sort record collection
 	sort.Slice(highlights[:], func(i, j int) bool {
 		return strings.Compare(highlights[i].Band, highlights[j].Band) <= 0
 	})
 
-	return highlights
+	return highlights, nil
 }
 
 func PrintRecordsOfTheWeek(c *gin.Context) {
@@ -116,19 +142,28 @@ func GetRecord(c *gin.Context) {
 
 // getting highlights of a particular record by recordLink
 func getHighlightsByRecordLink(recordLink string) Record {
+	record, err := getHighlightsByRecordLinkSafe(recordLink)
+	if err != nil {
+		log.Printf("failed to fetch record %s: %v", recordLink, err)
+		return Record{}
+	}
+	return record
+}
+
+func getHighlightsByRecordLinkSafe(recordLink string) (Record, error) {
 	res, err := http.Get(recordLink)
 	if err != nil {
-		log.Fatal(err)
+		return Record{}, fmt.Errorf("request record page %s: %w", recordLink, err)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+		return Record{}, fmt.Errorf("record page status %s: %d %s", recordLink, res.StatusCode, res.Status)
 	}
 
 	// Plattentests uses ISO-8859-1; decode before parsing to preserve umlauts/special chars.
 	doc, err := newDocumentFromPlattentestsResponse(res)
 	if err != nil {
-		log.Fatal(err)
+		return Record{}, fmt.Errorf("parse record page %s: %w", recordLink, err)
 	}
 
 	image := doc.Find(".headerbox img").First().AttrOr("src", "no image found")
@@ -194,28 +229,37 @@ func getHighlightsByRecordLink(recordLink string) Record {
 	})
 	record.Tracks = tracks
 	//log.Println(len(record.Tracks), " highlights found for", record.Name)
-	return record
+	return record, nil
 }
 
 // GetRecordOfTheWeek return name of record of the week
 func GetRecordOfTheWeekBandName() string {
+	band, err := GetRecordOfTheWeekBandNameSafe()
+	if err != nil {
+		log.Printf("failed to fetch record of the week: %v", err)
+		return ""
+	}
+	return band
+}
+
+func GetRecordOfTheWeekBandNameSafe() (string, error) {
 	// Request the HTML page.
 	res, err := http.Get(plattentestsUrl)
 	if err != nil {
-		log.Fatal(err)
+		return "", fmt.Errorf("request highlights page: %w", err)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+		return "", fmt.Errorf("highlights page status: %d %s", res.StatusCode, res.Status)
 	}
 
 	// Plattentests uses ISO-8859-1; decode before parsing to preserve umlauts/special chars.
 	doc, err := newDocumentFromPlattentestsResponse(res)
 	if err != nil {
-		log.Fatal(err)
+		return "", fmt.Errorf("parse highlights page: %w", err)
 	}
 
-	return strings.Split(doc.Find("div.adw h3 a").Text(), " - ")[0]
+	return strings.Split(doc.Find("div.adw h3 a").Text(), " - ")[0], nil
 }
 
 // SearchResult represents a single hit from the Plattentests.de search page,

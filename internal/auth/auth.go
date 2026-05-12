@@ -32,23 +32,23 @@ var (
 	}
 )
 
-func VerifyLogin() spotify.Client {
+func VerifyLogin() (spotify.Client, error) {
 	err := envconfig.Process("", &config)
 	if err != nil {
-		log.Fatal(err.Error())
+		return spotify.Client{}, fmt.Errorf("load auth config: %w", err)
 	}
 
 	log.Println("Connecting to Azure to download token")
 
 	buff, err := DownloadBlobToBytes("")
 	if err != nil {
-		log.Fatalf("Could not download token from Azure: %v", err)
+		return spotify.Client{}, fmt.Errorf("download token from Azure: %w", err)
 	}
 
 	log.Println("Token downloaded from Azure")
 	token := new(oauth2.Token)
 	if err := json.Unmarshal(buff, token); err != nil {
-		log.Fatalf("could not unmarshal token: %v", err)
+		return spotify.Client{}, fmt.Errorf("unmarshal token: %w", err)
 	}
 
 	// Create a Spotify authenticator with the oauth2 token.
@@ -62,7 +62,7 @@ func VerifyLogin() spotify.Client {
 	log.Println("Creating new Client Token")
 	newToken, err := client.Token()
 	if err != nil {
-		log.Fatalf("Could not retrieve token from client: %v", err)
+		return spotify.Client{}, fmt.Errorf("retrieve token from client: %w", err)
 	}
 	if newToken.AccessToken != token.AccessToken {
 		log.Println("Got refreshed token, saving it")
@@ -70,7 +70,7 @@ func VerifyLogin() spotify.Client {
 
 	_, err = UploadBytesToBlob(buff)
 	if err != nil {
-		log.Fatalf("Could not upload token: %v", err)
+		return spotify.Client{}, fmt.Errorf("upload token to Azure: %w", err)
 	}
 
 	log.Println("Token uploaded.")
@@ -78,11 +78,11 @@ func VerifyLogin() spotify.Client {
 	// use the client to make calls that require authorization
 	user, err := client.CurrentUser(ctx)
 	if err != nil {
-		log.Fatalf("Could not identify as user: %v", err)
+		return spotify.Client{}, fmt.Errorf("identify current user: %w", err)
 	}
 	log.Printf("Logged in as: %v", user.ID)
 
-	return *client
+	return *client, nil
 }
 
 func DownloadBlobToBytes(string) ([]byte, error) {

@@ -55,7 +55,12 @@ func main() {
 	// Define a handler function for the root endpoint
 	r.GET("/", func(c *gin.Context) {
 
-		records := crawler.GetRecordsOfTheWeek()
+		records, err := crawler.GetRecordsOfTheWeekSafe()
+		if err != nil {
+			log.Printf("failed to load records of the week: %v", err)
+			c.String(http.StatusInternalServerError, "Could not load records of the week")
+			return
+		}
 
 		// sort by score
 		if c.DefaultQuery("sort", "score") == "score" {
@@ -64,7 +69,11 @@ func main() {
 			})
 
 			// put record of the week on top of the playlist
-			recordOfTheWeek := crawler.GetRecordOfTheWeekBandName()
+			recordOfTheWeek, err := crawler.GetRecordOfTheWeekBandNameSafe()
+			if err != nil {
+				log.Printf("could not load record of the week: %v", err)
+				recordOfTheWeek = ""
+			}
 			recordOfTheWeek = strings.Trim(recordOfTheWeek, " ")
 
 			// put record of the week on top of the playlist
@@ -162,7 +171,12 @@ func main() {
 			playlistID = os.Getenv("PLAYLIST_ID_PROD")
 		}
 
-		results := creator.CreatePlaylist(playlistID)
+		results, err := creator.CreatePlaylist(playlistID)
+		if err != nil {
+			log.Printf("failed to create playlist: %v", err)
+			c.String(http.StatusInternalServerError, "Could not create playlist: %v", err)
+			return
+		}
 		var highlights creator.Result
 		highlights.Records = results.Records
 		highlights.NotFound = results.NotFound
@@ -175,7 +189,11 @@ func main() {
 			})
 
 			// put record of the week on top of the playlist
-			recordOfTheWeek := crawler.GetRecordOfTheWeekBandName()
+			recordOfTheWeek, err := crawler.GetRecordOfTheWeekBandNameSafe()
+			if err != nil {
+				log.Printf("could not load record of the week: %v", err)
+				recordOfTheWeek = ""
+			}
 
 			// put record of the week on top of the playlist
 			for i, record := range highlights.Records {
