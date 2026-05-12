@@ -6,6 +6,7 @@ import (
 
 	"github.com/zmb3/spotify/v2"
 )
+
 func TestRemoveDuplicates(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -80,9 +81,9 @@ func TestMax(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := max(tt.x, tt.y)
+			result := maxInt(tt.x, tt.y)
 			if result != tt.expected {
-				t.Errorf("max(%d, %d) = %d, want %d", tt.x, tt.y, result, tt.expected)
+				t.Errorf("maxInt(%d, %d) = %d, want %d", tt.x, tt.y, result, tt.expected)
 			}
 		})
 	}
@@ -91,12 +92,18 @@ func TestMax(t *testing.T) {
 func TestGetPort(t *testing.T) {
 	t.Run("returns default port when env var not set", func(t *testing.T) {
 		prev, had := os.LookupEnv("FUNCTIONS_CUSTOMHANDLER_PORT")
-		os.Unsetenv("FUNCTIONS_CUSTOMHANDLER_PORT")
+		if err := os.Unsetenv("FUNCTIONS_CUSTOMHANDLER_PORT"); err != nil {
+			t.Fatalf("Unsetenv failed: %v", err)
+		}
 		t.Cleanup(func() {
 			if had {
-				os.Setenv("FUNCTIONS_CUSTOMHANDLER_PORT", prev)
+				if err := os.Setenv("FUNCTIONS_CUSTOMHANDLER_PORT", prev); err != nil {
+					t.Errorf("Setenv cleanup failed: %v", err)
+				}
 			} else {
-				os.Unsetenv("FUNCTIONS_CUSTOMHANDLER_PORT")
+				if err := os.Unsetenv("FUNCTIONS_CUSTOMHANDLER_PORT"); err != nil {
+					t.Errorf("Unsetenv cleanup failed: %v", err)
+				}
 			}
 		})
 		result := getPort()

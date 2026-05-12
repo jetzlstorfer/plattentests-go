@@ -23,7 +23,7 @@ func mockSearchHTML(query string, interpreten, titel []struct{ Href, Title strin
 		var b strings.Builder
 		b.WriteString("<ul>")
 		for _, it := range items {
-			b.WriteString(fmt.Sprintf(`<li><a href="%s">%s</a></li>`, it.Href, it.Title))
+			_, _ = fmt.Fprintf(&b, `<li><a href="%s">%s</a></li>`, it.Href, it.Title)
 		}
 		b.WriteString("</ul>")
 		return b.String()
@@ -145,7 +145,7 @@ func fakePlattentestsServer(t *testing.T) (*httptest.Server, *int) {
 		}
 		query := r.FormValue("suche")
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprintf(w, `<html><body><div id="suche">
+		_, _ = fmt.Fprintf(w, `<html><body><div id="suche">
 <h3>Im Bereich &quot;Interpreten&quot; gab es 2 Treffer (%s)</h3>
 <ul>
   <li><a href="rezi.php?show=1">Mock Band - First Album</a></li>
@@ -159,7 +159,7 @@ func fakePlattentestsServer(t *testing.T) (*httptest.Server, *int) {
 		recordHits++
 		show := r.URL.Query().Get("show")
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprintf(w, `<html><body>
+		_, _ = fmt.Fprintf(w, `<html><body>
 <div class="headerbox"><img src="img/cover%s.jpg" /></div>
 <h1>Mock Band - Album %s</h1>
 <p>Veröffentlichung: 01.01.2024</p>
@@ -230,24 +230,24 @@ func TestParseSearchResults_RealisticStructure(t *testing.T) {
 	}
 }
 func TestSearchRecords_ReturnsJSONForEmptyQuery(t *testing.T) {
-gin.SetMode(gin.TestMode)
-w := httptest.NewRecorder()
-ctx, _ := gin.CreateTestContext(w)
-ctx.Request = httptest.NewRequest("GET", "/search?q=", nil)
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	ctx.Request = httptest.NewRequest("GET", "/search?q=", nil)
 
-SearchRecords(ctx)
+	SearchRecords(ctx)
 
-if w.Code != http.StatusOK {
-t.Errorf("status = %d, want 200", w.Code)
-}
-// Empty query yields a nil/empty result, which marshals to "null" or "[]".
-body := strings.TrimSpace(w.Body.String())
-if body != "null" && body != "[]" {
-t.Errorf("body = %q, want \"null\" or \"[]\"", body)
-}
-// Sanity-check: response is valid JSON.
-var v interface{}
-if err := json.Unmarshal(w.Body.Bytes(), &v); err != nil {
-t.Errorf("response is not valid JSON: %v", err)
-}
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", w.Code)
+	}
+	// Empty query yields a nil/empty result, which marshals to "null" or "[]".
+	body := strings.TrimSpace(w.Body.String())
+	if body != "null" && body != "[]" {
+		t.Errorf("body = %q, want \"null\" or \"[]\"", body)
+	}
+	// Sanity-check: response is valid JSON.
+	var v interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &v); err != nil {
+		t.Errorf("response is not valid JSON: %v", err)
+	}
 }
