@@ -11,12 +11,11 @@ linters:
     - staticcheck
     - revive
     - ineffassign
-
-linters-settings:
-  revive:
-    severity: warning
-    rules:
-      - name: exported
+  settings:
+    revive:
+      severity: warning
+      rules:
+        - name: exported
 
 issues:
   max-issues-per-linter: 0
