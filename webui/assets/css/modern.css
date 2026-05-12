@@ -403,6 +403,31 @@ nav a:hover {
   box-shadow: var(--shadow-2xl);
 }
 
+.record-card.record-of-the-week {
+  position: relative;
+}
+
+.record-card.record-of-the-week::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  border-radius: inherit;
+  background: conic-gradient(from 0deg, #ffd166, #ff4d6d, #cc0000, #ff4d6d, #ffd166);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  filter: drop-shadow(0 0 10px rgba(255, 77, 109, 0.7));
+  animation: rotate-record-of-the-week-border 3s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes rotate-record-of-the-week-border {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   .record-card {
     background: var(--dark-surface);
