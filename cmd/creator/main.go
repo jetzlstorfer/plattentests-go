@@ -13,6 +13,7 @@ import (
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
 	myauth "github.com/jetzlstorfer/plattentests-go/internal/auth"
 	"github.com/zmb3/spotify/v2"
+	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
 
@@ -39,6 +40,7 @@ var (
 	}
 )
 
+// Result contains playlist creation output records and unmatched tracks.
 type Result struct {
 	Records    []crawler.Record
 	NotFound   []string
@@ -47,6 +49,7 @@ type Result struct {
 
 var playlistID spotify.ID
 
+// CreatePlaylist builds the target Spotify playlist from Plattentests highlights.
 func CreatePlaylist(pid string) (Result, error) {
 	err := envconfig.Process("", &config)
 	if err != nil {
@@ -226,9 +229,10 @@ func selectBestTrack(tracks []spotify.FullTrack, trackName string, record crawle
 		}
 
 		// Priority 2: Prefer album over single/EP
-		if track.Album.AlbumType == "album" {
+		switch track.Album.AlbumType {
+		case "album":
 			score += 100
-		} else if track.Album.AlbumType == "single" {
+		case "single":
 			score += 10
 		}
 		// EP gets no bonus (score += 0)
@@ -298,7 +302,7 @@ func searchSong(client spotify.Client, track string, record crawler.Record) (spo
 		log.Println(" Levenshtein distance between", bandnameFromSearch, "and", bandnameFromPlattentests, ":", distance)
 		threshold := 0.8
 
-		calculatedThreshold := 1 - float64(distance)/float64(max(len(bandnameFromSearch), len(bandnameFromPlattentests)))
+		calculatedThreshold := 1 - float64(distance)/float64(maxInt(len(bandnameFromSearch), len(bandnameFromPlattentests)))
 		if (calculatedThreshold) < threshold {
 			log.Println(" Levenshtein distance too large")
 			log.Printf(" not adding item %s - %s (%s) since artists don't match (%s != %s)", bandnameFromSearch, item.Name, item.Album.Name, bandnameFromPlattentests, bandnameFromSearch)
@@ -312,7 +316,7 @@ func searchSong(client spotify.Client, track string, record crawler.Record) (spo
 		tracknameFromPlattentests := normalizeForComparison(track)
 		distance = levenshtein.ComputeDistance(tracknameFromSearch, tracknameFromPlattentests)
 
-		calculatedThreshold = 1 - float64(distance)/float64(max(len(tracknameFromSearch), len(tracknameFromPlattentests)))
+		calculatedThreshold = 1 - float64(distance)/float64(maxInt(len(tracknameFromSearch), len(tracknameFromPlattentests)))
 		if (calculatedThreshold) < threshold {
 			log.Println(" Levenshtein distance too large")
 			log.Printf(" not adding item %s - %s (%s) since tracknames don't match (%s != %s)", bandnameFromSearch, item.Name, item.Album.Name, tracknameFromPlattentests, tracknameFromSearch)
@@ -381,9 +385,7 @@ func sanitizeTrackname(trackname string) string {
 
 // removeAccents removes accents and diacritics from Unicode characters
 func removeAccents(s string) string {
-	t := transform.Chain(norm.NFD, transform.RemoveFunc(func(r rune) bool {
-		return unicode.Is(unicode.Mn, r) // Mn: nonspacing marks
-	}), norm.NFC)
+	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
 	result, _, _ := transform.String(t, s)
 	return result
 }
@@ -420,7 +422,7 @@ func getPort() string {
 	return port
 }
 
-func max(x, y int) int {
+func maxInt(x, y int) int {
 	if x > y {
 		return x
 	}

@@ -302,12 +302,12 @@ func getCommitInfo() string {
 	log.Println("get commit info: " + os.Getenv("GIT_SHA"))
 	if os.Getenv("GIT_SHA") != "" {
 		return os.Getenv("GIT_SHA")
-	} else {
-		if info, ok := debug.ReadBuildInfo(); ok {
-			for _, setting := range info.Settings {
-				if setting.Key == "vcs.revision" {
-					return setting.Value
-				}
+	}
+
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, setting := range info.Settings {
+			if setting.Key == "vcs.revision" {
+				return setting.Value
 			}
 		}
 	}

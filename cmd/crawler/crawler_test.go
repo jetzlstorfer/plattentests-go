@@ -43,7 +43,7 @@ func startMockServer(t *testing.T, html string) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, html)
+		_, _ = fmt.Fprint(w, html)
 	}))
 }
 
@@ -193,13 +193,13 @@ func TestGetHighlightsByRecordLink_HeadlineAndDescription(t *testing.T) {
 
 func TestGetHighlightsByRecordLink_ShortDescriptionSkipped(t *testing.T) {
 	// Short paragraph (<= 100 chars) should not be included in description
-	html := fmt.Sprintf(`<html><body>
+	html := `<html><body>
 <h1>Short Desc Band - Short Desc Album</h1>
 <p>Release: 01.01.2023</p>
 <p class="bewertung"><strong>7/10</strong></p>
 <h2>Some Headline</h2>
 <p>Short.</p>
-</body></html>`)
+</body></html>`
 
 	srv := startMockServer(t, html)
 	defer srv.Close()

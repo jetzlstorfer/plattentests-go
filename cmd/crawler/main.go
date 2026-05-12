@@ -46,6 +46,8 @@ type Record struct {
 	Description       string
 	IsRecordOfTheWeek bool
 }
+
+// Track holds one highlight track for a record.
 type Track struct {
 	Band      string
 	Trackname string
@@ -69,7 +71,11 @@ func GetRecordsOfTheWeekSafe() ([]Record, error) {
 	if err != nil {
 		return nil, fmt.Errorf("request highlights page: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		if closeErr := res.Body.Close(); closeErr != nil {
+			log.Printf("failed closing highlights response body: %v", closeErr)
+		}
+	}()
 	if res.StatusCode != 200 {
 		return nil, fmt.Errorf("highlights page status: %d %s", res.StatusCode, res.Status)
 	}
@@ -124,10 +130,12 @@ func GetRecordsOfTheWeekSafe() ([]Record, error) {
 	return highlights, nil
 }
 
+// PrintRecordsOfTheWeek writes all records of the week as JSON.
 func PrintRecordsOfTheWeek(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, GetRecordsOfTheWeek())
 }
 
+// GetRecord writes one record selected by review id as JSON.
 func GetRecord(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := strconv.Atoi(idParam)
@@ -155,7 +163,11 @@ func getHighlightsByRecordLinkSafe(recordLink string) (Record, error) {
 	if err != nil {
 		return Record{}, fmt.Errorf("request record page %s: %w", recordLink, err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		if closeErr := res.Body.Close(); closeErr != nil {
+			log.Printf("failed closing record response body: %v", closeErr)
+		}
+	}()
 	if res.StatusCode != 200 {
 		return Record{}, fmt.Errorf("record page status %s: %d %s", recordLink, res.StatusCode, res.Status)
 	}
@@ -232,7 +244,7 @@ func getHighlightsByRecordLinkSafe(recordLink string) (Record, error) {
 	return record, nil
 }
 
-// GetRecordOfTheWeek return name of record of the week
+// GetRecordOfTheWeekBandName returns the band name of the current record of the week.
 func GetRecordOfTheWeekBandName() string {
 	band, err := GetRecordOfTheWeekBandNameSafe()
 	if err != nil {
@@ -242,13 +254,18 @@ func GetRecordOfTheWeekBandName() string {
 	return band
 }
 
+// GetRecordOfTheWeekBandNameSafe returns the band name of the current record of the week.
 func GetRecordOfTheWeekBandNameSafe() (string, error) {
 	// Request the HTML page.
 	res, err := http.Get(plattentestsUrl)
 	if err != nil {
 		return "", fmt.Errorf("request highlights page: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		if closeErr := res.Body.Close(); closeErr != nil {
+			log.Printf("failed closing record-of-the-week response body: %v", closeErr)
+		}
+	}()
 	if res.StatusCode != 200 {
 		return "", fmt.Errorf("highlights page status: %d %s", res.StatusCode, res.Status)
 	}
@@ -309,7 +326,11 @@ func searchAt(endpoint, query string) []Record {
 		log.Printf("search request failed: %v", err)
 		return nil
 	}
-	defer res.Body.Close()
+	defer func() {
+		if closeErr := res.Body.Close(); closeErr != nil {
+			log.Printf("failed closing search response body: %v", closeErr)
+		}
+	}()
 	if res.StatusCode != 200 {
 		log.Printf("search status code error: %d %s", res.StatusCode, res.Status)
 		return nil

@@ -18,13 +18,14 @@ import (
 	spotifyauth "github.com/zmb3/spotify/v2/auth"
 )
 
-// redirectURI is the OAuth redirect URI for the application.
-// You must register an application at Spotify's developer portal
-// and enter this value.
+// Port is the local callback server port used for interactive token setup.
 const Port = "8080"
+
+// RedirectURI is the OAuth redirect URI registered in Spotify Developer settings.
 const RedirectURI = "http://localhost:" + Port + "/callback"
 
 var (
+	// SpotifyAuthenticator performs Spotify OAuth flows for playlist scopes.
 	SpotifyAuthenticator = spotifyauth.New(spotifyauth.WithRedirectURL(RedirectURI), spotifyauth.WithScopes(spotifyauth.ScopePlaylistModifyPrivate, spotifyauth.ScopePlaylistModifyPublic))
 	config               struct {
 		TokenFile       string `envconfig:"TOKEN_FILE" required:"true"`
@@ -34,6 +35,7 @@ var (
 	}
 )
 
+// VerifyLogin downloads the persisted token, refreshes it if needed, uploads it back, and returns an authenticated Spotify client.
 func VerifyLogin() (spotify.Client, error) {
 	err := envconfig.Process("", &config)
 	if err != nil {
@@ -128,6 +130,7 @@ func isRetryableOAuthError(err error) bool {
 		strings.Contains(msg, "server error")
 }
 
+// DownloadBlobToBytes reads the configured token blob from Azure Storage.
 func DownloadBlobToBytes(string) ([]byte, error) {
 	azrKey, accountName, _, container := GetAccountInfo()
 	serviceURL := fmt.Sprintf("https://%s.blob.core.windows.net/", accountName)
@@ -147,7 +150,11 @@ func DownloadBlobToBytes(string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer response.Body.Close()
+	defer func() {
+		if closeErr := response.Body.Close(); closeErr != nil {
+			log.Printf("failed closing blob download response body: %v", closeErr)
+		}
+	}()
 
 	blobData, err := io.ReadAll(response.Body)
 	if err != nil {
@@ -157,6 +164,7 @@ func DownloadBlobToBytes(string) ([]byte, error) {
 	return blobData, nil
 }
 
+// UploadBytesToBlob writes bytes to the configured token blob in Azure Storage.
 func UploadBytesToBlob(b []byte) (string, error) {
 	azrKey, accountName, _, container := GetAccountInfo()
 	serviceURL := fmt.Sprintf("https://%s.blob.core.windows.net/", accountName)
@@ -180,6 +188,7 @@ func UploadBytesToBlob(b []byte) (string, error) {
 	return blobURL, err
 }
 
+// GetAccountInfo returns Azure Storage credentials and endpoints from environment configuration.
 func GetAccountInfo() (string, string, string, string) {
 	// making sure all config variables are set
 	err := envconfig.Process("", &config)
