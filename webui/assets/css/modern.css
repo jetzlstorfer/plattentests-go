@@ -439,8 +439,8 @@ nav a:hover {
   -webkit-mask-composite: xor;
           mask-composite: exclude;
   /* tight, crisp glow that hugs the border line */
-  filter: drop-shadow(0 0 2px rgba(255, 77, 109, 1))
-          drop-shadow(0 0 4px rgba(255, 77, 109, 0.85));
+  filter: drop-shadow(0 0 6px rgba(255, 77, 109, 1))
+          drop-shadow(0 0 14px rgba(255, 77, 109, 0.85));
   animation: rotw-spin 4s linear infinite;
   pointer-events: none;
   z-index: 1;
