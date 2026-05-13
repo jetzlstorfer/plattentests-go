@@ -11,6 +11,12 @@ token:
 run:
 	cd webui && go run main.go
 
+lint:
+	golangci-lint run ./...
+
+test:
+	go test ./...
+
 docker-web-build:
 	docker build --build-arg GIT_SHA=$(GIT_SHA) -f ./webui/Dockerfile -t jetzlstorfer/plattentests-webui:latest .
 
