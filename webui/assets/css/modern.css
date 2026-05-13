@@ -472,6 +472,14 @@ nav a:hover {
   z-index: 2;
 }
 
+/* The card uses overflow: visible so the glow can extend outside it; that
+   means the inner image is no longer clipped by the card's rounded corners,
+   so round its top corners explicitly to match the card. */
+.record-card.record-of-the-week .record-image {
+  border-top-left-radius: var(--radius-2xl);
+  border-top-right-radius: var(--radius-2xl);
+}
+
 @keyframes rotw-spin {
   to {
     --rotw-angle: 360deg;
