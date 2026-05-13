@@ -403,28 +403,97 @@ nav a:hover {
   box-shadow: var(--shadow-2xl);
 }
 
-.record-card.record-of-the-week {
-  position: relative;
+@property --rotw-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
 }
 
+.record-card.record-of-the-week {
+  position: relative;
+  /* allow the outer glow / animated border to render outside the card */
+  overflow: visible;
+  /* slightly stronger ambient glow around the whole card */
+  box-shadow: var(--shadow-lg), 0 0 24px rgba(255, 77, 109, 0.35);
+}
+
+/* The animated glowing border itself */
 .record-card.record-of-the-week::before {
   content: "";
   position: absolute;
-  inset: 0;
-  padding: 2px;
-  border-radius: inherit;
-  background: conic-gradient(from 0deg, #ffd166, #ff4d6d, #cc0000, #ff4d6d, #ffd166);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  inset: -3px; /* sit just outside the card so the glow reads as a border */
+  border-radius: calc(var(--radius-2xl) + 3px);
+  padding: 3px;
+  background: conic-gradient(
+    from var(--rotw-angle),
+    #ffd166 0deg,
+    #ff4d6d 90deg,
+    #cc0000 180deg,
+    #ff4d6d 270deg,
+    #ffd166 360deg
+  );
+  /* Cut out the inside so only a border ring of the gradient is visible */
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  filter: drop-shadow(0 0 10px rgba(255, 77, 109, 0.7));
-  animation: rotate-record-of-the-week-border 3s linear infinite;
+          mask-composite: exclude;
+  filter: drop-shadow(0 0 6px rgba(255, 77, 109, 0.9))
+          drop-shadow(0 0 14px rgba(255, 209, 102, 0.6));
+  animation: rotw-spin 4s linear infinite;
   pointer-events: none;
+  z-index: 1;
 }
 
-@keyframes rotate-record-of-the-week-border {
+/* A soft halo behind the card that pulses gently with the border */
+.record-card.record-of-the-week::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: calc(var(--radius-2xl) + 8px);
+  background: conic-gradient(
+    from var(--rotw-angle),
+    rgba(255, 209, 102, 0.55),
+    rgba(255, 77, 109, 0.55),
+    rgba(204, 0, 0, 0.55),
+    rgba(255, 77, 109, 0.55),
+    rgba(255, 209, 102, 0.55)
+  );
+  filter: blur(16px);
+  opacity: 0.55;
+  animation: rotw-spin 4s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Keep card content above the glow layers */
+.record-card.record-of-the-week > * {
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes rotw-spin {
   to {
-    transform: rotate(360deg);
+    --rotw-angle: 360deg;
+  }
+}
+
+/* Fallback for browsers without @property support: rotate the pseudo-element
+   instead. The element is square-ish so this still reads as a moving glow. */
+@supports not (background: conic-gradient(from var(--rotw-angle), red, blue)) {
+  .record-card.record-of-the-week::before,
+  .record-card.record-of-the-week::after {
+    animation: rotw-rotate 4s linear infinite;
+  }
+  @keyframes rotw-rotate {
+    to { transform: rotate(360deg); }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .record-card.record-of-the-week::before,
+  .record-card.record-of-the-week::after {
+    animation: none;
   }
 }
 
