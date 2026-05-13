@@ -403,6 +403,86 @@ nav a:hover {
   box-shadow: var(--shadow-2xl);
 }
 
+@property --rotw-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.record-card.record-of-the-week {
+  position: relative;
+  /* allow the outer glow / animated border to render outside the card */
+  overflow: visible;
+  /* keep only the regular card shadow; the glow lives on the border itself */
+  box-shadow: var(--shadow-lg);
+}
+
+/* The animated glowing border itself */
+.record-card.record-of-the-week::before {
+  content: "";
+  position: absolute;
+  inset: -3px; /* sit just outside the card so the glow reads as a border */
+  border-radius: calc(var(--radius-2xl) + 3px);
+  padding: 3px;
+  background: conic-gradient(
+    from var(--rotw-angle),
+    #ffd166 0deg,
+    #ff4d6d 90deg,
+    #cc0000 180deg,
+    #ff4d6d 270deg,
+    #ffd166 360deg
+  );
+  /* Cut out the inside so only a border ring of the gradient is visible */
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  /* tight, crisp glow that hugs the border line */
+  filter: drop-shadow(0 0 6px rgba(255, 77, 109, 1))
+          drop-shadow(0 0 14px rgba(255, 77, 109, 0.85));
+  animation: rotw-spin 4s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Keep card content above the glow layers */
+.record-card.record-of-the-week > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* The card uses overflow: visible so the glow can extend outside it; that
+   means the inner image is no longer clipped by the card's rounded corners,
+   so round its top corners explicitly to match the card. */
+.record-card.record-of-the-week .record-image {
+  border-top-left-radius: var(--radius-2xl);
+  border-top-right-radius: var(--radius-2xl);
+}
+
+@keyframes rotw-spin {
+  to {
+    --rotw-angle: 360deg;
+  }
+}
+
+/* Fallback for browsers without @property support: rotate the pseudo-element
+   instead. The element is square-ish so this still reads as a moving glow. */
+@supports not (background: conic-gradient(from var(--rotw-angle), red, blue)) {
+  .record-card.record-of-the-week::before {
+    animation: rotw-rotate 4s linear infinite;
+  }
+  @keyframes rotw-rotate {
+    to { transform: rotate(360deg); }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .record-card.record-of-the-week::before {
+    animation: none;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   .record-card {
     background: var(--dark-surface);

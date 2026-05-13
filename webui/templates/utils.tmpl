@@ -42,7 +42,7 @@
 	<!-- Modern Cards Grid -->
 	<div class="records-grid">
 		{{range .Records}}
-			<div class="record-card" data-imageurl="{{.Image}}" data-score="{{.Score}}" data-sort-title="{{.Band}} {{.Recordname}}" data-record-of-week="{{.IsRecordOfTheWeek}}">
+			<div class="record-card{{if .IsRecordOfTheWeek}} record-of-the-week{{end}}" data-imageurl="{{.Image}}" data-score="{{.Score}}" data-sort-title="{{.Band}} {{.Recordname}}" data-record-of-week="{{.IsRecordOfTheWeek}}">
 				<div class="record-image">
 					<a href="{{.Link}}">
 						<img src="{{.Image}}" alt="Cover art for {{.Band}} – {{.Recordname}}" loading="lazy">
