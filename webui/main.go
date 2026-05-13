@@ -58,7 +58,13 @@ func main() {
 		records, err := crawler.GetRecordsOfTheWeekSafe()
 		if err != nil {
 			log.Printf("failed to load records of the week: %v", err)
-			c.String(http.StatusInternalServerError, "Could not load records of the week")
+			tmpl, tmplErr := template.ParseFiles("templates/utils.tmpl")
+			if tmplErr != nil {
+				c.String(http.StatusInternalServerError, "Could not load records of the week")
+				return
+			}
+			c.Status(http.StatusInternalServerError)
+			_ = tmpl.ExecuteTemplate(c.Writer, "ErrorPage", commonTemplateData(c))
 			return
 		}
 

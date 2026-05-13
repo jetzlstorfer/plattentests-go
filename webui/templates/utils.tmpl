@@ -233,3 +233,22 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {{end}}
+
+{{define "ErrorPage"}}
+<!DOCTYPE html>
+<html>
+{{template "HtmlHead"}}
+<body>
+	{{template "Navigation" .}}
+	<div class="container">
+		<div class="hero">
+			<h1><span class="emoji">⚠️</span> Something went wrong</h1>
+			<p>Could not load the records of the week. Please try again later.</p>
+		</div>
+		<div style="text-align:center; margin-top: 2rem;">
+			<a href="/" class="control-btn">Try again</a>
+		</div>
+	</div>
+</body>
+</html>
+{{end}}
