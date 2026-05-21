@@ -297,6 +297,15 @@ document.addEventListener('DOMContentLoaded', function() {
 		});
 	});
 
+	document.querySelectorAll('.record-card .record-card-flippable').forEach(function(inner) {
+		inner.addEventListener('click', function(event) {
+			const card = inner.closest('.record-card');
+			if (!card || !card.classList.contains('review-open')) return;
+			if (event.target.closest('a, button')) return;
+			setReviewOpen(inner, false);
+		});
+	});
+
 	updateReviewCardHeights();
 	window.addEventListener('resize', updateReviewCardHeights);
 
