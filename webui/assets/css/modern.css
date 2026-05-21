@@ -394,6 +394,7 @@ nav a:hover {
 
 /* Record Card */
 .record-card {
+  position: relative;
   background: white;
   border-radius: var(--radius-2xl);
   overflow: hidden;
@@ -531,6 +532,48 @@ nav a:hover {
   padding: var(--space-6);
 }
 
+.record-card-inner {
+  position: relative;
+}
+
+.record-card-flippable {
+  height: var(--record-card-height, auto);
+  transform-style: preserve-3d;
+  transition: transform 500ms cubic-bezier(0.25, 0.85, 0.4, 1);
+}
+
+.record-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.record-face-back {
+  position: absolute;
+  inset: 0;
+  transform: rotateY(180deg);
+  pointer-events: none;
+  background: white;
+  border-radius: inherit;
+}
+
+.record-card.review-open .record-card-flippable {
+  transform: rotateY(180deg);
+}
+
+.record-card.review-open .record-face-back {
+  pointer-events: auto;
+}
+
+.record-card.review-open:hover {
+  transform: translateY(-8px);
+}
+
+@media (prefers-color-scheme: dark) {
+  .record-face-back {
+    background: var(--dark-surface);
+  }
+}
+
 .record-band {
   font-size: 0.875rem;
   color: var(--gray-500);
@@ -583,56 +626,84 @@ nav a:hover {
   font-weight: 500;
 }
 
-/* Record Description (collapsible) */
-.record-description {
+/* Record Description (flip trigger/review face) */
+.record-description-trigger-wrap {
   margin-top: var(--space-4);
   border-top: 1px solid var(--gray-100);
   padding-top: var(--space-4);
 }
 
 @media (prefers-color-scheme: dark) {
-  .record-description {
+  .record-description-trigger-wrap {
     border-top: 1px solid var(--dark-border);
   }
 }
 
-.record-description summary {
+.record-description-toggle,
+.record-description-close {
+  border: none;
+  background: none;
+  padding: 0;
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--primary-600);
-  list-style: none;
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  user-select: none;
 }
 
-.record-description summary::-webkit-details-marker {
-  display: none;
-}
-
-.record-description summary::after {
+.record-description-toggle::after {
   content: ' ▼';
   font-size: 0.7rem;
-  transition: transform var(--transition-fast);
+  transform: rotate(-90deg);
   display: inline-block;
 }
 
-.record-description[open] summary::after {
-  transform: rotate(-180deg);
-}
-
-.record-description summary:hover {
+.record-description-toggle:hover,
+.record-description-close:hover {
   color: var(--primary-700);
 }
 
 @media (prefers-color-scheme: dark) {
-  .record-description summary {
+  .record-description-toggle,
+  .record-description-close {
     color: var(--primary-400);
   }
-  .record-description summary:hover {
+  .record-description-toggle:hover,
+  .record-description-close:hover {
     color: var(--primary-300);
+  }
+}
+
+.record-review-content {
+  height: 100%;
+  overflow-y: auto;
+  padding: var(--space-6);
+}
+
+.record-review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.record-review-content .record-title {
+  margin-bottom: 0;
+}
+
+.record-description-close {
+  white-space: nowrap;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+}
+
+@media (prefers-color-scheme: dark) {
+  .record-description-close {
+    border-color: var(--dark-border);
   }
 }
 
@@ -649,7 +720,7 @@ nav a:hover {
   }
 }
 
-.record-description p {
+.record-review-content p {
   margin-top: 0;
   font-size: 0.875rem;
   color: var(--gray-700);
@@ -657,7 +728,7 @@ nav a:hover {
 }
 
 @media (prefers-color-scheme: dark) {
-  .record-description p {
+  .record-review-content p {
     color: var(--dark-text-secondary);
   }
 }

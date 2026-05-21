@@ -43,32 +43,51 @@
 	<div class="records-grid">
 		{{range .Records}}
 			<div class="record-card{{if .IsRecordOfTheWeek}} record-of-the-week{{end}}" data-imageurl="{{.Image}}" data-score="{{.Score}}" data-sort-title="{{.Band}} {{.Recordname}}" data-record-of-week="{{.IsRecordOfTheWeek}}">
-				<div class="record-image">
-					<a href="{{.Link}}">
-						<img src="{{.Image}}" alt="Cover art for {{.Band}} – {{.Recordname}}" loading="lazy">
-					</a>
-					<div class="record-score"><span class="emoji">💿</span> {{.Score}}/10</div>
-				</div>
-				<div class="record-content">
-					<div class="record-band">{{.Band}}</div>
-					<div class="record-title">{{.Recordname}}</div>
-					<ul class="record-tracks">
-						{{range .Tracks}}
-							<li>
-							{{ if .Tracklink }}
-								<span class="emoji">🎵</span> <a href="{{ .Tracklink}}">{{.Trackname}}</a> 
-							{{ else }}
-								<span class="emoji">🔍</span> {{.Trackname}} 
+				<div class="record-card-inner{{if .Description}} record-card-flippable{{end}}">
+					<div class="record-face record-face-front">
+						<div class="record-image">
+							<a href="{{.Link}}">
+								<img src="{{.Image}}" alt="Cover art for {{.Band}} – {{.Recordname}}" loading="lazy">
+							</a>
+							<div class="record-score"><span class="emoji">💿</span> {{.Score}}/10</div>
+						</div>
+						<div class="record-content">
+							<div class="record-band">{{.Band}}</div>
+							<div class="record-title">{{.Recordname}}</div>
+							<ul class="record-tracks">
+								{{range .Tracks}}
+									<li>
+									{{ if .Tracklink }}
+										<span class="emoji">🎵</span> <a href="{{ .Tracklink}}">{{.Trackname}}</a> 
+									{{ else }}
+										<span class="emoji">🔍</span> {{.Trackname}} 
+									{{end}}
+									</li>
+								{{end}}
+							</ul>
+							{{if .Description}}
+							<div class="record-description-trigger-wrap">
+								<button class="record-description-toggle" type="button" aria-expanded="false">
+									<span class="emoji">📖</span> Read review
+								</button>
+							</div>
 							{{end}}
-							</li>
-						{{end}}
-					</ul>
+						</div>
+					</div>
 					{{if .Description}}
-					<details class="record-description">
-						<summary><span class="emoji">📖</span> Read review</summary>
-						{{if .Headline}}<h4 class="review-headline">{{.Headline}}</h4>{{end}}
-						<p>{{.Description}}</p>
-					</details>
+					<div class="record-face record-face-back" aria-hidden="true">
+						<div class="record-review-content">
+							<div class="record-review-header">
+								<div>
+									<div class="record-band">{{.Band}}</div>
+									<div class="record-title">{{.Recordname}}</div>
+								</div>
+								<button class="record-description-close" type="button">Back to tracks</button>
+							</div>
+							{{if .Headline}}<h4 class="review-headline">{{.Headline}}</h4>{{end}}
+							<p>{{.Description}}</p>
+						</div>
+					</div>
 					{{end}}
 				</div>
 			</div>
@@ -229,6 +248,57 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Restore saved sort preference (default: score)
     sortRecords(localStorage.getItem('sortBy') || 'score');
+
+	// --- Flip card reviews ---
+	function updateReviewCardHeights() {
+		document.querySelectorAll('.record-card .record-card-flippable').forEach(function(inner) {
+			const front = inner.querySelector('.record-face-front');
+			if (!front) return;
+			inner.style.setProperty('--record-card-height', front.offsetHeight + 'px');
+		});
+	}
+
+	function setReviewOpen(inner, isOpen) {
+		const card = inner.closest('.record-card');
+		const front = inner.querySelector('.record-face-front');
+		const back = inner.querySelector('.record-face-back');
+		const toggle = inner.querySelector('.record-description-toggle');
+
+		if (!card || !front || !back) return;
+
+		card.classList.toggle('review-open', isOpen);
+		if (toggle) {
+			toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+		}
+		front.setAttribute('aria-hidden', isOpen ? 'true' : 'false');
+		back.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+
+		if (!isOpen) {
+			const reviewContent = back.querySelector('.record-review-content');
+			if (reviewContent) {
+				reviewContent.scrollTop = 0;
+			}
+		}
+	}
+
+	document.querySelectorAll('.record-description-toggle').forEach(function(button) {
+		button.addEventListener('click', function() {
+			const inner = this.closest('.record-card-inner');
+			if (!inner) return;
+			setReviewOpen(inner, true);
+		});
+	});
+
+	document.querySelectorAll('.record-description-close').forEach(function(button) {
+		button.addEventListener('click', function() {
+			const inner = this.closest('.record-card-inner');
+			if (!inner) return;
+			setReviewOpen(inner, false);
+		});
+	});
+
+	updateReviewCardHeights();
+	window.addEventListener('resize', updateReviewCardHeights);
 
 });
 </script>
