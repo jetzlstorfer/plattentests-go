@@ -128,3 +128,89 @@ func TestGetPort(t *testing.T) {
 		}
 	})
 }
+
+func TestCalculateSearchSuccessRate(t *testing.T) {
+	tests := []struct {
+		name     string
+		found    int
+		total    int
+		expected float64
+	}{
+		{
+			name:     "returns zero for empty total",
+			found:    0,
+			total:    0,
+			expected: 0,
+		},
+		{
+			name:     "returns full success rate",
+			found:    4,
+			total:    4,
+			expected: 100,
+		},
+		{
+			name:     "returns fractional success rate",
+			found:    3,
+			total:    4,
+			expected: 75,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := calculateSearchSuccessRate(tt.found, tt.total)
+			if result != tt.expected {
+				t.Errorf("calculateSearchSuccessRate(%d, %d) = %f, want %f", tt.found, tt.total, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestCountNewTracksComparedToReference(t *testing.T) {
+	tests := []struct {
+		name             string
+		candidates       []spotify.ID
+		reference        map[spotify.ID]struct{}
+		expectedNew      int
+		expectedExisting int
+	}{
+		{
+			name:             "all tracks are new",
+			candidates:       []spotify.ID{"a", "b"},
+			reference:        map[spotify.ID]struct{}{},
+			expectedNew:      2,
+			expectedExisting: 0,
+		},
+		{
+			name:             "mixed new and existing tracks",
+			candidates:       []spotify.ID{"a", "b", "c"},
+			reference:        map[spotify.ID]struct{}{"b": {}, "d": {}},
+			expectedNew:      2,
+			expectedExisting: 1,
+		},
+		{
+			name:             "all tracks already in comparison playlist",
+			candidates:       []spotify.ID{"a", "b"},
+			reference:        map[spotify.ID]struct{}{"a": {}, "b": {}},
+			expectedNew:      0,
+			expectedExisting: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			newTracks, existing := countNewTracksComparedToReference(tt.candidates, tt.reference)
+			if newTracks != tt.expectedNew || existing != tt.expectedExisting {
+				t.Errorf(
+					"countNewTracksComparedToReference(%v, %v) = (%d, %d), want (%d, %d)",
+					tt.candidates,
+					tt.reference,
+					newTracks,
+					existing,
+					tt.expectedNew,
+					tt.expectedExisting,
+				)
+			}
+		})
+	}
+}

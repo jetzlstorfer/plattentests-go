@@ -195,10 +195,10 @@ func main() {
 			}
 			return
 		}
-		var highlights creator.Result
-		highlights.Records = results.Records
-		highlights.NotFound = results.NotFound
-		highlights.PlaylistID = playlistID
+		highlights := results
+		if highlights.PlaylistID == "" {
+			highlights.PlaylistID = playlistID
+		}
 
 		// sort by score
 		if c.DefaultQuery("sort", "score") == "score" {
