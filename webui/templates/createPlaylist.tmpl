@@ -23,6 +23,15 @@
 			<iframe style="border-radius:12px" src="https://open.spotify.com/embed/playlist/{{ .Records.PlaylistID }}?utm_source=generator&theme=0" width="100%" height="600" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" title="Spotify playlist embed"></iframe>
 		</div>
 
+		<div class="status-message" role="status">
+			<h2>Run summary</h2>
+			<p>Search success: <strong>{{.Records.FoundTracks}} / {{.Records.TotalTracks}}</strong> tracks ({{printf "%.1f" .Records.SearchSuccessRate}}%).</p>
+			<p>Not found: <strong>{{len .Records.NotFound}}</strong> track(s).</p>
+			{{if .Records.ComparedToProd}}
+			<p>Compared to production playlist: <strong>{{.Records.NewTracksComparedToProd}}</strong> new track(s), <strong>{{.Records.AlreadyInProdTracks}}</strong> already in production.</p>
+			{{end}}
+		</div>
+
 		{{template "RecordTable" .Records}}
 		
 		{{if .Records.NotFound}}

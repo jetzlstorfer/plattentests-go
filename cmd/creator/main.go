@@ -2,6 +2,7 @@ package creator
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -42,9 +43,15 @@ var (
 
 // Result contains playlist creation output records and unmatched tracks.
 type Result struct {
-	Records    []crawler.Record
-	NotFound   []string
-	PlaylistID string
+	Records                 []crawler.Record
+	NotFound                []string
+	PlaylistID              string
+	TotalTracks             int
+	FoundTracks             int
+	SearchSuccessRate       float64
+	ComparedToProd          bool
+	NewTracksComparedToProd int
+	AlreadyInProdTracks     int
 }
 
 var playlistID spotify.ID
@@ -105,12 +112,12 @@ func CreatePlaylist(pid string) (Result, error) {
 	// var newTracks []spotify.ID
 	var notFound []string
 
-	type result struct {
+	type playlistItemResult struct {
 		recordIndex int
 		bandname    string
 		itemID      spotify.ID
 	}
-	var itemsToAdd []result
+	var itemsToAdd []playlistItemResult
 	for _, record := range highlights {
 		log.Println(record.Band + " - " + record.Recordname + ": " + record.Link)
 
@@ -125,7 +132,7 @@ func CreatePlaylist(pid string) (Result, error) {
 
 			if itemID != "" {
 				log.Println("adding item to collection to be added: " + itemID)
-				r := result{itemID: itemID, bandname: record.Band, recordIndex: record.Score}
+				r := playlistItemResult{itemID: itemID, bandname: record.Band, recordIndex: record.Score}
 				itemsToAdd = append(itemsToAdd, r)
 				continue
 			}
@@ -150,7 +157,7 @@ func CreatePlaylist(pid string) (Result, error) {
 
 	for _, item := range itemsToAdd {
 		if item.bandname == recordOfTheWeek {
-			itemsToAdd = append([]result{item}, itemsToAdd...)
+			itemsToAdd = append([]playlistItemResult{item}, itemsToAdd...)
 		}
 	}
 
@@ -191,10 +198,30 @@ func CreatePlaylist(pid string) (Result, error) {
 	outputJSON["highlights"] = highlights
 	outputJSON["notFound"] = notFound
 
-	return Result{
-		Records:  highlights,
-		NotFound: notFound,
-	}, nil
+	foundTracks := total - len(notFound)
+	result := Result{
+		Records:           highlights,
+		NotFound:          notFound,
+		PlaylistID:        string(playlistID),
+		TotalTracks:       total,
+		FoundTracks:       foundTracks,
+		SearchSuccessRate: calculateSearchSuccessRate(foundTracks, total),
+	}
+
+	prodPlaylistID := strings.TrimSpace(os.Getenv("PLAYLIST_ID_PROD"))
+	if prodPlaylistID != "" && spotify.ID(prodPlaylistID) != playlistID {
+		prodTrackIDs, prodErr := getPlaylistTrackIDs(client, spotify.ID(prodPlaylistID))
+		if prodErr != nil {
+			log.Printf("could not compare against production playlist %s: %v", prodPlaylistID, prodErr)
+		} else {
+			newTracks, alreadyInProd := countNewTracksComparedToReference(noDuplicateTracks, prodTrackIDs)
+			result.ComparedToProd = true
+			result.NewTracksComparedToProd = newTracks
+			result.AlreadyInProdTracks = alreadyInProd
+		}
+	}
+
+	return result, nil
 }
 
 // selectBestTrack selects the best matching track from search results
@@ -353,6 +380,54 @@ func addTracks(client spotify.Client, trackids ...spotify.ID) error {
 	}
 	return nil
 
+}
+
+func getPlaylistTrackIDs(client spotify.Client, id spotify.ID) (map[spotify.ID]struct{}, error) {
+	trackIDs := make(map[spotify.ID]struct{})
+	page, err := client.GetPlaylistItems(context.Background(), id, spotify.Limit(100))
+	if err != nil {
+		return nil, fmt.Errorf("get playlist items for %s: %w", id, err)
+	}
+
+	for {
+		for _, item := range page.Items {
+			if item.Track.Track == nil || item.Track.Track.ID == "" {
+				continue
+			}
+			trackIDs[item.Track.Track.ID] = struct{}{}
+		}
+
+		if err := client.NextPage(context.Background(), page); err != nil {
+			if errors.Is(err, spotify.ErrNoMorePages) {
+				break
+			}
+			return nil, fmt.Errorf("paginate playlist %s: %w", id, err)
+		}
+	}
+
+	return trackIDs, nil
+}
+
+func calculateSearchSuccessRate(found, total int) float64 {
+	if total == 0 {
+		return 0
+	}
+	return (float64(found) / float64(total)) * 100
+}
+
+func countNewTracksComparedToReference(candidates []spotify.ID, reference map[spotify.ID]struct{}) (int, int) {
+	newTracks := 0
+	alreadyKnown := 0
+
+	for _, id := range candidates {
+		if _, exists := reference[id]; exists {
+			alreadyKnown++
+			continue
+		}
+		newTracks++
+	}
+
+	return newTracks, alreadyKnown
 }
 
 // removes parts of string that should not be in search term
