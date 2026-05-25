@@ -112,12 +112,12 @@ func CreatePlaylist(pid string) (Result, error) {
 	// var newTracks []spotify.ID
 	var notFound []string
 
-	type playlistItemResult struct {
+	type trackToAdd struct {
 		recordIndex int
 		bandname    string
 		itemID      spotify.ID
 	}
-	var itemsToAdd []playlistItemResult
+	var itemsToAdd []trackToAdd
 	for _, record := range highlights {
 		log.Println(record.Band + " - " + record.Recordname + ": " + record.Link)
 
@@ -132,7 +132,7 @@ func CreatePlaylist(pid string) (Result, error) {
 
 			if itemID != "" {
 				log.Println("adding item to collection to be added: " + itemID)
-				r := playlistItemResult{itemID: itemID, bandname: record.Band, recordIndex: record.Score}
+				r := trackToAdd{itemID: itemID, bandname: record.Band, recordIndex: record.Score}
 				itemsToAdd = append(itemsToAdd, r)
 				continue
 			}
@@ -157,7 +157,7 @@ func CreatePlaylist(pid string) (Result, error) {
 
 	for _, item := range itemsToAdd {
 		if item.bandname == recordOfTheWeek {
-			itemsToAdd = append([]playlistItemResult{item}, itemsToAdd...)
+			itemsToAdd = append([]trackToAdd{item}, itemsToAdd...)
 		}
 	}
 
@@ -391,10 +391,11 @@ func getPlaylistTrackIDs(client spotify.Client, id spotify.ID) (map[spotify.ID]s
 
 	for {
 		for _, item := range page.Items {
-			if item.Track.Track == nil || item.Track.Track.ID == "" {
+			track := item.Track.Track
+			if track == nil || track.ID == "" {
 				continue
 			}
-			trackIDs[item.Track.Track.ID] = struct{}{}
+			trackIDs[track.ID] = struct{}{}
 		}
 
 		if err := client.NextPage(context.Background(), page); err != nil {

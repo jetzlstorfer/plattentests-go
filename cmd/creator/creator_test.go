@@ -168,39 +168,39 @@ func TestCalculateSearchSuccessRate(t *testing.T) {
 
 func TestCountNewTracksComparedToReference(t *testing.T) {
 	tests := []struct {
-		name              string
-		candidates        []spotify.ID
-		reference         map[spotify.ID]struct{}
-		expectedNew       int
-		expectedInCompare int
+		name             string
+		candidates       []spotify.ID
+		reference        map[spotify.ID]struct{}
+		expectedNew      int
+		expectedExisting int
 	}{
 		{
-			name:              "all tracks are new",
-			candidates:        []spotify.ID{"a", "b"},
-			reference:         map[spotify.ID]struct{}{},
-			expectedNew:       2,
-			expectedInCompare: 0,
+			name:             "all tracks are new",
+			candidates:       []spotify.ID{"a", "b"},
+			reference:        map[spotify.ID]struct{}{},
+			expectedNew:      2,
+			expectedExisting: 0,
 		},
 		{
-			name:              "mixed new and existing tracks",
-			candidates:        []spotify.ID{"a", "b", "c"},
-			reference:         map[spotify.ID]struct{}{"b": {}, "d": {}},
-			expectedNew:       2,
-			expectedInCompare: 1,
+			name:             "mixed new and existing tracks",
+			candidates:       []spotify.ID{"a", "b", "c"},
+			reference:        map[spotify.ID]struct{}{"b": {}, "d": {}},
+			expectedNew:      2,
+			expectedExisting: 1,
 		},
 		{
-			name:              "all tracks already in comparison playlist",
-			candidates:        []spotify.ID{"a", "b"},
-			reference:         map[spotify.ID]struct{}{"a": {}, "b": {}},
-			expectedNew:       0,
-			expectedInCompare: 2,
+			name:             "all tracks already in comparison playlist",
+			candidates:       []spotify.ID{"a", "b"},
+			reference:        map[spotify.ID]struct{}{"a": {}, "b": {}},
+			expectedNew:      0,
+			expectedExisting: 2,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			newTracks, existing := countNewTracksComparedToReference(tt.candidates, tt.reference)
-			if newTracks != tt.expectedNew || existing != tt.expectedInCompare {
+			if newTracks != tt.expectedNew || existing != tt.expectedExisting {
 				t.Errorf(
 					"countNewTracksComparedToReference(%v, %v) = (%d, %d), want (%d, %d)",
 					tt.candidates,
@@ -208,7 +208,7 @@ func TestCountNewTracksComparedToReference(t *testing.T) {
 					newTracks,
 					existing,
 					tt.expectedNew,
-					tt.expectedInCompare,
+					tt.expectedExisting,
 				)
 			}
 		})
