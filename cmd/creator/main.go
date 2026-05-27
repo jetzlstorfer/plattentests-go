@@ -139,7 +139,7 @@ func CreatePlaylist(pid string) (Result, error) {
 		}
 	}
 
-	// extract spotify IDs from itemsToAdd while preserving discovered order
+	// extract spotify IDs while preserving discovered Plattentests order
 	var itemsToAddIDs []spotify.ID
 	for _, item := range itemsToAdd {
 		itemsToAddIDs = append(itemsToAddIDs, item.itemID)
