@@ -107,17 +107,21 @@ func CreatePlaylist(pid string) (Result, error) {
 		return Result{}, fmt.Errorf("empty playlist: %w", err)
 	}
 
+	// put record of the week first, preserve original order for remaining records
+	recordOfTheWeek, rotweErr := crawler.GetRecordOfTheWeekBandNameSafe()
+	if rotweErr != nil {
+		log.Printf("could not determine record of the week: %v", rotweErr)
+	}
+	sort.SliceStable(highlights, func(i, j int) bool {
+		return highlights[i].Band == recordOfTheWeek && highlights[j].Band != recordOfTheWeek
+	})
+
 	log.Println("Adding highlights of the week to playlist...")
 	total := 0
-	// var newTracks []spotify.ID
 	var notFound []string
 
-	type trackToAdd struct {
-		recordIndex int
-		bandname    string
-		itemID      spotify.ID
-	}
-	var itemsToAdd []trackToAdd
+	// collect track IDs record by record, preserving within-record track order
+	var itemsToAddIDs []spotify.ID
 	for _, record := range highlights {
 		log.Println(record.Band + " - " + record.Recordname + ": " + record.Link)
 
@@ -132,39 +136,12 @@ func CreatePlaylist(pid string) (Result, error) {
 
 			if itemID != "" {
 				log.Println("adding item to collection to be added: " + itemID)
-				r := trackToAdd{itemID: itemID, bandname: record.Band, recordIndex: record.Score}
-				itemsToAdd = append(itemsToAdd, r)
+				itemsToAddIDs = append(itemsToAddIDs, itemID)
 				continue
 			}
 
 			notFound = append(notFound, track.Band+" - "+track.Trackname)
 		}
-	}
-
-	// sort items by highest score and bandname
-	sort.Slice(itemsToAdd[:], func(i, j int) bool {
-		if itemsToAdd[i].recordIndex == itemsToAdd[j].recordIndex {
-			return itemsToAdd[i].bandname < itemsToAdd[j].bandname
-		}
-		return itemsToAdd[i].recordIndex > itemsToAdd[j].recordIndex
-	})
-
-	// put record of the week on top of the playlist
-	recordOfTheWeek, err := crawler.GetRecordOfTheWeekBandNameSafe()
-	if err != nil {
-		log.Printf("could not determine record of the week: %v", err)
-	}
-
-	for _, item := range itemsToAdd {
-		if item.bandname == recordOfTheWeek {
-			itemsToAdd = append([]trackToAdd{item}, itemsToAdd...)
-		}
-	}
-
-	// extract spotify IDs from itemsToAdd
-	var itemsToAddIDs []spotify.ID
-	for _, item := range itemsToAdd {
-		itemsToAddIDs = append(itemsToAddIDs, item.itemID)
 	}
 
 	// remove duplicates
