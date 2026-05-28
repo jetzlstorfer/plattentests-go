@@ -25,8 +25,6 @@
 		}
 	},
 
-	"postCreateCommand": "if [ ! -f ~/.zshrc ]; then wget https://raw.githubusercontent.com/jetzlstorfer/utils/main/.zshrc -O ~/.zshrc; fi",
-
 	"remoteUser": "vscode",
 	"features": {
 		"ghcr.io/devcontainers/features/azure-cli:1": {},
