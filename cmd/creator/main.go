@@ -112,9 +112,7 @@ func CreatePlaylist(pid string) (Result, error) {
 	if rotweErr != nil {
 		log.Printf("could not determine record of the week: %v", rotweErr)
 	}
-	sort.SliceStable(highlights, func(i, j int) bool {
-		return highlights[i].Band == recordOfTheWeek && highlights[j].Band != recordOfTheWeek
-	})
+	highlights = orderRecordsForPlaylist(highlights, recordOfTheWeek)
 
 	log.Println("Adding highlights of the week to playlist...")
 	total := 0
@@ -199,6 +197,33 @@ func CreatePlaylist(pid string) (Result, error) {
 	}
 
 	return result, nil
+}
+
+func orderRecordsForPlaylist(records []crawler.Record, recordOfTheWeek string) []crawler.Record {
+	ordered := append([]crawler.Record(nil), records...)
+
+	// Primary ordering: score descending.
+	sort.SliceStable(ordered, func(i, j int) bool {
+		return ordered[i].Score > ordered[j].Score
+	})
+
+	recordOfTheWeek = strings.TrimSpace(recordOfTheWeek)
+	if recordOfTheWeek == "" {
+		return ordered
+	}
+
+	for i := range ordered {
+		if ordered[i].Band == recordOfTheWeek {
+			ordered[i].IsRecordOfTheWeek = true
+		}
+	}
+
+	// Override ordering rule: record of the week always first.
+	sort.SliceStable(ordered, func(i, j int) bool {
+		return ordered[i].Band == recordOfTheWeek && ordered[j].Band != recordOfTheWeek
+	})
+
+	return ordered
 }
 
 // selectBestTrack selects the best matching track from search results
