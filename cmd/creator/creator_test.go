@@ -254,7 +254,7 @@ func TestOrderRecordsForPlaylist(t *testing.T) {
 	}
 
 	if ordered[1].Band != "Band B" || ordered[2].Band != "Band C" {
-		t.Fatalf("expected remaining records sorted by score while preserving order for equal scores, got [%s, %s]", ordered[1].Band, ordered[2].Band)
+		t.Fatalf("expected Band B before Band C (stable sort preserves input order for equal scores), got [%s, %s]", ordered[1].Band, ordered[2].Band)
 	}
 
 	if !ordered[0].IsRecordOfTheWeek {

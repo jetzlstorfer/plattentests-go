@@ -215,12 +215,13 @@ func orderRecordsForPlaylist(records []crawler.Record, recordOfTheWeek string) [
 	for i := range ordered {
 		if ordered[i].Band == recordOfTheWeek {
 			ordered[i].IsRecordOfTheWeek = true
+			break
 		}
 	}
 
 	// Override ordering rule: record of the week always first.
 	sort.SliceStable(ordered, func(i, j int) bool {
-		return ordered[i].Band == recordOfTheWeek && ordered[j].Band != recordOfTheWeek
+		return ordered[i].IsRecordOfTheWeek && !ordered[j].IsRecordOfTheWeek
 	})
 
 	return ordered
