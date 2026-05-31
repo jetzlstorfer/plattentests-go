@@ -426,9 +426,9 @@ nav a:hover {
 .record-card.record-of-the-week::before {
   content: "";
   position: absolute;
-  inset: -3px; /* sit just outside the card so the glow reads as a border */
-  border-radius: calc(var(--radius-2xl) + 3px);
-  padding: 5px;
+  inset: -4px; /* sit just outside the card so the glow reads as a border */
+  border-radius: calc(var(--radius-2xl) + 4px);
+  padding: 6px;
   background: conic-gradient(
     from var(--rotw-angle),
     #ff0000 0deg,
@@ -447,8 +447,8 @@ nav a:hover {
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   /* tight, crisp glow that hugs the border line */
-  filter: drop-shadow(0 0 6px rgba(255, 77, 109, 1))
-          drop-shadow(0 0 14px rgba(255, 77, 109, 0.85));
+  filter: drop-shadow(0 0 8px rgba(255, 77, 109, 1))
+          drop-shadow(0 0 18px rgba(255, 77, 109, 0.85));
   animation: rotw-spin 4s linear infinite;
   pointer-events: none;
   z-index: 1;
@@ -553,7 +553,8 @@ nav a:hover {
   transform: rotateY(180deg);
   pointer-events: none;
   background: white;
-  border-radius: inherit;
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
 }
 
 .record-card.review-open .record-card-flippable {
