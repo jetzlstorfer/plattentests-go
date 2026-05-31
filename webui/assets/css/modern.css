@@ -1012,6 +1012,7 @@ footer p {
   }
   
   .search-input {
+    flex: 0 1 auto;
     min-width: auto;
     width: 100%;
   }
