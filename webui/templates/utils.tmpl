@@ -54,11 +54,14 @@
 						<div class="record-content">
 							<div class="record-band">{{.Band}}</div>
 							<div class="record-title">{{.Recordname}}</div>
+							{{if .ReleaseDate}}
+								<div><span class="emoji">📅</span> {{.ReleaseDate}}{{if .HasFutureReleaseDate}} <span class="emoji">⏭️</span>{{end}}</div>
+							{{end}}
 							<ul class="record-tracks">
 								{{range .Tracks}}
 									<li>
 									{{ if .Tracklink }}
-										<span class="emoji">🎵</span> <a href="{{ .Tracklink}}">{{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}}</a> 
+										<span class="emoji">✅</span> <a href="{{ .Tracklink}}">{{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}}</a> 
 									{{ else }}
 										<span class="emoji">🔍</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}} 
 									{{end}}
@@ -109,6 +112,7 @@
 					<td><a href="{{.Link}}"><img src="{{.Image}}" alt="{{.Band}}"></a></td>
 					<td>{{.Band}}<br>
 						<strong>{{.Recordname}}</strong><br>
+						{{if .ReleaseDate}}<span class="emoji">📅</span> {{.ReleaseDate}}{{if .HasFutureReleaseDate}} <span class="emoji">⏭️</span>{{end}}<br>{{end}}
 						<span class="emoji">💿</span> {{.Score}}/10
 					</td>
 					<td>
@@ -116,7 +120,7 @@
 						{{range .Tracks}}
 							<li>
 							{{ if .Tracklink }}
-								<span class="emoji">🎵</span> <a href="{{ .Tracklink}}">{{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}}</a> 
+								<span class="emoji">✅</span> <a href="{{ .Tracklink}}">{{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}}</a> 
 							{{ else }}
 								<span class="emoji">🔍</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}} 
 							{{end}}

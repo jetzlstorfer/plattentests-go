@@ -11,6 +11,39 @@ import (
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
 )
 
+func TestRecordTableSongFoundIndicator(t *testing.T) {
+	tmpl, err := template.ParseFiles("templates/utils.tmpl")
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	data := map[string]interface{}{
+		"Records": []crawler.Record{
+			{
+				Band:       "Band",
+				Recordname: "Record",
+				Tracks: []crawler.Track{
+					{Trackname: "Found Song", Tracklink: "https://open.spotify.com/track/abc"},
+					{Trackname: "Missing Song"},
+				},
+			},
+		},
+	}
+
+	var out bytes.Buffer
+	if err := tmpl.ExecuteTemplate(&out, "RecordTable", data); err != nil {
+		t.Fatalf("failed to render RecordTable: %v", err)
+	}
+
+	rendered := out.String()
+	if !strings.Contains(rendered, "✅") {
+		t.Fatalf("expected rendered RecordTable to contain found-song indicator ✅, got: %s", rendered)
+	}
+	if !strings.Contains(rendered, "🔍") {
+		t.Fatalf("expected rendered RecordTable to contain missing-song indicator 🔍, got: %s", rendered)
+	}
+}
+
 func TestGetCommitInfo(t *testing.T) {
 	t.Run("returns GIT_SHA env var when set", func(t *testing.T) {
 		t.Setenv("GIT_SHA", "abc123def456")
@@ -136,5 +169,38 @@ func TestRecordTable_EmphasizesHighlightTracks(t *testing.T) {
 	}
 	if strings.Contains(html, "<strong>Regular Song</strong>") {
 		t.Fatalf("non-highlight track should not be emphasized, html: %s", html)
+	}
+}
+
+func TestRecordTableShowsReleaseDateAndFutureEmoji(t *testing.T) {
+	tmpl, err := template.ParseFiles("templates/utils.tmpl")
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	data := map[string]interface{}{
+		"Records": []crawler.Record{
+			{Band: "Future Band", Recordname: "Future Album", ReleaseDate: "31.12.2099", Score: 8},
+			{Band: "Past Band", Recordname: "Past Album", ReleaseDate: "01.01.2000", Score: 7},
+		},
+	}
+
+	var out bytes.Buffer
+	if err := tmpl.ExecuteTemplate(&out, "RecordTable", data); err != nil {
+		t.Fatalf("failed to render template: %v", err)
+	}
+
+	html := out.String()
+	if !strings.Contains(html, "📅") {
+		t.Fatalf("expected rendered output to include release date emoji, got: %s", html)
+	}
+	if !strings.Contains(html, "31.12.2099") {
+		t.Fatalf("expected rendered output to include future release date, got: %s", html)
+	}
+	if !strings.Contains(html, "01.01.2000") {
+		t.Fatalf("expected rendered output to include past release date, got: %s", html)
+	}
+	if count := strings.Count(html, "⏭️"); count != 2 {
+		t.Fatalf("expected future emoji to appear only for future record in both views (2x), got %d", count)
 	}
 }
