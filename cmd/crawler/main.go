@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gin-gonic/gin"
@@ -40,11 +41,29 @@ type Record struct {
 	Recordname        string
 	Link              string
 	Score             int
+	ReleaseDate       string
 	ReleaseYear       string
 	Tracks            []Track
 	Headline          string
 	Description       string
 	IsRecordOfTheWeek bool
+}
+
+// HasFutureReleaseDate reports whether ReleaseDate is after today.
+func (r Record) HasFutureReleaseDate() bool {
+	releaseDate := strings.TrimSpace(r.ReleaseDate)
+	if releaseDate == "" {
+		return false
+	}
+	parsedReleaseDate, err := time.ParseInLocation("02.01.2006", releaseDate, time.Local)
+	if err != nil {
+		return false
+	}
+
+	now := time.Now().In(time.Local)
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
+	releaseDay := time.Date(parsedReleaseDate.Year(), parsedReleaseDate.Month(), parsedReleaseDate.Day(), 0, 0, 0, 0, time.Local)
+	return releaseDay.After(today)
 }
 
 // Track holds one highlight track for a record.
@@ -185,10 +204,12 @@ func getHighlightsByRecordLinkSafe(recordLink string) (Record, error) {
 	bandname := strings.Split(doc.Find("h1").Text(), " - ")[0]
 	bandname = strings.Trim(bandname, " ")
 	recordname := strings.Split(doc.Find("h1").Text(), " - ")[1]
-	// for the releaseYear, find the following pattern ": dd.mm.yyyy"
-	regex, _ := regexp.Compile(": [0-9]+.[0-9]+.[0-9]+")
-	match := regex.FindString(doc.Find("p").Text())
-	releaseYear := strings.Split(match, ".")[len(strings.Split(match, "."))-1]
+	regex, _ := regexp.Compile(`\b[0-9]{2}\.[0-9]{2}\.[0-9]{4}\b`)
+	releaseDate := regex.FindString(doc.Find("p").Text())
+	releaseYear := ""
+	if releaseDate != "" {
+		releaseYear = strings.Split(releaseDate, ".")[2]
+	}
 
 	score, _ := strconv.Atoi(strings.Split(doc.Find("p.bewertung strong").First().Text(), "/")[0])
 
@@ -221,6 +242,7 @@ func getHighlightsByRecordLinkSafe(recordLink string) (Record, error) {
 		Recordname:  recordname,
 		Link:        recordLink,
 		Score:       score,
+		ReleaseDate: releaseDate,
 		ReleaseYear: releaseYear,
 		Tracks:      tracks,
 		Headline:    headline,
