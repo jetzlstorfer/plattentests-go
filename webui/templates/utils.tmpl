@@ -60,8 +60,8 @@
 							<ul class="record-tracks">
 								{{range .Tracks}}
 									<li>
-									{{ if .Tracklink }}
-										<span class="emoji">✅</span> <a href="{{ .Tracklink}}">{{.Trackname}}</a> 
+									{{ if .Found }}
+										<span class="emoji">✅</span> {{.Trackname}} 
 									{{ else }}
 										<span class="emoji">🔍</span> {{.Trackname}} 
 									{{end}}
@@ -119,8 +119,8 @@
 						<ul>
 						{{range .Tracks}}
 							<li>
-							{{ if .Tracklink }}
-								<span class="emoji">✅</span> <a href="{{ .Tracklink}}">{{.Trackname}}</a> 
+							{{ if .Found }}
+								<span class="emoji">✅</span> {{.Trackname}} 
 							{{ else }}
 								<span class="emoji">🔍</span> {{.Trackname}} 
 							{{end}}
