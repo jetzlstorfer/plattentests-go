@@ -271,6 +271,27 @@ func TestGetHighlightsByRecordLink_RecordLink(t *testing.T) {
 	}
 }
 
+func TestGetHighlightsByRecordLink_PrefersVoeReleaseDate(t *testing.T) {
+	html := `<html><body>
+<h1>Voe Band - Voe Album</h1>
+<p>Erste Erwähnung: 01.01.2020</p>
+<p>VÖ: 29.05.2026</p>
+<p class="bewertung"><strong>7/10</strong></p>
+</body></html>`
+
+	srv := startMockServer(t, html)
+	defer srv.Close()
+
+	rec := getHighlightsByRecordLink(srv.URL)
+
+	if rec.ReleaseDate != "29.05.2026" {
+		t.Errorf("ReleaseDate = %q, want %q", rec.ReleaseDate, "29.05.2026")
+	}
+	if rec.ReleaseYear != "2026" {
+		t.Errorf("ReleaseYear = %q, want %q", rec.ReleaseYear, "2026")
+	}
+}
+
 func TestRecordHasFutureReleaseDate(t *testing.T) {
 	tests := []struct {
 		name        string
