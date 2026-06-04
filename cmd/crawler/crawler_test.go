@@ -76,6 +76,9 @@ func TestGetHighlightsByRecordLink_BasicRecord(t *testing.T) {
 	if rec.ReleaseYear != "2024" {
 		t.Errorf("ReleaseYear = %q, want %q", rec.ReleaseYear, "2024")
 	}
+	if rec.ReleaseDate != "15.03.2024" {
+		t.Errorf("ReleaseDate = %q, want %q", rec.ReleaseDate, "15.03.2024")
+	}
 	if len(rec.Tracks) != 2 {
 		t.Errorf("len(Tracks) = %d, want 2", len(rec.Tracks))
 	}
@@ -265,6 +268,28 @@ func TestGetHighlightsByRecordLink_RecordLink(t *testing.T) {
 
 	if rec.Link != srv.URL {
 		t.Errorf("Link = %q, want %q", rec.Link, srv.URL)
+	}
+}
+
+func TestRecordHasFutureReleaseDate(t *testing.T) {
+	tests := []struct {
+		name        string
+		releaseDate string
+		want        bool
+	}{
+		{name: "future date", releaseDate: "31.12.2099", want: true},
+		{name: "past date", releaseDate: "01.01.2000", want: false},
+		{name: "invalid date", releaseDate: "not-a-date", want: false},
+		{name: "empty date", releaseDate: "", want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			record := Record{ReleaseDate: tt.releaseDate}
+			if got := record.HasFutureReleaseDate(); got != tt.want {
+				t.Errorf("HasFutureReleaseDate() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 

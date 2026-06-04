@@ -1,10 +1,14 @@
 package main
 
 import (
+	"bytes"
+	"html/template"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
 )
 
 func TestGetCommitInfo(t *testing.T) {
@@ -97,4 +101,37 @@ func TestEasyAuthLoginURLLocalFallback(t *testing.T) {
 			t.Errorf("easyAuthLoginURL() = %q, want %q", result, "/createPlaylist")
 		}
 	})
+}
+
+func TestRecordTableShowsReleaseDateAndFutureEmoji(t *testing.T) {
+	tmpl, err := template.ParseFiles("templates/utils.tmpl")
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	data := map[string]interface{}{
+		"Records": []crawler.Record{
+			{Band: "Future Band", Recordname: "Future Album", ReleaseDate: "31.12.2099", Score: 8},
+			{Band: "Past Band", Recordname: "Past Album", ReleaseDate: "01.01.2000", Score: 7},
+		},
+	}
+
+	var out bytes.Buffer
+	if err := tmpl.ExecuteTemplate(&out, "RecordTable", data); err != nil {
+		t.Fatalf("failed to render template: %v", err)
+	}
+
+	html := out.String()
+	if !strings.Contains(html, "📅") {
+		t.Fatalf("expected rendered output to include release date emoji, got: %s", html)
+	}
+	if !strings.Contains(html, "31.12.2099") {
+		t.Fatalf("expected rendered output to include future release date, got: %s", html)
+	}
+	if !strings.Contains(html, "01.01.2000") {
+		t.Fatalf("expected rendered output to include past release date, got: %s", html)
+	}
+	if count := strings.Count(html, "⏭️"); count != 2 {
+		t.Fatalf("expected future emoji to appear only for future record in both views (2x), got %d", count)
+	}
 }
