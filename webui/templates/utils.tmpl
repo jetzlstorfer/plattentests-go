@@ -58,9 +58,9 @@
 								{{range .Tracks}}
 									<li>
 									{{ if .Tracklink }}
-										<span class="emoji">🎵</span> <a href="{{ .Tracklink}}">{{.Trackname}}</a> 
+										<span class="emoji">🎵</span> <a href="{{ .Tracklink}}">{{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}}</a> 
 									{{ else }}
-										<span class="emoji">🔍</span> {{.Trackname}} 
+										<span class="emoji">🔍</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}} 
 									{{end}}
 									</li>
 								{{end}}
@@ -116,9 +116,9 @@
 						{{range .Tracks}}
 							<li>
 							{{ if .Tracklink }}
-								<span class="emoji">🎵</span> <a href="{{ .Tracklink}}">{{.Trackname}}</a> 
+								<span class="emoji">🎵</span> <a href="{{ .Tracklink}}">{{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}}</a> 
 							{{ else }}
-								<span class="emoji">🔍</span> {{.Trackname}} 
+								<span class="emoji">🔍</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}} 
 							{{end}}
 							</li>
 						{{end}}
