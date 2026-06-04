@@ -11,6 +11,39 @@ import (
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
 )
 
+func TestRecordTableSongFoundIndicator(t *testing.T) {
+	tmpl, err := template.ParseFiles("templates/utils.tmpl")
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	data := map[string]interface{}{
+		"Records": []crawler.Record{
+			{
+				Band:       "Band",
+				Recordname: "Record",
+				Tracks: []crawler.Track{
+					{Trackname: "Found Song", Tracklink: "https://open.spotify.com/track/abc"},
+					{Trackname: "Missing Song"},
+				},
+			},
+		},
+	}
+
+	var out bytes.Buffer
+	if err := tmpl.ExecuteTemplate(&out, "RecordTable", data); err != nil {
+		t.Fatalf("failed to render RecordTable: %v", err)
+	}
+
+	rendered := out.String()
+	if !strings.Contains(rendered, "✅") {
+		t.Fatalf("expected rendered RecordTable to contain found-song indicator ✅, got: %s", rendered)
+	}
+	if !strings.Contains(rendered, "🔍") {
+		t.Fatalf("expected rendered RecordTable to contain missing-song indicator 🔍, got: %s", rendered)
+	}
+}
+
 func TestGetCommitInfo(t *testing.T) {
 	t.Run("returns GIT_SHA env var when set", func(t *testing.T) {
 		t.Setenv("GIT_SHA", "abc123def456")
