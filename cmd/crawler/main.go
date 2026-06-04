@@ -26,12 +26,25 @@ const searchUrl = "https://www.plattentests.de/suche.php"
 // reviews. The native search may return hundreds of matches.
 const maxSearchResults = 25
 
+var releaseDatePattern = regexp.MustCompile(`\b([0-9]{2}\.[0-9]{2}\.[0-9]{4})\b`)
+var releaseDateVoePattern = regexp.MustCompile(`VÖ:\s*([0-9]{2}\.[0-9]{2}\.[0-9]{4})`)
+
 func newDocumentFromPlattentestsResponse(res *http.Response) (*goquery.Document, error) {
 	decodedReader, err := charset.NewReader(res.Body, res.Header.Get("Content-Type"))
 	if err != nil {
 		return nil, err
 	}
 	return goquery.NewDocumentFromReader(decodedReader)
+}
+
+func extractReleaseDate(text string) string {
+	if match := releaseDateVoePattern.FindStringSubmatch(text); len(match) == 2 {
+		return match[1]
+	}
+	if match := releaseDatePattern.FindStringSubmatch(text); len(match) == 2 {
+		return match[1]
+	}
+	return ""
 }
 
 // Record holds all information for a record
@@ -205,8 +218,7 @@ func getHighlightsByRecordLinkSafe(recordLink string) (Record, error) {
 	bandname := strings.Split(doc.Find("h1").Text(), " - ")[0]
 	bandname = strings.Trim(bandname, " ")
 	recordname := strings.Split(doc.Find("h1").Text(), " - ")[1]
-	regex, _ := regexp.Compile(`\b[0-9]{2}\.[0-9]{2}\.[0-9]{4}\b`)
-	releaseDate := regex.FindString(doc.Find("p").Text())
+	releaseDate := extractReleaseDate(doc.Find("p").Text())
 	releaseYear := ""
 	if releaseDate != "" {
 		releaseYear = strings.Split(releaseDate, ".")[2]
