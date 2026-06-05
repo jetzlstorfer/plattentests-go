@@ -102,13 +102,6 @@ func main() {
 			log.Fatalf("Error parsing template: %v", err)
 		}
 
-		// Best-effort: mark tracks that can be found on Spotify so the listing can show a found
-		// indicator. Failures (e.g. Spotify/Azure unavailable) must not break the page, which only
-		// needs the crawled highlights to render.
-		if err := creator.MarkFoundTracks(records); err != nil {
-			log.Printf("could not mark found tracks: %v", err)
-		}
-
 		data := commonTemplateData(c)
 		data["Records"] = records
 

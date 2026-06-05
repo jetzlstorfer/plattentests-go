@@ -1,5 +1,5 @@
 /* Legacy styles for table fallback */
-.recordTable td ul {
+.recordTable td ol {
     padding-inline-start: 20px;
 }
 

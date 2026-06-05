@@ -604,7 +604,14 @@ nav a:hover {
 }
 
 .record-tracks {
-  list-style: none;
+  list-style: decimal;
+  list-style-position: outside;
+  padding-left: var(--space-5);
+  margin: 0;
+}
+
+.record-release-date {
+  margin-bottom: var(--space-3);
 }
 
 .record-tracks li {

@@ -11,7 +11,7 @@ import (
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
 )
 
-func TestRecordTableSongFoundIndicator(t *testing.T) {
+func TestRecordTableSongFoundIndicatorHiddenByDefault(t *testing.T) {
 	tmpl, err := template.ParseFiles("templates/utils.tmpl")
 	if err != nil {
 		t.Fatalf("failed to parse template: %v", err)
@@ -36,11 +36,49 @@ func TestRecordTableSongFoundIndicator(t *testing.T) {
 	}
 
 	rendered := out.String()
+	if strings.Contains(rendered, "✅") {
+		t.Fatalf("expected rendered RecordTable to hide found-song indicator ✅ by default, got: %s", rendered)
+	}
+	if strings.Contains(rendered, "🔍") {
+		t.Fatalf("expected rendered RecordTable to hide missing-song indicator 🔍 by default, got: %s", rendered)
+	}
+}
+
+func TestRecordTableSongFoundIndicatorShownWhenEnabled(t *testing.T) {
+	tmpl, err := template.ParseFiles("templates/utils.tmpl")
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	data := map[string]interface{}{
+		"ShowFoundStatus": true,
+		"Records": []crawler.Record{
+			{
+				Band:       "Band",
+				Recordname: "Record",
+				Tracks: []crawler.Track{
+					{Trackname: "Found Song", Found: true, IsHighlight: true},
+					{Trackname: "Missing Song", IsHighlight: true},
+					{Trackname: "Album Track", IsHighlight: false},
+				},
+			},
+		},
+	}
+
+	var out bytes.Buffer
+	if err := tmpl.ExecuteTemplate(&out, "RecordTable", data); err != nil {
+		t.Fatalf("failed to render RecordTable: %v", err)
+	}
+
+	rendered := out.String()
 	if !strings.Contains(rendered, "✅") {
 		t.Fatalf("expected rendered RecordTable to contain found-song indicator ✅, got: %s", rendered)
 	}
 	if !strings.Contains(rendered, "🔍") {
 		t.Fatalf("expected rendered RecordTable to contain missing-song indicator 🔍, got: %s", rendered)
+	}
+	if strings.Contains(rendered, "🔍</span> Album Track") || strings.Contains(rendered, "✅</span> Album Track") {
+		t.Fatalf("expected non-highlight track to be rendered without status icon, got: %s", rendered)
 	}
 }
 

@@ -47,6 +47,7 @@ type Result struct {
 	Records                 []crawler.Record
 	NotFound                []string
 	PlaylistID              string
+	ShowFoundStatus         bool
 	TotalTracks             int
 	FoundTracks             int
 	SearchSuccessRate       float64
@@ -127,6 +128,9 @@ func CreatePlaylist(pid string) (Result, error) {
 
 		for j := range record.Tracks {
 			track := &record.Tracks[j]
+			if !track.IsHighlight {
+				continue
+			}
 			total++
 			itemID, searchErr := searchSong(client, track.Trackname, *record)
 			if searchErr != nil {
@@ -182,6 +186,7 @@ func CreatePlaylist(pid string) (Result, error) {
 		Records:           highlights,
 		NotFound:          notFound,
 		PlaylistID:        string(playlistID),
+		ShowFoundStatus:   true,
 		TotalTracks:       total,
 		FoundTracks:       foundTracks,
 		SearchSuccessRate: calculateSearchSuccessRate(foundTracks, total),
@@ -442,6 +447,9 @@ func MarkFoundTracks(records []crawler.Record) error {
 		record := records[i]
 		for j := range records[i].Tracks {
 			track := &records[i].Tracks[j]
+			if !track.IsHighlight {
+				continue
+			}
 			key := foundCacheKey(record.Band, track.Trackname)
 
 			if found, ok := lookupFoundCache(key); ok {

@@ -55,19 +55,23 @@
 							<div class="record-band">{{.Band}}</div>
 							<div class="record-title">{{.Recordname}}</div>
 							{{if .ReleaseDate}}
-								<div><span class="emoji">📅</span> {{.ReleaseDate}}{{if .HasFutureReleaseDate}} <span class="emoji">⏭️</span>{{end}}</div>
+									<div class="record-release-date"><span class="emoji">📅</span> {{.ReleaseDate}}{{if .HasFutureReleaseDate}} <span class="emoji">⏭️</span>{{end}}</div>
 							{{end}}
-							<ul class="record-tracks">
+								<ol class="record-tracks">
 								{{range .Tracks}}
 									<li>
-									{{ if .Found }}
-										<span class="emoji">✅</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}} 
-									{{ else }}
-										<span class="emoji">🔍</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}} 
+										{{if and $.ShowFoundStatus .IsHighlight}}
+										{{ if .Found }}
+											<span class="emoji">✅</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}}
+										{{ else }}
+											<span class="emoji">🔍</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}}
+										{{end}}
+									{{else}}
+										{{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}}
 									{{end}}
 									</li>
 								{{end}}
-							</ul>
+								</ol>
 							{{if .Description}}
 							<div class="record-description-trigger-wrap">
 								<button class="record-description-toggle" type="button" aria-expanded="false">
@@ -116,17 +120,21 @@
 						<span class="emoji">💿</span> {{.Score}}/10
 					</td>
 					<td>
-						<ul>
+						<ol>
 						{{range .Tracks}}
 							<li>
-							{{ if .Found }}
-								<span class="emoji">✅</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}} 
-							{{ else }}
-								<span class="emoji">🔍</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}} 
+							{{if and $.ShowFoundStatus .IsHighlight}}
+								{{ if .Found }}
+									<span class="emoji">✅</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}}
+								{{ else }}
+									<span class="emoji">🔍</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}}
+								{{end}}
+							{{else}}
+								{{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}}
 							{{end}}
 							</li>
 						{{end}}
-						</ul>
+						</ol>
 					</td>
 				</tr>
 			{{end}}
