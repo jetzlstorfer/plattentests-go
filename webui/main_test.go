@@ -136,6 +136,42 @@ func TestEasyAuthLoginURLLocalFallback(t *testing.T) {
 	})
 }
 
+func TestRecordTable_EmphasizesHighlightTracks(t *testing.T) {
+	tmpl, err := template.ParseFiles("templates/utils.tmpl")
+	if err != nil {
+		t.Fatalf("parse template: %v", err)
+	}
+
+	data := map[string]interface{}{
+		"Records": []crawler.Record{
+			{
+				Band:       "Test Band",
+				Recordname: "Test Album",
+				Image:      "/cover.jpg",
+				Link:       "/record",
+				Score:      8,
+				Tracks: []crawler.Track{
+					{Trackname: "Highlight Song", IsHighlight: true},
+					{Trackname: "Regular Song", IsHighlight: false},
+				},
+			},
+		},
+	}
+
+	var out bytes.Buffer
+	if err := tmpl.ExecuteTemplate(&out, "RecordTable", data); err != nil {
+		t.Fatalf("execute template: %v", err)
+	}
+
+	html := out.String()
+	if !strings.Contains(html, "<strong>Highlight Song</strong>") {
+		t.Fatalf("highlight track not emphasized, html: %s", html)
+	}
+	if strings.Contains(html, "<strong>Regular Song</strong>") {
+		t.Fatalf("non-highlight track should not be emphasized, html: %s", html)
+	}
+}
+
 func TestRecordTableShowsReleaseDateAndFutureEmoji(t *testing.T) {
 	tmpl, err := template.ParseFiles("templates/utils.tmpl")
 	if err != nil {

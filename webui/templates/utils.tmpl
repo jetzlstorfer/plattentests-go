@@ -61,9 +61,9 @@
 								{{range .Tracks}}
 									<li>
 									{{ if .Found }}
-										<span class="emoji">✅</span> {{.Trackname}} 
+										<span class="emoji">✅</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}} 
 									{{ else }}
-										<span class="emoji">🔍</span> {{.Trackname}} 
+										<span class="emoji">🔍</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}} 
 									{{end}}
 									</li>
 								{{end}}
@@ -120,9 +120,9 @@
 						{{range .Tracks}}
 							<li>
 							{{ if .Found }}
-								<span class="emoji">✅</span> {{.Trackname}} 
+								<span class="emoji">✅</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}} 
 							{{ else }}
-								<span class="emoji">🔍</span> {{.Trackname}} 
+								<span class="emoji">🔍</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}} 
 							{{end}}
 							</li>
 						{{end}}

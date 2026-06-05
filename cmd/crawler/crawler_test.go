@@ -35,7 +35,12 @@ func mockRecordHTML(band, record, imageHref, score, date string, tracks []string
 <ul id="rezihighlights">
 %s
 </ul>
-</body></html>`, imgTag, band, record, date, score, h2Section, trackItems)
+<div id="rezitracklist">
+<ol>
+%s
+</ol>
+</div>
+</body></html>`, imgTag, band, record, date, score, h2Section, trackItems, trackItems)
 }
 
 func startMockServer(t *testing.T, html string) *httptest.Server {
@@ -93,6 +98,49 @@ func TestGetHighlightsByRecordLink_BasicRecord(t *testing.T) {
 		if track.Band != "Test Band" {
 			t.Errorf("Tracks[%d].Band = %q, want %q", i, track.Band, "Test Band")
 		}
+		if !track.IsHighlight {
+			t.Errorf("Tracks[%d].IsHighlight = %v, want true", i, track.IsHighlight)
+		}
+	}
+}
+
+func TestGetHighlightsByRecordLink_UsesFullTracklistAndMarksHighlights(t *testing.T) {
+	html := `<html><body>
+<h1>Tracklist Band - Tracklist Album</h1>
+<p>Veröffentlichung: 01.01.2024</p>
+<p class="bewertung"><strong>8/10</strong></p>
+<div id="rezihighlights">
+  <ul>
+    <li>Song One</li>
+    <li>Song Three</li>
+  </ul>
+</div>
+<div id="rezitracklist">
+  <ol>
+    <li>Song One</li>
+    <li>Song Two</li>
+    <li>Song Three</li>
+  </ol>
+</div>
+</body></html>`
+
+	srv := startMockServer(t, html)
+	defer srv.Close()
+
+	rec := getHighlightsByRecordLink(srv.URL)
+
+	if len(rec.Tracks) != 3 {
+		t.Fatalf("len(Tracks) = %d, want 3", len(rec.Tracks))
+	}
+
+	if !rec.Tracks[0].IsHighlight {
+		t.Errorf("Tracks[0].IsHighlight = %v, want true", rec.Tracks[0].IsHighlight)
+	}
+	if rec.Tracks[1].IsHighlight {
+		t.Errorf("Tracks[1].IsHighlight = %v, want false", rec.Tracks[1].IsHighlight)
+	}
+	if !rec.Tracks[2].IsHighlight {
+		t.Errorf("Tracks[2].IsHighlight = %v, want true", rec.Tracks[2].IsHighlight)
 	}
 }
 

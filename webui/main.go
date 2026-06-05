@@ -35,9 +35,10 @@ type Record struct {
 }
 
 type Track struct {
-	Band      string
-	Trackname string
-	Tracklink string
+	Band        string
+	Trackname   string
+	Tracklink   string
+	IsHighlight bool
 }
 
 type Highlights struct {

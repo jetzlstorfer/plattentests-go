@@ -81,10 +81,11 @@ func (r Record) HasFutureReleaseDate() bool {
 
 // Track holds one highlight track for a record.
 type Track struct {
-	Band      string
-	Trackname string
-	Tracklink string
-	Found     bool
+	Band        string
+	Trackname   string
+	Tracklink   string
+	Found       bool
+	IsHighlight bool
 }
 
 // GetRecordsOfTheWeek return array of names for highlights of the week
@@ -262,21 +263,50 @@ func getHighlightsByRecordLinkSafe(recordLink string) (Record, error) {
 		Description: description,
 	}
 	log.Printf("%s - %s\n", bandname, recordname)
-	doc.Find("#rezihighlights li").Each(func(i int, s *goquery.Selection) {
-		// For each item found, get the band and title
-		track := Track{}
-		trackname := s.Text()
-		// only proceed if there are highlights available
-		if strings.Trim(trackname, " ") != "-" {
-			log.Printf(" Track %d: %s\n", i+1, trackname)
-			track.Band = bandname
-			track.Trackname = trackname
-			tracks = append(tracks, track)
+	highlightNames := make(map[string]bool)
+	doc.Find("#rezihighlights li").Each(func(_ int, s *goquery.Selection) {
+		trackname := strings.TrimSpace(s.Text())
+		if trackname == "" || trackname == "-" {
+			return
 		}
+		highlightNames[normalizeTrackName(trackname)] = true
 	})
+
+	doc.Find("#rezitracklist li").Each(func(i int, s *goquery.Selection) {
+		trackname := strings.TrimSpace(s.Text())
+		if trackname == "" || trackname == "-" {
+			return
+		}
+		log.Printf(" Track %d: %s\n", i+1, trackname)
+		tracks = append(tracks, Track{
+			Band:        bandname,
+			Trackname:   trackname,
+			IsHighlight: highlightNames[normalizeTrackName(trackname)],
+		})
+	})
+
+	if len(tracks) == 0 {
+		// Fall back to highlights when no full tracklist is available.
+		doc.Find("#rezihighlights li").Each(func(i int, s *goquery.Selection) {
+			trackname := strings.TrimSpace(s.Text())
+			if trackname == "" || trackname == "-" {
+				return
+			}
+			log.Printf(" Track %d: %s\n", i+1, trackname)
+			tracks = append(tracks, Track{
+				Band:        bandname,
+				Trackname:   trackname,
+				IsHighlight: true,
+			})
+		})
+	}
 	record.Tracks = tracks
 	//log.Println(len(record.Tracks), " highlights found for", record.Name)
 	return record, nil
+}
+
+func normalizeTrackName(track string) string {
+	return strings.ToLower(strings.Join(strings.Fields(track), " "))
 }
 
 // GetRecordOfTheWeekBandName returns the band name of the current record of the week.
