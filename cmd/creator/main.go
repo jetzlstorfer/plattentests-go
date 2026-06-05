@@ -30,6 +30,9 @@ const MaxSearchResults = 3
 // MaxRecordsOfTheWeek is the maximum number of records of the week to be considered
 const MaxRecordsOfTheWeek = 25
 
+// MaxConcurrentSpotifySearches limits concurrent Spotify track lookups during playlist creation.
+const MaxConcurrentSpotifySearches = 6
+
 var (
 	config struct {
 		TargetPlaylist  string `envconfig:"PLAYLIST_ID" required:"true"`
@@ -117,7 +120,26 @@ func CreatePlaylist(pid string) (Result, error) {
 	highlights = orderRecordsForPlaylist(highlights, recordOfTheWeek)
 
 	log.Println("Adding highlights of the week to playlist...")
-	total := 0
+	type highlightSearchJob struct {
+		recordIdx int
+		trackIdx  int
+	}
+	type highlightSearchResult struct {
+		itemID spotify.ID
+		err    error
+	}
+
+	jobs := make([]highlightSearchJob, 0)
+	for i := range highlights {
+		for j := range highlights[i].Tracks {
+			if !highlights[i].Tracks[j].IsHighlight {
+				continue
+			}
+			jobs = append(jobs, highlightSearchJob{recordIdx: i, trackIdx: j})
+		}
+	}
+
+	total := len(jobs)
 	var notFound []string
 
 	// collect track IDs record by record, preserving within-record track order
@@ -125,24 +147,53 @@ func CreatePlaylist(pid string) (Result, error) {
 	for i := range highlights {
 		record := &highlights[i]
 		log.Println(record.Band + " - " + record.Recordname + ": " + record.Link)
+	}
 
-		for j := range record.Tracks {
-			track := &record.Tracks[j]
-			if !track.IsHighlight {
-				continue
-			}
-			total++
-			itemID, searchErr := searchSong(client, track.Trackname, *record)
-			if searchErr != nil {
-				log.Printf("search failed for %s - %s: %v", track.Band, track.Trackname, searchErr)
+	if len(jobs) > 0 {
+		results := make([]highlightSearchResult, len(jobs))
+		jobIndexes := make(chan int)
+
+		workerCount := MaxConcurrentSpotifySearches
+		if len(jobs) < workerCount {
+			workerCount = len(jobs)
+		}
+
+		var wg sync.WaitGroup
+		wg.Add(workerCount)
+		for w := 0; w < workerCount; w++ {
+			go func() {
+				defer wg.Done()
+				for jobIdx := range jobIndexes {
+					job := jobs[jobIdx]
+					record := highlights[job.recordIdx]
+					track := record.Tracks[job.trackIdx]
+					itemID, searchErr := searchSong(client, track.Trackname, record)
+					results[jobIdx] = highlightSearchResult{itemID: itemID, err: searchErr}
+				}
+			}()
+		}
+
+		for i := range jobs {
+			jobIndexes <- i
+		}
+		close(jobIndexes)
+		wg.Wait()
+
+		for i, job := range jobs {
+			record := &highlights[job.recordIdx]
+			track := &record.Tracks[job.trackIdx]
+			result := results[i]
+
+			if result.err != nil {
+				log.Printf("search failed for %s - %s: %v", track.Band, track.Trackname, result.err)
 				notFound = append(notFound, track.Band+" - "+track.Trackname)
 				continue
 			}
 
-			if itemID != "" {
-				log.Println("adding item to collection to be added: " + itemID)
+			if result.itemID != "" {
+				log.Println("adding item to collection to be added: " + result.itemID)
 				track.Found = true
-				itemsToAddIDs = append(itemsToAddIDs, itemID)
+				itemsToAddIDs = append(itemsToAddIDs, result.itemID)
 				continue
 			}
 
