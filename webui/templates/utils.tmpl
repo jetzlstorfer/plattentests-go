@@ -60,8 +60,8 @@
 							<ul class="record-tracks">
 								{{range .Tracks}}
 									<li>
-									{{ if .Tracklink }}
-										<span class="emoji">✅</span> <a href="{{ .Tracklink}}">{{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}}</a> 
+									{{ if .Found }}
+										<span class="emoji">✅</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}} 
 									{{ else }}
 										<span class="emoji">🔍</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}} 
 									{{end}}
@@ -119,8 +119,8 @@
 						<ul>
 						{{range .Tracks}}
 							<li>
-							{{ if .Tracklink }}
-								<span class="emoji">✅</span> <a href="{{ .Tracklink}}">{{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}}</a> 
+							{{ if .Found }}
+								<span class="emoji">✅</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}} 
 							{{ else }}
 								<span class="emoji">🔍</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}} 
 							{{end}}

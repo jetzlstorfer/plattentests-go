@@ -84,6 +84,7 @@ type Track struct {
 	Band        string
 	Trackname   string
 	Tracklink   string
+	Found       bool
 	IsHighlight bool
 }
 

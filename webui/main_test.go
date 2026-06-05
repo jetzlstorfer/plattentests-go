@@ -23,7 +23,7 @@ func TestRecordTableSongFoundIndicator(t *testing.T) {
 				Band:       "Band",
 				Recordname: "Record",
 				Tracks: []crawler.Track{
-					{Trackname: "Found Song", Tracklink: "https://open.spotify.com/track/abc"},
+					{Trackname: "Found Song", Found: true},
 					{Trackname: "Missing Song"},
 				},
 			},

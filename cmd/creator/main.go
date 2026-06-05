@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"unicode"
 
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
@@ -120,12 +121,14 @@ func CreatePlaylist(pid string) (Result, error) {
 
 	// collect track IDs record by record, preserving within-record track order
 	var itemsToAddIDs []spotify.ID
-	for _, record := range highlights {
+	for i := range highlights {
+		record := &highlights[i]
 		log.Println(record.Band + " - " + record.Recordname + ": " + record.Link)
 
-		for _, track := range record.Tracks {
+		for j := range record.Tracks {
+			track := &record.Tracks[j]
 			total++
-			itemID, searchErr := searchSong(client, track.Trackname, record)
+			itemID, searchErr := searchSong(client, track.Trackname, *record)
 			if searchErr != nil {
 				log.Printf("search failed for %s - %s: %v", track.Band, track.Trackname, searchErr)
 				notFound = append(notFound, track.Band+" - "+track.Trackname)
@@ -134,6 +137,7 @@ func CreatePlaylist(pid string) (Result, error) {
 
 			if itemID != "" {
 				log.Println("adding item to collection to be added: " + itemID)
+				track.Found = true
 				itemsToAddIDs = append(itemsToAddIDs, itemID)
 				continue
 			}
@@ -410,6 +414,84 @@ func getPlaylistTrackIDs(client spotify.Client, id spotify.ID) (map[spotify.ID]s
 	}
 
 	return trackIDs, nil
+}
+
+// MarkFoundTracks marks each highlight track as found when it can be located on Spotify, using
+// the same search and fuzzy-matching logic as playlist creation. Lookups run concurrently and are
+// cached in-memory so listing pages can show a found indicator without repeating the searches on
+// every request.
+func MarkFoundTracks(records []crawler.Record) error {
+	if len(records) == 0 {
+		return nil
+	}
+
+	if err := envconfig.Process("", &config); err != nil {
+		return fmt.Errorf("load creator config: %w", err)
+	}
+
+	client, err := myauth.VerifyLogin()
+	if err != nil {
+		return fmt.Errorf("spotify login failed: %w", err)
+	}
+
+	const maxConcurrentLookups = 8
+	sem := make(chan struct{}, maxConcurrentLookups)
+	var wg sync.WaitGroup
+
+	for i := range records {
+		record := records[i]
+		for j := range records[i].Tracks {
+			track := &records[i].Tracks[j]
+			key := foundCacheKey(record.Band, track.Trackname)
+
+			if found, ok := lookupFoundCache(key); ok {
+				track.Found = found
+				continue
+			}
+
+			wg.Add(1)
+			sem <- struct{}{}
+			go func(track *crawler.Track, record crawler.Record, key string) {
+				defer wg.Done()
+				defer func() { <-sem }()
+
+				id, searchErr := searchSong(client, track.Trackname, record)
+				if searchErr != nil {
+					log.Printf("found-status search failed for %s - %s: %v", record.Band, track.Trackname, searchErr)
+					return
+				}
+
+				found := id != ""
+				storeFoundCache(key, found)
+				track.Found = found
+			}(track, record, key)
+		}
+	}
+
+	wg.Wait()
+	return nil
+}
+
+var (
+	foundCacheMu sync.RWMutex
+	foundCache   = make(map[string]bool)
+)
+
+func foundCacheKey(band, trackName string) string {
+	return normalizeForComparison(band) + "\x00" + normalizeForComparison(trackName)
+}
+
+func lookupFoundCache(key string) (bool, bool) {
+	foundCacheMu.RLock()
+	defer foundCacheMu.RUnlock()
+	found, ok := foundCache[key]
+	return found, ok
+}
+
+func storeFoundCache(key string, found bool) {
+	foundCacheMu.Lock()
+	defer foundCacheMu.Unlock()
+	foundCache[key] = found
 }
 
 func calculateSearchSuccessRate(found, total int) float64 {
