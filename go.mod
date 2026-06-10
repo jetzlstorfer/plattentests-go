@@ -19,7 +19,7 @@ require (
 	// Spotify API
 	github.com/zmb3/spotify/v2 v2.4.3
 	// HTML parsing and HTTP utilities
-	golang.org/x/net v0.55.0
+	golang.org/x/net v0.56.0
 
 	// OAuth2 and text processing
 	golang.org/x/oauth2 v0.36.0
@@ -54,7 +54,7 @@ require (
 	github.com/ugorji/go/codec v1.3.1 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.6.0 // indirect
 	golang.org/x/arch v0.27.0 // indirect
-	golang.org/x/crypto v0.52.0 // indirect
-	golang.org/x/sys v0.45.0 // indirect
+	golang.org/x/crypto v0.53.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
