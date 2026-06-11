@@ -64,7 +64,7 @@
 										{{ if .Found }}
 											<span class="emoji">✅</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}}
 										{{ else }}
-											<span class="emoji">🔍</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}}
+											<span class="emoji">❌</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}}
 										{{end}}
 									{{else}}
 										{{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}}
@@ -127,7 +127,7 @@
 								{{ if .Found }}
 									<span class="emoji">✅</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}}
 								{{ else }}
-									<span class="emoji">🔍</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}}
+									<span class="emoji">❌</span> {{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}}
 								{{end}}
 							{{else}}
 								{{if .IsHighlight}}<strong>{{.Trackname}}</strong>{{else}}{{.Trackname}}{{end}}
