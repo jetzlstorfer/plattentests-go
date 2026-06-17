@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
+	creator "github.com/jetzlstorfer/plattentests-go/cmd/creator"
 )
 
 func TestRecordTableSongFoundIndicatorHiddenByDefault(t *testing.T) {
@@ -74,11 +75,54 @@ func TestRecordTableSongFoundIndicatorShownWhenEnabled(t *testing.T) {
 	if !strings.Contains(rendered, "✅") {
 		t.Fatalf("expected rendered RecordTable to contain found-song indicator ✅, got: %s", rendered)
 	}
-	if !strings.Contains(rendered, "🔍") {
-		t.Fatalf("expected rendered RecordTable to contain missing-song indicator 🔍, got: %s", rendered)
+	if !strings.Contains(rendered, "❌") {
+		t.Fatalf("expected rendered RecordTable to contain missing-song indicator ❌, got: %s", rendered)
 	}
-	if strings.Contains(rendered, "🔍</span> Album Track") || strings.Contains(rendered, "✅</span> Album Track") {
+	if strings.Contains(rendered, "❌</span> Album Track") || strings.Contains(rendered, "✅</span> Album Track") {
 		t.Fatalf("expected non-highlight track to be rendered without status icon, got: %s", rendered)
+	}
+}
+
+func TestCreatePlaylistPageShowsProdButtonOnlyWhenTracksMissingFromProd(t *testing.T) {
+	tmpl, err := template.ParseFiles("templates/createPlaylist.tmpl", "templates/utils.tmpl")
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	tests := []struct {
+		name              string
+		comparedToProd    bool
+		newTracksCompared int
+	}{
+		{name: "shows button when production is missing tracks", comparedToProd: true, newTracksCompared: 2},
+		{name: "shows button when production already contains all tracks", comparedToProd: true, newTracksCompared: 0},
+		{name: "shows button when comparison is unavailable", comparedToProd: false, newTracksCompared: 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data := map[string]interface{}{
+				"IsAuthenticated": true,
+				"Records": creator.Result{
+					PlaylistID:              "test-playlist",
+					ComparedToProd:          tt.comparedToProd,
+					NewTracksComparedToProd: tt.newTracksCompared,
+					TotalTracks:             3,
+					FoundTracks:             3,
+					SearchSuccessRate:       100,
+				},
+			}
+
+			var out bytes.Buffer
+			if err := tmpl.Execute(&out, data); err != nil {
+				t.Fatalf("failed to render template: %v", err)
+			}
+
+			rendered := out.String()
+			if !strings.Contains(rendered, "prod-playlist-action") || !strings.Contains(rendered, "Create production playlist") {
+				t.Fatalf("expected rendered page to include production playlist button, got: %s", rendered)
+			}
+		})
 	}
 }
 
