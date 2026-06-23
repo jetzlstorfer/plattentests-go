@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"strings"
 	"time"
 
@@ -130,8 +132,38 @@ func isRetryableOAuthError(err error) bool {
 		strings.Contains(msg, "server error")
 }
 
+func isRetryableAzureBlobError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
+
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "no such host") ||
+		strings.Contains(msg, "temporary failure in name resolution") ||
+		strings.Contains(msg, "timeout") ||
+		strings.Contains(msg, "connection reset")
+}
+
+func retryDelay(attempt int, baseDelay time.Duration) time.Duration {
+	const maxDelay = 30 * time.Second
+	// Exponential backoff: baseDelay * 2^(attempt-1), capped to avoid unbounded waits.
+	delay := baseDelay * time.Duration(1<<(attempt-1))
+	if delay > maxDelay {
+		return maxDelay
+	}
+	return delay
+}
+
 // DownloadBlobToBytes reads the configured token blob from Azure Storage.
 func DownloadBlobToBytes(string) ([]byte, error) {
+	const maxAttempts = 4
+	const baseDelay = 2 * time.Second
+
 	azrKey, accountName, _, container := GetAccountInfo()
 	serviceURL := fmt.Sprintf("https://%s.blob.core.windows.net/", accountName)
 
@@ -146,26 +178,39 @@ func DownloadBlobToBytes(string) ([]byte, error) {
 	}
 
 	ctx := context.Background()
-	response, err := client.DownloadStream(ctx, container, config.TokenFile, nil)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		if closeErr := response.Body.Close(); closeErr != nil {
-			log.Printf("failed closing blob download response body: %v", closeErr)
+	var lastErr error
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		response, err := client.DownloadStream(ctx, container, config.TokenFile, nil)
+		if err == nil {
+			blobData, readErr := io.ReadAll(response.Body)
+			closeErr := response.Body.Close()
+			if closeErr != nil {
+				log.Printf("failed closing blob download response body: %v", closeErr)
+			}
+			if readErr == nil {
+				return blobData, nil
+			}
+			err = readErr
 		}
-	}()
 
-	blobData, err := io.ReadAll(response.Body)
-	if err != nil {
-		return nil, err
+		lastErr = err
+		if !isRetryableAzureBlobError(err) || attempt == maxAttempts {
+			break
+		}
+
+		delay := retryDelay(attempt, baseDelay)
+		log.Printf("temporary Azure Blob error while downloading token (attempt %d/%d): %v; retrying in %s", attempt, maxAttempts, err, delay)
+		time.Sleep(delay)
 	}
 
-	return blobData, nil
+	return nil, lastErr
 }
 
 // UploadBytesToBlob writes bytes to the configured token blob in Azure Storage.
 func UploadBytesToBlob(b []byte) (string, error) {
+	const maxAttempts = 4
+	const baseDelay = 2 * time.Second
+
 	azrKey, accountName, _, container := GetAccountInfo()
 	serviceURL := fmt.Sprintf("https://%s.blob.core.windows.net/", accountName)
 
@@ -182,10 +227,25 @@ func UploadBytesToBlob(b []byte) (string, error) {
 	ctx := context.Background()
 	blobURL := fmt.Sprintf("%s/%s/%s", serviceURL, container, config.TokenFile)
 
-	reader := bytes.NewReader(b)
-	_, err = client.UploadStream(ctx, container, config.TokenFile, reader, nil)
+	var lastErr error
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		reader := bytes.NewReader(b)
+		_, err = client.UploadStream(ctx, container, config.TokenFile, reader, nil)
+		if err == nil {
+			return blobURL, nil
+		}
 
-	return blobURL, err
+		lastErr = err
+		if !isRetryableAzureBlobError(err) || attempt == maxAttempts {
+			break
+		}
+
+		delay := retryDelay(attempt, baseDelay)
+		log.Printf("temporary Azure Blob error while uploading token (attempt %d/%d): %v; retrying in %s", attempt, maxAttempts, err, delay)
+		time.Sleep(delay)
+	}
+
+	return blobURL, lastErr
 }
 
 // GetAccountInfo returns Azure Storage credentials and endpoints from environment configuration.
