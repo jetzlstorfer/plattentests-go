@@ -38,7 +38,7 @@ func TestIsRetryableAzureBlobError(t *testing.T) {
 		want bool
 	}{
 		{"nil error is not retryable", nil, false},
-		{"dns no such host is retryable", errors.New("dial tcp: lookup safplattentests.blob.core.windows.net: no such host"), true},
+		{"dns no such host is retryable", errors.New("dial tcp: lookup storage.blob.core.windows.net: no such host"), true},
 		{"temporary dns failure is retryable", errors.New("lookup storage: temporary failure in name resolution"), true},
 		{"timeout is retryable", errors.New("context deadline exceeded (Client.Timeout exceeded while awaiting headers)"), true},
 		{"connection reset is retryable", errors.New("read tcp: connection reset by peer"), true},
