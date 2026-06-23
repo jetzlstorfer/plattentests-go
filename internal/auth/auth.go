@@ -149,6 +149,10 @@ func isRetryableAzureBlobError(err error) bool {
 		strings.Contains(msg, "connection reset")
 }
 
+func retryDelay(attempt int, baseDelay time.Duration) time.Duration {
+	return baseDelay * time.Duration(1<<(attempt-1))
+}
+
 // DownloadBlobToBytes reads the configured token blob from Azure Storage.
 func DownloadBlobToBytes(string) ([]byte, error) {
 	const maxAttempts = 4
@@ -177,14 +181,10 @@ func DownloadBlobToBytes(string) ([]byte, error) {
 			if closeErr != nil {
 				log.Printf("failed closing blob download response body: %v", closeErr)
 			}
-			if readErr == nil && closeErr == nil {
+			if readErr == nil {
 				return blobData, nil
 			}
-			if readErr != nil {
-				err = readErr
-			} else {
-				err = closeErr
-			}
+			err = readErr
 		}
 
 		lastErr = err
@@ -192,7 +192,7 @@ func DownloadBlobToBytes(string) ([]byte, error) {
 			break
 		}
 
-		delay := time.Duration(attempt) * baseDelay
+		delay := retryDelay(attempt, baseDelay)
 		log.Printf("temporary Azure Blob error while downloading token (attempt %d/%d): %v; retrying in %s", attempt, maxAttempts, err, delay)
 		time.Sleep(delay)
 	}
@@ -234,7 +234,7 @@ func UploadBytesToBlob(b []byte) (string, error) {
 			break
 		}
 
-		delay := time.Duration(attempt) * baseDelay
+		delay := retryDelay(attempt, baseDelay)
 		log.Printf("temporary Azure Blob error while uploading token (attempt %d/%d): %v; retrying in %s", attempt, maxAttempts, err, delay)
 		time.Sleep(delay)
 	}
