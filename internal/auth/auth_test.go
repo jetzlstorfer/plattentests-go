@@ -30,3 +30,26 @@ func TestIsRetryableOAuthError(t *testing.T) {
 		})
 	}
 }
+
+func TestIsRetryableAzureBlobError(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{"nil error is not retryable", nil, false},
+		{"dns no such host is retryable", errors.New("dial tcp: lookup safplattentests.blob.core.windows.net: no such host"), true},
+		{"temporary dns failure is retryable", errors.New("lookup storage: temporary failure in name resolution"), true},
+		{"timeout is retryable", errors.New("context deadline exceeded (Client.Timeout exceeded while awaiting headers)"), true},
+		{"connection reset is retryable", errors.New("read tcp: connection reset by peer"), true},
+		{"auth error is not retryable", errors.New("authentication failed"), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isRetryableAzureBlobError(tt.err); got != tt.want {
+				t.Errorf("isRetryableAzureBlobError(%v) = %v, want %v", tt.err, got, tt.want)
+			}
+		})
+	}
+}
