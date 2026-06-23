@@ -3,6 +3,7 @@ package auth
 import (
 	"errors"
 	"testing"
+	"time"
 )
 
 func TestIsRetryableOAuthError(t *testing.T) {
@@ -49,6 +50,28 @@ func TestIsRetryableAzureBlobError(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := isRetryableAzureBlobError(tt.err); got != tt.want {
 				t.Errorf("isRetryableAzureBlobError(%v) = %v, want %v", tt.err, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRetryDelay(t *testing.T) {
+	tests := []struct {
+		name      string
+		attempt   int
+		baseDelay time.Duration
+		want      time.Duration
+	}{
+		{"first attempt uses base delay", 1, 2 * time.Second, 2 * time.Second},
+		{"second attempt doubles delay", 2, 2 * time.Second, 4 * time.Second},
+		{"third attempt doubles again", 3, 2 * time.Second, 8 * time.Second},
+		{"delay capped at 30 seconds", 5, 2 * time.Second, 30 * time.Second},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := retryDelay(tt.attempt, tt.baseDelay); got != tt.want {
+				t.Errorf("retryDelay(%d, %s) = %s, want %s", tt.attempt, tt.baseDelay, got, tt.want)
 			}
 		})
 	}

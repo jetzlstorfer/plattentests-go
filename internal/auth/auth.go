@@ -151,6 +151,7 @@ func isRetryableAzureBlobError(err error) bool {
 
 func retryDelay(attempt int, baseDelay time.Duration) time.Duration {
 	const maxDelay = 30 * time.Second
+	// Exponential backoff: baseDelay * 2^(attempt-1), capped to avoid unbounded waits.
 	delay := baseDelay * time.Duration(1<<(attempt-1))
 	if delay > maxDelay {
 		return maxDelay
