@@ -138,7 +138,7 @@ func isRetryableAzureBlobError(err error) bool {
 	}
 
 	var netErr net.Error
-	if errors.As(err, &netErr) && (netErr.Timeout() || netErr.Temporary()) {
+	if errors.As(err, &netErr) && netErr.Timeout() {
 		return true
 	}
 
@@ -173,13 +173,18 @@ func DownloadBlobToBytes(string) ([]byte, error) {
 		response, err := client.DownloadStream(ctx, container, config.TokenFile, nil)
 		if err == nil {
 			blobData, readErr := io.ReadAll(response.Body)
-			if closeErr := response.Body.Close(); closeErr != nil {
+			closeErr := response.Body.Close()
+			if closeErr != nil {
 				log.Printf("failed closing blob download response body: %v", closeErr)
 			}
-			if readErr == nil {
+			if readErr == nil && closeErr == nil {
 				return blobData, nil
 			}
-			err = readErr
+			if readErr != nil {
+				err = readErr
+			} else {
+				err = closeErr
+			}
 		}
 
 		lastErr = err
