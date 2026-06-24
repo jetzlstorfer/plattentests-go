@@ -14,8 +14,8 @@ import (
 	spotifyauth "github.com/zmb3/spotify/v2/auth"
 )
 
-const Port = "8080"
-const RedirectURI = "http://localhost:" + Port + "/callback"
+const Port = "8081"
+const RedirectURI = "http://127.0.0.1:" + Port + "/callback"
 
 var (
 	SpotifyAuthenticator = spotifyauth.New(spotifyauth.WithRedirectURL(RedirectURI), spotifyauth.WithScopes(spotifyauth.ScopePlaylistModifyPrivate, spotifyauth.ScopePlaylistModifyPublic))

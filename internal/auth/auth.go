@@ -21,10 +21,10 @@ import (
 )
 
 // Port is the local callback server port used for interactive token setup.
-const Port = "8080"
+const Port = "8081"
 
 // RedirectURI is the OAuth redirect URI registered in Spotify Developer settings.
-const RedirectURI = "http://localhost:" + Port + "/callback"
+const RedirectURI = "http://127.0.0.1:" + Port + "/callback"
 
 var (
 	// SpotifyAuthenticator performs Spotify OAuth flows for playlist scopes.

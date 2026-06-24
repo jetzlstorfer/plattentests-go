@@ -635,7 +635,7 @@ func removeDuplicates(sliceList []spotify.ID) []spotify.ID {
 }
 
 func getPort() string {
-	port := ":8080"
+	port := ":8081"
 	if val, ok := os.LookupEnv("FUNCTIONS_CUSTOMHANDLER_PORT"); ok {
 		port = ":" + val
 	}

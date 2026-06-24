@@ -108,8 +108,8 @@ func TestGetPort(t *testing.T) {
 			}
 		})
 		result := getPort()
-		if result != ":8080" {
-			t.Errorf("getPort() = %q, want %q", result, ":8080")
+		if result != ":8081" {
+			t.Errorf("getPort() = %q, want %q", result, ":8081")
 		}
 	})
 
