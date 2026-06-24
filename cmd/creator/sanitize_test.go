@@ -320,6 +320,7 @@ func TestSelectBestTrack(t *testing.T) {
 			result := selectBestTrack(tt.tracks, tt.trackName, tt.record)
 			if result == nil {
 				t.Fatalf("selectBestTrack returned nil")
+				return
 			}
 
 			expectedID := tt.tracks[tt.expectedIndex].ID
