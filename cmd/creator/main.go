@@ -589,8 +589,10 @@ func sanitizeTrackname(trackname string) string {
 	sanitizedName = strings.ReplaceAll(sanitizedName, "'", "")
 	sanitizedName = regexp.MustCompile(`\[.*?\]`).ReplaceAllString(sanitizedName, "")
 
+	// Normalize & to "and" so Spotify queries include the connective word
+	sanitizedName = regexp.MustCompile(`\s*&\s*`).ReplaceAllString(sanitizedName, " and ")
 	// Remove special punctuation that might interfere with search
-	specialChars := regexp.MustCompile(`[:\-&!?.,;]`)
+	specialChars := regexp.MustCompile(`[:\-!?.,;]`)
 	sanitizedName = specialChars.ReplaceAllString(sanitizedName, " ")
 
 	// Normalize Unicode characters (remove accents/diacritics)
@@ -614,8 +616,10 @@ func removeAccents(s string) string {
 func normalizeForComparison(s string) string {
 	// Convert to lowercase and remove accents
 	normalized := strings.ToLower(removeAccents(s))
+	// Normalize & <-> "and" so both forms compare equal
+	normalized = regexp.MustCompile(`\s*&\s*`).ReplaceAllString(normalized, " and ")
 	// Remove common punctuation that might interfere with comparison
-	specialChars := regexp.MustCompile(`[:\-&!?.,;'"()]`)
+	specialChars := regexp.MustCompile(`[:\-!?.,;'"()]`)
 	normalized = specialChars.ReplaceAllString(normalized, " ")
 	// Clean up extra spaces
 	normalized = regexp.MustCompile(`\s+`).ReplaceAllString(normalized, " ")
