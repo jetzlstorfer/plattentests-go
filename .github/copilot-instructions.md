@@ -18,7 +18,7 @@ go test ./cmd/creator/... -run TestSanitizeTrackname
 cd webui && go build ./...
 
 # Run the web UI locally (port 8081, requires .env)
-make web
+make run
 
 # Build Docker image
 make docker-web-build
@@ -44,6 +44,6 @@ The `Record` and `Track` types are defined in `cmd/crawler` and re-used by `cmd/
 - **Search sanitization**: Track names are cleaned via `sanitizeTrackname()` before Spotify API queries — removes feat/with annotations, quotes, brackets, accents, and special punctuation.
 - **Config injection**: Environment variables are loaded via `github.com/kelseyhightower/envconfig` into per-package `config` structs. Add new config fields to the relevant struct with `envconfig` tags.
 - **Testing pattern**: All tests use table-driven style with `t.Run()` subtests. Crawler tests use `httptest.NewServer` with mock HTML. See `cmd/creator/sanitize_test.go` and `cmd/crawler/crawler_test.go` for reference.
-- **Web UI auth**: The `/createPlaylist` endpoint uses HTTP Basic Auth checked against `CREATOR_USER` and `CREATOR_PASSWORD` env vars.
+- **Web UI auth**: The `/createPlaylist` endpoint is protected by **Azure AD Easy Auth** (Azure Container Apps built-in authentication). The platform validates the session and injects the signed-in user identity via the `X-MS-CLIENT-PRINCIPAL-NAME` header. Requests without that header are redirected to the Easy Auth login URL. Locally, missing the header is allowed (see `easyAuthPrincipal()`).
 - **Templates**: Gin serves HTML templates from `webui/templates/` with static assets from `webui/assets/`. Templates are parsed with `template.ParseFiles`, not Gin's built-in template loading.
 - **Deployment**: Docker image built from `webui/Dockerfile`, deployed to Azure Container Apps via GitHub Actions (`deploy-aca.yml`).

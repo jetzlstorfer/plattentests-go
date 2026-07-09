@@ -39,7 +39,9 @@ plattentests-go/
 │   │       └── style.css
 │   └── templates/        # HTML templates
 │       ├── createPlaylist.tmpl
+│       ├── playlist.tmpl
 │       ├── records.tmpl
+│       ├── search.tmpl
 │       └── utils.tmpl
 ├── go.mod                # Go module definition
 ├── Makefile             # Build automation
@@ -84,14 +86,9 @@ There is a `Makefile` with multiple targets to be used.
     make run
     ```
 
-- To run the project locally as a function:
-    ```
-    make run-function
-    ```
-
 - To run the web-frontend of the project (located in `./webui`):
     ```
-    make web
+    make run
     ```
 
 

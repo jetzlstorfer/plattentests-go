@@ -36,7 +36,7 @@ go test ./...
 cd webui && go build ./...
 
 # Run the web UI locally (requires a populated .env file)
-make web
+make run
 
 # Generate a Spotify OAuth2 token and upload it to Azure
 make token
