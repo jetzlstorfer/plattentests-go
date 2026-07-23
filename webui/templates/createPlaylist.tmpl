@@ -23,7 +23,14 @@
 			<h2>Run summary</h2>
 			<p>Search success: <strong>{{.Records.FoundTracks}} / {{.Records.TotalTracks}}</strong> tracks ({{if eq .Records.FoundTracks .Records.TotalTracks}}💯{{else}}{{printf "%.1f" .Records.SearchSuccessRate}}%{{end}}).</p>
 			{{if gt (len .Records.NotFound) 0}}
-			<p>Not found: <strong>{{len .Records.NotFound}}</strong> track(s).</p>
+			<details class="not-found-details">
+				<summary>Not found: <strong>{{len .Records.NotFound}}</strong> track(s).</summary>
+				<ul>
+					{{range .Records.NotFound}}
+					<li>{{.}}</li>
+					{{end}}
+				</ul>
+			</details>
 			{{end}}
 			{{if .Records.ComparedToProd}}
 			<p>Compared to production playlist: <strong>{{.Records.NewTracksComparedToProd}}</strong> new track(s), <strong>{{.Records.AlreadyInProdTracks}}</strong> already in production.</p>
@@ -38,17 +45,6 @@
 		</div>
 
 		{{template "RecordTable" .Records}}
-		
-		{{if .Records.NotFound}}
-		<div class="not-found">
-			<h3>Not Found</h3>
-			<ul>
-				{{range .Records.NotFound}}
-				<li>{{.}}</li>
-				{{end}}
-			</ul>
-		</div>
-		{{end}}
 		{{end}}
 	</div>
 
