@@ -126,6 +126,65 @@ func TestCreatePlaylistPageShowsProdButtonOnlyWhenTracksMissingFromProd(t *testi
 	}
 }
 
+func TestCreatePlaylistPageIntegratesNotFoundIntoRunSummary(t *testing.T) {
+	tmpl, err := template.ParseFiles("templates/createPlaylist.tmpl", "templates/utils.tmpl")
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	t.Run("shows expandable not-found details in run summary", func(t *testing.T) {
+		data := map[string]interface{}{
+			"IsAuthenticated": true,
+			"Records": creator.Result{
+				PlaylistID:        "test-playlist",
+				TotalTracks:       3,
+				FoundTracks:       1,
+				SearchSuccessRate: 33.3,
+				NotFound:          []string{"Band A - Song A", "Band B - Song B"},
+			},
+		}
+
+		var out bytes.Buffer
+		if err := tmpl.Execute(&out, data); err != nil {
+			t.Fatalf("failed to render template: %v", err)
+		}
+
+		rendered := out.String()
+		if !strings.Contains(rendered, `<details class="not-found-details">`) {
+			t.Fatalf("expected rendered page to include expandable not-found details, got: %s", rendered)
+		}
+		if !strings.Contains(rendered, "<summary>Not found: <strong>2</strong> track(s).</summary>") {
+			t.Fatalf("expected rendered page to include not-found summary count, got: %s", rendered)
+		}
+		if strings.Contains(rendered, `<div class="not-found">`) {
+			t.Fatalf("expected legacy bottom not-found section to be removed, got: %s", rendered)
+		}
+	})
+
+	t.Run("hides not-found details when all tracks are found", func(t *testing.T) {
+		data := map[string]interface{}{
+			"IsAuthenticated": true,
+			"Records": creator.Result{
+				PlaylistID:        "test-playlist",
+				TotalTracks:       2,
+				FoundTracks:       2,
+				SearchSuccessRate: 100,
+				NotFound:          nil,
+			},
+		}
+
+		var out bytes.Buffer
+		if err := tmpl.Execute(&out, data); err != nil {
+			t.Fatalf("failed to render template: %v", err)
+		}
+
+		rendered := out.String()
+		if strings.Contains(rendered, `<details class="not-found-details">`) {
+			t.Fatalf("expected no not-found details when all tracks are found, got: %s", rendered)
+		}
+	})
+}
+
 func TestGetCommitInfo(t *testing.T) {
 	t.Run("returns GIT_SHA env var when set", func(t *testing.T) {
 		t.Setenv("GIT_SHA", "abc123def456")
