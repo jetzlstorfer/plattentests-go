@@ -20,8 +20,8 @@
 		{{else}}
 
 		<div class="status-message" role="status">
-			<h2>Run summary</h2>
-			<p>Search success: <strong>{{.Records.FoundTracks}} / {{.Records.TotalTracks}}</strong> tracks ({{if eq .Records.FoundTracks .Records.TotalTracks}}💯{{else}}{{printf "%.1f" .Records.SearchSuccessRate}}%{{end}}).</p>
+			<h2><span class="emoji">✨</span> Run summary</h2>
+			<p class="run-summary-success">Search success: <strong>{{.Records.FoundTracks}} / {{.Records.TotalTracks}}</strong> tracks ({{if eq .Records.FoundTracks .Records.TotalTracks}}💯{{else}}{{printf "%.1f" .Records.SearchSuccessRate}}%{{end}}).</p>
 			{{if gt (len .Records.NotFound) 0}}
 			<details class="not-found-details">
 				<summary>Not found: <strong>{{len .Records.NotFound}}</strong> track(s).</summary>
@@ -33,9 +33,9 @@
 			</details>
 			{{end}}
 			{{if .Records.ComparedToProd}}
-			<p>Compared to production playlist: <strong>{{.Records.NewTracksComparedToProd}}</strong> new track(s), <strong>{{.Records.AlreadyInProdTracks}}</strong> already in production.</p>
+			<p class="run-summary-compare">Compared to production playlist: <strong>{{.Records.NewTracksComparedToProd}}</strong> new track(s), <strong>{{.Records.AlreadyInProdTracks}}</strong> already in production.</p>
 			{{end}}
-			<div class="controls-section" style="margin-top: 1rem;">
+			<div class="run-summary-actions">
 				<a class="control-btn prod-playlist-action" href="/createPlaylist?playlist=prod" aria-label="Create production playlist" data-prod-action="true"><span class="emoji">🔊</span> Create production playlist</a>
 			</div>
 		</div>

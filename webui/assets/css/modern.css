@@ -755,23 +755,38 @@ nav a:hover {
 
 /* Not Found Summary Section */
 .not-found-details {
-  margin-bottom: var(--space-3);
+  margin: var(--space-5) 0;
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-xl);
+  background: rgba(255, 255, 255, 0.7);
 }
 
 .not-found-details summary {
   cursor: pointer;
   color: var(--gray-700);
+  font-weight: 600;
 }
 
 .not-found-details ul {
   list-style: none;
   margin-top: var(--space-3);
+  margin-bottom: 0;
+  padding-left: 0;
 }
 
 .not-found-details li {
-  padding: var(--space-2) 0;
+  padding: var(--space-2) 0 var(--space-2) var(--space-6);
   color: var(--gray-600);
   border-bottom: 1px solid var(--gray-100);
+  position: relative;
+}
+
+.not-found-details li::before {
+  content: "•";
+  position: absolute;
+  left: var(--space-2);
+  color: var(--primary-500);
 }
 
 .not-found-details li:last-child {
@@ -784,10 +799,12 @@ nav a:hover {
   padding: var(--space-8);
   margin: var(--space-8) 0 var(--space-16) 0;
   box-shadow: var(--shadow-lg);
+  border: 1px solid var(--gray-200);
+  background: linear-gradient(145deg, #ffffff 0%, #f8fbff 100%);
 }
 
 .status-message h2 {
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
 .status-message p {
@@ -796,6 +813,24 @@ nav a:hover {
 
 .status-message p:last-child {
   margin-bottom: 0;
+}
+
+.run-summary-success,
+.run-summary-compare {
+  font-size: 1.025rem;
+}
+
+.run-summary-compare {
+  margin-top: var(--space-4);
+  color: var(--gray-700);
+}
+
+.run-summary-actions {
+  margin-top: var(--space-6);
+}
+
+.run-summary-actions .control-btn {
+  min-height: 44px;
 }
 
 .status-error {
@@ -825,6 +860,20 @@ nav a:hover {
 }
 
 @media (prefers-color-scheme: dark) {
+  .status-message {
+    background: linear-gradient(145deg, #14181f 0%, #10151d 100%);
+    border-color: var(--dark-border);
+  }
+
+  .run-summary-compare {
+    color: var(--dark-text-secondary);
+  }
+
+  .not-found-details {
+    background: rgba(26, 32, 44, 0.55);
+    border-color: var(--dark-border);
+  }
+
   .not-found-details summary {
     color: var(--dark-text);
   }
@@ -832,6 +881,10 @@ nav a:hover {
   .not-found-details li {
     color: var(--dark-text-secondary);
     border-bottom: 1px solid var(--dark-border);
+  }
+
+  .not-found-details li::before {
+    color: var(--primary-400);
   }
 }
 
