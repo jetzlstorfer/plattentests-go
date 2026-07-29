@@ -1,49 +1,89 @@
 # GitHub Copilot Instructions
 
-Go application that crawls music album reviews from [Plattentests.de](https://www.plattentests.de) and creates Spotify playlists from the weekly highlights.
+This repository is a Go 1.25 application that crawls weekly album highlights from [Plattentests.de](https://www.plattentests.de), matches their highlighted tracks on Spotify, and creates playlists. The Gin web UI displays records, supports search, and runs playlist creation.
 
-## Build & Run
+## Commands
 
 ```bash
-# Run all tests
-go test ./...
-
-# Run tests for a specific package
-go test ./cmd/creator/...
-
-# Run a single test by name
+go test ./...                         # all tests
+go test ./cmd/crawler/...             # crawler tests
 go test ./cmd/creator/... -run TestSanitizeTrackname
-
-# Build the web UI
-cd webui && go build ./...
-
-# Run the web UI locally (port 8081, requires .env)
-make run
-
-# Build Docker image
-make docker-web-build
+cd webui && go build ./...            # web executable
+make run                              # local server on :8081; requires .env
+make token                            # generate/store Spotify OAuth token
+make lint                             # golangci-lint
+make docker-web-build                 # production image
+make docker-web-run                   # image on localhost:8081
 ```
 
-## Architecture
+Use `gofmt` for Go changes. Start with the narrowest relevant test, then run `go test ./...` for changes that cross package boundaries.
 
-The web UI (`webui/main.go`) is the only `main` package and the sole entry point. It imports and orchestrates:
+## Architecture and Data Flow
 
-- `cmd/crawler` — library package (not `main`) that scrapes Plattentests.de for weekly album reviews and highlight tracks using goquery. Fetches individual record pages concurrently with goroutines.
-- `cmd/creator` — library package (not `main`) that searches Spotify for crawled tracks and builds a playlist. Uses a scoring system to select the best match: album type (album > single > EP) and track/record name matching.
-- `internal/auth` — handles Spotify OAuth2 token lifecycle, persisting tokens as JSON in Azure Blob Storage.
-- `cmd/token` — standalone CLI (`main` package) for initial token generation; not imported by the web UI.
+- `cmd/crawler` is a library package. It scrapes Plattentests with goquery, fetches record details concurrently, and owns the shared `Record` and `Track` types.
+- `cmd/creator` is a library package. It searches Spotify, scores candidate albums/tracks, and adds matched tracks to the selected playlist.
+- `internal/auth` manages Spotify OAuth2 clients and persists token JSON in Azure Blob Storage.
+- `webui/main.go` is the Gin web executable and orchestrates crawler and creator operations. It renders records, search, playlist, and playlist-result pages.
+- `cmd/token/main.go` is a separate executable used to obtain and upload the initial Spotify token.
 
-Data flows: `crawler.GetRecordsOfTheWeek()` → `creator.CreatePlaylist(playlistID)` → Spotify API.
+The principal playlist flow is:
 
-The `Record` and `Track` types are defined in `cmd/crawler` and re-used by `cmd/creator` and `webui`.
+```text
+crawler.GetRecordsOfTheWeekSafe()
+	-> creator.CreatePlaylist(playlistID)
+	-> Spotify search/matching
+	-> Spotify playlist update
+```
 
-## Key Conventions
+## Crawler and Text Handling
 
-- **Character encoding**: Plattentests.de serves ISO-8859-1. Always decode responses using `charset.NewReader()` (see `crawler.newDocumentFromPlattentestsResponse`). Never use `ioutil.ReadAll` directly on Plattentests responses.
-- **Fuzzy matching**: Artist and track names are compared between Plattentests and Spotify using Levenshtein distance with a 0.8 similarity threshold. Use `normalizeForComparison()` before comparing strings — it lowercases, removes accents/diacritics, and strips punctuation.
-- **Search sanitization**: Track names are cleaned via `sanitizeTrackname()` before Spotify API queries — removes feat/with annotations, quotes, brackets, accents, and special punctuation.
-- **Config injection**: Environment variables are loaded via `github.com/kelseyhightower/envconfig` into per-package `config` structs. Add new config fields to the relevant struct with `envconfig` tags.
-- **Testing pattern**: All tests use table-driven style with `t.Run()` subtests. Crawler tests use `httptest.NewServer` with mock HTML. See `cmd/creator/sanitize_test.go` and `cmd/crawler/crawler_test.go` for reference.
-- **Web UI auth**: The `/createPlaylist` endpoint is protected by **Azure AD Easy Auth** (Azure Container Apps built-in authentication). The platform validates the session and injects the signed-in user identity via the `X-MS-CLIENT-PRINCIPAL-NAME` header. Requests without that header are redirected to the Easy Auth login URL. Locally, missing the header is allowed (see `easyAuthPrincipal()`).
-- **Templates**: Gin serves HTML templates from `webui/templates/` with static assets from `webui/assets/`. Templates are parsed with `template.ParseFiles`, not Gin's built-in template loading.
-- **Deployment**: Docker image built from `webui/Dockerfile`, deployed to Azure Container Apps via GitHub Actions (`deploy-aca.yml`).
+- Plattentests serves ISO-8859-1. Always build documents through `newDocumentFromPlattentestsResponse`, which uses `charset.NewReader`. Do not read and parse Plattentests response bodies as UTF-8.
+- Use `GetRecordsOfTheWeekSafe()` when the caller can surface HTTP or parse errors. `GetRecordsOfTheWeek()` is a compatibility wrapper that returns an empty result on failure.
+- Preserve deterministic result ordering around concurrent fetches. Existing crawler and creator fan-out uses goroutines plus `sync.WaitGroup`.
+- Crawler tests use `httptest.NewServer` and mock HTML. Keep network-dependent logic behind testable HTTP boundaries.
+
+## Spotify Matching
+
+- Call `sanitizeTrackname()` before constructing Spotify searches. It removes feature annotations, brackets, quotes, accents, and punctuation that degrade search results.
+- Call `normalizeForComparison()` before comparing artists, tracks, or albums. It lowercases, removes diacritics and punctuation, and supports the existing Levenshtein similarity checks.
+- Keep scoring behavior explicit: album releases rank above singles and EPs, then normalized artist, track, and record names determine the best match.
+- Do not silently drop not-found tracks. Creator results feed the web UI's run summary and production-playlist controls.
+
+## Configuration
+
+Configuration is loaded with `github.com/kelseyhightower/envconfig` into the package-local config struct. Add variables to the consuming package rather than introducing global configuration.
+
+Copy `env.sample` to `.env`; the Makefile includes and exports it. Runtime variables are:
+
+- `SPOTIFY_ID`, `SPOTIFY_SECRET`
+- `PLAYLIST_ID`, `PLAYLIST_ID_PROD`
+- `AZ_ACCOUNT`, `AZ_KEY`, `AZ_CONTAINER`
+- `TOKEN_FILE`
+
+Active web and creator paths read `PLAYLIST_ID_PROD`, matching `env.sample`. The unused `PROD_PLAYLIST_ID` field in the creator config is legacy code; do not use it as the runtime contract. Never commit `.env`, tokens, client secrets, Azure keys, or populated config values.
+
+## Web UI
+
+- Templates live in `webui/templates/` and are parsed explicitly with `template.ParseFiles`; Gin's glob-based template loader is not used. Add new templates to the parse list and register their route in the same change.
+- Static assets are served from `webui/assets/`. Preserve the existing template and CSS structure instead of introducing an unrelated frontend framework.
+- Handler dependencies are exposed through package-level function variables in `webui/main.go` so `webui/main_test.go` can replace crawler and creator calls. Restore any replacement with `t.Cleanup` or `defer`.
+- User-facing creator failures go through `friendlyCreatePlaylistError`; avoid rendering raw Spotify, Azure, or internal errors.
+- Keep the create-playlist run summary and not-found track integration intact; tests in `webui/main_test.go` cover these page-level contracts.
+
+## Easy Auth
+
+Azure Container Apps Easy Auth protects playlist creation in production. The platform injects `X-MS-CLIENT-PRINCIPAL-NAME` for an authenticated user. In the application:
+
+- production requests without a principal redirect to `/.auth/login/aad?post_login_redirect_uri=...`;
+- local requests are allowed without the header for development;
+- authenticated requests render the create-playlist page and may invoke the creator.
+
+Keep this behavior, its tests, and `docs/easy-auth-setup.md` synchronized. Do not replace platform authentication with application-managed credentials.
+
+## Testing and Delivery
+
+- Use table-driven tests with `t.Run` for input matrices. See `cmd/creator/sanitize_test.go` and crawler tests for established patterns.
+- Web handler tests use `net/http/httptest`; assert status, redirect location, and rendered body where relevant.
+- `webui/Dockerfile` is a multi-stage build that compiles the web executable and copies templates/assets into the runtime image.
+- `.github/workflows/lint.yml` runs golangci-lint. CodeQL and dependency review run in dedicated workflows.
+- `.github/workflows/deploy-aca.yml` builds and pushes the Docker image, updates the Azure Container App, and configures Easy Auth.

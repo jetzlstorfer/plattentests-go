@@ -1,73 +1,61 @@
 # Agent Instructions
 
-This file provides guidance for AI coding agents (e.g., GitHub Copilot, Claude, Gemini) working in this repository.
+## Project Summary
 
-## What this project does
+This Go 1.25 application crawls weekly highlights from [Plattentests.de](https://www.plattentests.de), finds the highlighted tracks on Spotify, and builds playlists. A Gin web UI displays current records and search results and can trigger playlist creation.
 
-This Go application crawls weekly music album highlight reviews from [Plattentests.de](https://www.plattentests.de) and builds a Spotify playlist from the highlighted tracks. A Gin-based web UI lets users browse the current highlights and trigger playlist creation.
+## Repository Layout
 
-## Repository layout
-
-```
-plattentests-go/
-├── cmd/
-│   ├── crawler/        # Fetches album reviews & highlight tracks from Plattentests.de
-│   ├── creator/        # Searches Spotify and adds tracks to a playlist
-│   └── token/          # Generates & stores Spotify OAuth2 token in Azure Blob Storage
-├── internal/
-│   └── auth/           # Spotify OAuth2 + Azure Blob Storage token management
-├── webui/              # Gin web server (port 8081), HTML templates, static assets
-├── .devcontainer/      # Dev container configuration for VS Code / Codespaces
-├── .github/
-│   └── workflows/      # GitHub Actions: build/deploy to Azure Container Apps, CodeQL
-├── env                 # Template for .env file — copy and fill in credentials
-├── Makefile            # Build/run targets
-├── go.mod / go.sum     # Go module definition
-└── README.md           # Project overview and usage
+```text
+cmd/crawler/       Plattentests scraper and shared Record/Track types
+cmd/creator/       Spotify matching and playlist creation
+cmd/token/         Standalone CLI for generating and storing the Spotify token
+internal/auth/     Spotify OAuth2 and Azure Blob token persistence
+webui/             Gin server, templates, and static assets
+docs/              Operational documentation, including Easy Auth setup
+.github/workflows/ CI, security scanning, image build, and ACA deployment
 ```
 
-## How to build and test
+`webui/main.go` is the web executable. `cmd/token/main.go` is a separate CLI executable. The crawler and creator directories are library packages despite living under `cmd/`.
+
+## Build and Test
 
 ```bash
-# Run all tests
-go test ./...
-
-# Build the web UI
-cd webui && go build ./...
-
-# Run the web UI locally (requires a populated .env file)
-make run
-
-# Generate a Spotify OAuth2 token and upload it to Azure
-make token
+go test ./...                         # all tests
+go test ./cmd/creator/...             # one package
+go test ./cmd/creator/... -run TestSanitizeTrackname
+cd webui && go build ./...            # build the web executable
+make run                              # run on :8081; requires .env
+make token                            # generate and upload a Spotify token
+make lint                             # requires golangci-lint
+make docker-web-build                 # build the production image
+make docker-web-run                   # run the image on :8081
 ```
 
-## Environment variables
+Run `gofmt` on changed Go files and prefer the narrowest relevant test before running `go test ./...`.
 
-Copy `env` to `.env` and populate the following variables before running:
+## Configuration
 
-| Variable         | Description                                      |
-|------------------|--------------------------------------------------|
-| `SPOTIFY_ID`     | Spotify application client ID                    |
-| `SPOTIFY_SECRET` | Spotify application client secret                |
-| `PLAYLIST_ID`    | Spotify playlist ID (target / dev playlist)      |
-| `PLAYLIST_ID_PROD` | Spotify playlist ID (production playlist)      |
-| `AZ_ACCOUNT`     | Azure Storage account name                       |
-| `AZ_KEY`         | Azure Storage account key                        |
-| `AZ_CONTAINER`   | Azure Blob container name                        |
-| `TOKEN_FILE`     | Blob filename for the OAuth2 token (default: `token.txt`) |
+Copy `env.sample` to `.env`. The Makefile includes `.env` and exports its values. Required runtime variables are declared with `envconfig` in the package that consumes them:
 
-## Coding conventions
+- `SPOTIFY_ID`, `SPOTIFY_SECRET`
+- `PLAYLIST_ID` and `PLAYLIST_ID_PROD`
+- `AZ_ACCOUNT`, `AZ_KEY`, `AZ_CONTAINER`
+- `TOKEN_FILE`
 
-- Standard Go style; follow `gofmt` formatting
-- Table-driven tests using the `testing` package (see `cmd/creator/sanitize_test.go` for examples)
-- ISO-8859-1 → UTF-8 decoding is required when handling text from Plattentests.de
-- Levenshtein distance (threshold 0.8) is used for fuzzy artist/track name matching
-- Configuration is injected via environment variables using `github.com/kelseyhightower/envconfig`
+Do not commit `.env`, Spotify credentials, Azure keys, or OAuth tokens. Active web and creator paths read `PLAYLIST_ID_PROD`; the unused `PROD_PLAYLIST_ID` field in the creator config is legacy code and should not be treated as the runtime contract.
 
-## Important notes for agents
+## Important Conventions
 
-- `cmd/crawler` and `cmd/creator` are **not** `main` packages; they export functions consumed by `webui/main.go`
-- Do **not** commit secrets or credentials; use environment variables only
-- New tests should follow the table-driven pattern already in use
-- The Docker image is built from `webui/Dockerfile` and deployed to Azure Container Apps via CI/CD
+- Plattentests responses are ISO-8859-1. Decode them through `newDocumentFromPlattentestsResponse`/`charset.NewReader`; do not parse the raw response body as UTF-8.
+- Prefer `crawler.GetRecordsOfTheWeekSafe()` in code that can report errors. `GetRecordsOfTheWeek()` is the compatibility wrapper that discards errors.
+- Normalize Spotify comparisons with `normalizeForComparison()` and sanitize search queries with `sanitizeTrackname()`.
+- Preserve the existing concurrent crawler and creator patterns: bounded work is coordinated with `sync.WaitGroup`, and result ordering matters.
+- Tests use table-driven `t.Run` cases. Crawler HTTP tests use `httptest.NewServer`; web handlers are tested with `httptest` and dependency seams in `webui/main_test.go`.
+- Templates are parsed explicitly with `template.ParseFiles`. When adding a page, update the parse list and route together. Static files are served from `webui/assets/`.
+
+## Web Authentication and Deployment
+
+The playlist creation flow is protected in production by Azure Container Apps Easy Auth. Azure injects `X-MS-CLIENT-PRINCIPAL-NAME`; the application redirects missing production identities to `/.auth/login/aad`. Local requests are allowed without the header. Keep application behavior and `docs/easy-auth-setup.md` aligned.
+
+`webui/Dockerfile` builds the production image. GitHub Actions runs lint, CodeQL, and dependency review; `deploy-aca.yml` builds and pushes the image, updates the Azure Container App, and configures Easy Auth. Do not edit generated deployment state or add credentials to workflow files.

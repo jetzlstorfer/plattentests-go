@@ -3,6 +3,9 @@ export
 
 # Latest commit hash
 GIT_SHA=$(shell git rev-parse HEAD)
+GOVULNCHECK=go run golang.org/x/vuln/cmd/govulncheck@latest
+
+.PHONY: token run lint test govulncheck govulncheck-fix docker-web-build docker-web-run
 
 
 token:
@@ -16,6 +19,15 @@ lint:
 
 test:
 	go test ./...
+
+govulncheck:
+	$(GOVULNCHECK) ./...
+
+govulncheck-fix:
+	go get go@latest
+	go get -u ./...
+	go mod tidy
+	$(MAKE) govulncheck
 
 docker-web-build:
 	docker build --build-arg GIT_SHA=$(GIT_SHA) -f ./webui/Dockerfile -t jetzlstorfer/plattentests-webui:latest .
