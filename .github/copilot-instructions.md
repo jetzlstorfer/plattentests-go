@@ -1,6 +1,6 @@
 # GitHub Copilot Instructions
 
-This repository is a Go 1.25 application that crawls weekly album highlights from [Plattentests.de](https://www.plattentests.de), matches their highlighted tracks on Spotify, and creates playlists. The Gin web UI displays records, supports search, and runs playlist creation.
+This repository is a Go 1.26 application that crawls weekly album highlights from [Plattentests.de](https://www.plattentests.de), matches their highlighted tracks on Spotify, and creates playlists. The Gin web UI displays records, supports search, and runs playlist creation.
 
 ## Commands
 
