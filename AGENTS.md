@@ -2,7 +2,7 @@
 
 ## Project Summary
 
-This Go 1.25 application crawls weekly highlights from [Plattentests.de](https://www.plattentests.de), finds the highlighted tracks on Spotify, and builds playlists. A Gin web UI displays current records and search results and can trigger playlist creation.
+This Go 1.26 application crawls weekly highlights from [Plattentests.de](https://www.plattentests.de), finds the highlighted tracks on Spotify, and builds playlists. A Gin web UI displays current records and search results and can trigger playlist creation.
 
 ## Repository Layout
 
