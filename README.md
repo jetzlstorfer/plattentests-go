@@ -12,7 +12,7 @@ This project is a Go-based application for crawling and displaying music album r
 
 ## Requirements
 
-- **Go 1.26.6** or later
+- **Go 1.27.0** or later
 - Environment variables configured in `.env` file (see `env` template)
 
 ## Project Layout
