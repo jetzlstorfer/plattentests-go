@@ -353,13 +353,21 @@ func searchSong(client spotify.Client, track string, record crawler.Record) (spo
 		searchTerm += " year:" + record.ReleaseYear
 	}
 
-	log.Printf(" searching term: %s", searchTerm)
-	results, err := client.Search(context.Background(), searchTerm, spotify.SearchTypeTrack)
-	if err != nil {
-		return "", fmt.Errorf("search %q: %w", searchTerm, err)
+	var results *spotify.SearchResult
+	for _, candidate := range searchTermVariants(searchTerm) {
+		log.Printf(" searching term: %s", candidate)
+		var err error
+		results, err = client.Search(context.Background(), candidate, spotify.SearchTypeTrack)
+		if err != nil {
+			return "", fmt.Errorf("search %q: %w", candidate, err)
+		}
+		if results != nil && results.Tracks != nil && len(results.Tracks.Tracks) > 0 {
+			break
+		}
 	}
+
 	// handle track results only if tracks are available
-	if results.Tracks != nil && results.Tracks.Tracks != nil && len(results.Tracks.Tracks) > 0 {
+	if results != nil && results.Tracks != nil && len(results.Tracks.Tracks) > 0 {
 		for i, item := range results.Tracks.Tracks {
 			log.Printf(" found item: %s - %s  (%s) [%s]", item.Artists[0].Name, item.Name, item.Album.Name, item.Album.AlbumType)
 			// only get MAX_SEARCH_RESULTS results
@@ -601,6 +609,29 @@ func sanitizeTrackname(trackname string) string {
 	sanitizedName = strings.TrimSpace(sanitizedName)
 
 	return sanitizedName
+}
+
+func searchTermVariants(searchTerm string) []string {
+	variants := []string{searchTerm}
+	addVariant := func(candidate string) {
+		for _, variant := range variants {
+			if candidate == variant {
+				return
+			}
+		}
+		variants = append(variants, candidate)
+	}
+
+	if strings.Contains(searchTerm, "&") {
+		addVariant(regexp.MustCompile(`\s*&\s*`).ReplaceAllString(searchTerm, " and "))
+	}
+
+	standaloneAnd := regexp.MustCompile(`(?i)\band\b`)
+	if standaloneAnd.MatchString(searchTerm) {
+		addVariant(standaloneAnd.ReplaceAllString(searchTerm, "&"))
+	}
+
+	return variants
 }
 
 // removeAccents removes accents and diacritics from Unicode characters

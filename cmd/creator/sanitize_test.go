@@ -75,6 +75,55 @@ func TestSanitizeTrackname(t *testing.T) {
 	}
 }
 
+func TestSearchTermVariants(t *testing.T) {
+	tests := []struct {
+		name       string
+		searchTerm string
+		expected   []string
+	}{
+		{
+			name:       "ampersands also search as and",
+			searchTerm: "Muff Potter Freaks & Geeks & Spinner year:2026",
+			expected: []string{
+				"Muff Potter Freaks & Geeks & Spinner year:2026",
+				"Muff Potter Freaks and Geeks and Spinner year:2026",
+			},
+		},
+		{
+			name:       "and also searches as ampersand",
+			searchTerm: "Artist Freaks and Geeks",
+			expected: []string{
+				"Artist Freaks and Geeks",
+				"Artist Freaks & Geeks",
+			},
+		},
+		{
+			name:       "keeps queries without either form unchanged",
+			searchTerm: "Artist Plain Song",
+			expected:   []string{"Artist Plain Song"},
+		},
+		{
+			name:       "does not replace and inside words",
+			searchTerm: "The Sandcastles",
+			expected:   []string{"The Sandcastles"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := searchTermVariants(tt.searchTerm)
+			if len(result) != len(tt.expected) {
+				t.Fatalf("searchTermVariants(%q) = %q, want %q", tt.searchTerm, result, tt.expected)
+			}
+			for i := range result {
+				if result[i] != tt.expected[i] {
+					t.Errorf("searchTermVariants(%q)[%d] = %q, want %q", tt.searchTerm, i, result[i], tt.expected[i])
+				}
+			}
+		})
+	}
+}
+
 func TestNormalizeForComparison(t *testing.T) {
 	tests := []struct {
 		name     string
