@@ -589,8 +589,6 @@ func sanitizeTrackname(trackname string) string {
 	sanitizedName = strings.ReplaceAll(sanitizedName, "'", "")
 	sanitizedName = regexp.MustCompile(`\[.*?\]`).ReplaceAllString(sanitizedName, "")
 
-	// Normalize & to "and" so Spotify queries include the connective word
-	sanitizedName = regexp.MustCompile(`\s*&\s*`).ReplaceAllString(sanitizedName, " and ")
 	// Remove special punctuation that might interfere with search
 	specialChars := regexp.MustCompile(`[:\-!?.,;]`)
 	sanitizedName = specialChars.ReplaceAllString(sanitizedName, " ")

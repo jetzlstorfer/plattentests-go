@@ -36,12 +36,17 @@ func TestSanitizeTrackname(t *testing.T) {
 		{
 			name:     "handles special punctuation",
 			input:    "Song: Title - With Dashes & Symbols!",
-			expected: "Song Title With Dashes and Symbols",
+			expected: "Song Title With Dashes & Symbols",
 		},
 		{
-			name:     "ampersand becomes and in artist name",
+			name:     "preserves ampersand in artist name",
 			input:    "Simon & Garfunkel Track",
-			expected: "Simon and Garfunkel Track",
+			expected: "Simon & Garfunkel Track",
+		},
+		{
+			name:     "preserves ampersands in Spotify search title",
+			input:    "Muff Potter Freaks & Geeks & Spinner",
+			expected: "Muff Potter Freaks & Geeks & Spinner",
 		},
 		{
 			name:     "handles unicode characters",
