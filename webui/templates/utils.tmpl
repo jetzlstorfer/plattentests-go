@@ -20,7 +20,8 @@
 {{define "Navigation"}}
 	<header>
 		<div class="container">
-			<nav>
+			<a class="site-brand" href="/" aria-label="Plattentests.de home"><span class="emoji">💿</span> Plattentests.de</a>
+			<nav aria-label="Main navigation">
 				<a href="/" aria-label="Highlights view"><span class="emoji">💿</span> Highlights</a>
 				<a href="/playlist" aria-label="Playlist view"><span class="emoji">🎧</span> Playlist</a>
 				<a href="/search" aria-label="Search view"><span class="emoji">🔍</span> Search</a>
@@ -31,9 +32,6 @@
 					<a href="{{.LoginURL}}" aria-label="Login view"><span class="emoji">🔐</span> Login</a>
 				{{end}}
 			</nav>
-			<div class="header-title" id="header-title">
-				<span>Plattentests.de 💿</span>
-			</div>
 		</div>
 	</header>
 {{end}}
@@ -159,38 +157,8 @@
 
 {{define "FormatTableScript" }}
 <script>
-function handleHeaderTitle() {
-    const headerTitle = document.getElementById('header-title');
-    const heroSection = document.querySelector('.hero');
-    
-    if (!headerTitle || !heroSection) return;
-    
-    const observer = new IntersectionObserver(
-        (entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    // Hero is visible, hide header title
-                    headerTitle.classList.remove('visible');
-                } else {
-                    // Hero is not visible, show header title
-                    headerTitle.classList.add('visible');
-                }
-            });
-        },
-        {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        }
-    );
-    
-    observer.observe(heroSection);
-}
-
 // Add some modern interactions
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize header title scroll functionality
-    handleHeaderTitle();
-    
     // Smooth scroll for navigation links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
