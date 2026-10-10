@@ -12,6 +12,45 @@ import (
 	creator "github.com/jetzlstorfer/plattentests-go/cmd/creator"
 )
 
+func TestCompactPageHeadings(t *testing.T) {
+	tests := []struct {
+		page    string
+		heading string
+		data    map[string]interface{}
+	}{
+		{"records", "Highlights of the week", map[string]interface{}{"Records": []crawler.Record{}}},
+		{"search", "Search the archive", map[string]interface{}{}},
+		{"playlist", "This week’s playlist", map[string]interface{}{"PlaylistID": "playlist"}},
+		{"createPlaylist", "Playlist results", map[string]interface{}{"Records": creator.Result{}}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.page, func(t *testing.T) {
+			tmpl, err := template.ParseFiles("templates/"+tt.page+".tmpl", "templates/utils.tmpl")
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+			var out bytes.Buffer
+			if err := tmpl.Execute(&out, tt.data); err != nil {
+				t.Fatalf("failed to render page: %v", err)
+			}
+			rendered := out.String()
+			if !strings.Contains(rendered, "<h1>"+tt.heading+"</h1>") {
+				t.Errorf("expected compact page heading %q", tt.heading)
+			}
+			if !strings.Contains(rendered, `class="site-brand"`) || !strings.Contains(rendered, `aria-label="Main navigation"`) {
+				t.Error("expected persistent brand and labeled navigation")
+			}
+			if strings.Contains(rendered, "header-title") || strings.Contains(rendered, "handleHeaderTitle") {
+				t.Error("unexpected scroll-dependent branding")
+			}
+			if tt.page == "records" && !strings.Contains(rendered, "0 albums") {
+				t.Error("expected album count in the page introduction")
+			}
+		})
+	}
+}
+
 func TestRecordTableSongFoundIndicatorHiddenByDefault(t *testing.T) {
 	tmpl, err := template.ParseFiles("templates/utils.tmpl")
 	if err != nil {
