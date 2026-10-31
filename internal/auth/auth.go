@@ -63,7 +63,8 @@ func VerifyLogin() (spotify.Client, error) {
 	log.Println("Creating Spotify Authenticator")
 	ctx := context.Background()
 	httpClient := spotifyauth.New().Client(ctx, token)
-	client := spotify.New(httpClient)
+	// Retry rate-limited (429) requests after Spotify's Retry-After delay instead of failing the lookup.
+	client := spotify.New(httpClient, spotify.WithRetry(true))
 
 	log.Println("Creating new Client Token")
 	newToken, err := retrieveTokenWithRetry(client)

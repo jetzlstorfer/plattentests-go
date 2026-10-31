@@ -63,6 +63,36 @@ func TestSanitizeTrackname(t *testing.T) {
 			input:    "\"Song Title\" [Remix]",
 			expected: "Song Title",
 		},
+		{
+			name:     "removes inline feat.",
+			input:    "Song Title feat. Other Artist",
+			expected: "Song Title",
+		},
+		{
+			name:     "removes inline ft.",
+			input:    "Song Title ft. Other Artist",
+			expected: "Song Title",
+		},
+		{
+			name:     "removes inline featuring",
+			input:    "Song Title featuring Other Artist",
+			expected: "Song Title",
+		},
+		{
+			name:     "removes bracketed feat. case-insensitively",
+			input:    "Song Title [Feat. Other Artist]",
+			expected: "Song Title",
+		},
+		{
+			name:     "removes bracketed featuring",
+			input:    "Song Title (featuring Other Artist)",
+			expected: "Song Title",
+		},
+		{
+			name:     "keeps words containing with",
+			input:    "Dancing With Myself (Without You)",
+			expected: "Dancing With Myself (Without You)",
+		},
 	}
 
 	for _, tt := range tests {

@@ -20,11 +20,9 @@ import (
 	"golang.org/x/text/unicode/norm"
 
 	"github.com/kelseyhightower/envconfig"
-
-	"github.com/agnivade/levenshtein"
 )
 
-// MaxSearchResults is the maximum number of search results to return
+// MaxSearchResults is the number of search results logged per query
 const MaxSearchResults = 3
 
 // MaxRecordsOfTheWeek is the maximum number of records of the week to be considered
@@ -125,8 +123,8 @@ func CreatePlaylist(pid string) (Result, error) {
 		trackIdx  int
 	}
 	type highlightSearchResult struct {
-		itemID spotify.ID
-		err    error
+		outcome searchOutcome
+		err     error
 	}
 
 	jobs := make([]highlightSearchJob, 0)
@@ -167,8 +165,8 @@ func CreatePlaylist(pid string) (Result, error) {
 					job := jobs[jobIdx]
 					record := highlights[job.recordIdx]
 					track := record.Tracks[job.trackIdx]
-					itemID, searchErr := searchSong(client, track.Trackname, record)
-					results[jobIdx] = highlightSearchResult{itemID: itemID, err: searchErr}
+					outcome, searchErr := searchSong(ctx, &client, track.Trackname, record)
+					results[jobIdx] = highlightSearchResult{outcome: outcome, err: searchErr}
 				}
 			}()
 		}
@@ -190,13 +188,14 @@ func CreatePlaylist(pid string) (Result, error) {
 				continue
 			}
 
-			if result.itemID != "" {
-				log.Println("adding item to collection to be added: " + result.itemID)
+			if result.outcome.ID != "" {
+				log.Println("adding item to collection to be added: " + result.outcome.ID)
 				track.Found = true
-				itemsToAddIDs = append(itemsToAddIDs, result.itemID)
+				itemsToAddIDs = append(itemsToAddIDs, result.outcome.ID)
 				continue
 			}
 
+			logMiss(*record, track.Trackname, result.outcome)
 			notFound = append(notFound, track.Band+" - "+track.Trackname)
 		}
 	}
@@ -287,158 +286,6 @@ func orderRecordsForPlaylist(records []crawler.Record, recordOfTheWeek string) [
 	return ordered
 }
 
-// selectBestTrack selects the best matching track from search results
-// Priority:
-// 1. If track name matches record name, prioritize that
-// 2. Prefer album versions over singles/EPs
-// 3. Use first result as fallback
-func selectBestTrack(tracks []spotify.FullTrack, trackName string, record crawler.Record) *spotify.FullTrack {
-	if len(tracks) == 0 {
-		return nil
-	}
-
-	normalizedTrackName := normalizeForComparison(trackName)
-	normalizedRecordName := normalizeForComparison(record.Recordname)
-
-	type scoredTrack struct {
-		track *spotify.FullTrack
-		score int
-	}
-
-	var scored []scoredTrack
-
-	for i := range tracks {
-		track := &tracks[i]
-		score := 0
-
-		// Priority 1: Track name matches record name
-		normalizedAlbumName := normalizeForComparison(track.Album.Name)
-		if normalizedTrackName == normalizedRecordName && normalizedAlbumName == normalizedRecordName {
-			score += 1000
-			log.Printf(" [Priority] Track name '%s' matches record name '%s' on album '%s'", trackName, record.Recordname, track.Album.Name)
-		}
-
-		// Priority 2: Prefer album over single/EP
-		switch track.Album.AlbumType {
-		case "album":
-			score += 100
-		case "single":
-			score += 10
-		}
-		// EP gets no bonus (score += 0)
-
-		// Priority 3: Earlier results get slight tiebreaker preference (all else being equal)
-		score += (len(tracks) - i)
-
-		scored = append(scored, scoredTrack{track: track, score: score})
-		log.Printf(" [Score %d] %s - %s (%s) [%s]", score, track.Artists[0].Name, track.Name, track.Album.Name, track.Album.AlbumType)
-	}
-
-	// Sort by score descending
-	sort.Slice(scored, func(i, j int) bool {
-		return scored[i].score > scored[j].score
-	})
-
-	return scored[0].track
-}
-
-// searches a song given by the track and record name and returns spotify.ID if successful
-func searchSong(client spotify.Client, track string, record crawler.Record) (spotify.ID, error) {
-	searchTerm := sanitizeTrackname(record.Band + " " + track)
-	// POTENTIAL FIX - do not include recordname in search
-	//searchTerm = searchTerm + " " + record.Recordname
-
-	// if record has a year, append it to the search
-	if record.ReleaseYear != "" {
-		searchTerm += " year:" + record.ReleaseYear
-	}
-
-	var results *spotify.SearchResult
-	for _, candidate := range searchTermVariants(searchTerm) {
-		log.Printf(" searching term: %s", candidate)
-		var err error
-		results, err = client.Search(context.Background(), candidate, spotify.SearchTypeTrack)
-		if err != nil {
-			return "", fmt.Errorf("search %q: %w", candidate, err)
-		}
-		if results != nil && results.Tracks != nil && len(results.Tracks.Tracks) > 0 {
-			break
-		}
-	}
-
-	// handle track results only if tracks are available
-	if results != nil && results.Tracks != nil && len(results.Tracks.Tracks) > 0 {
-		for i, item := range results.Tracks.Tracks {
-			log.Printf(" found item: %s - %s  (%s) [%s]", item.Artists[0].Name, item.Name, item.Album.Name, item.Album.AlbumType)
-			// only get MAX_SEARCH_RESULTS results
-			if i >= MaxSearchResults-1 {
-				break
-			}
-		}
-
-		// Select best match from results with prioritization
-		item := selectBestTrack(results.Tracks.Tracks, track, record)
-		if item == nil {
-			log.Printf(" no suitable match found after filtering")
-			if record.Recordname == "" {
-				return "", nil
-			}
-			log.Println(" nothing found, removing recordname and year from search query")
-			newRecord := record
-			newRecord.ReleaseYear = ""
-			newRecord.Recordname = ""
-			return searchSong(client, track, newRecord)
-		}
-
-		bandnameFromSearch := normalizeForComparison(item.Artists[0].Name)
-		if len(item.Artists) > 1 {
-			bandnameFromSearch += " " + normalizeForComparison(item.Artists[1].Name)
-		}
-
-		bandnameFromPlattentests := normalizeForComparison(record.Band)
-		distance := levenshtein.ComputeDistance(bandnameFromSearch, bandnameFromPlattentests)
-		log.Println(" Levenshtein distance between", bandnameFromSearch, "and", bandnameFromPlattentests, ":", distance)
-		threshold := 0.8
-
-		calculatedThreshold := 1 - float64(distance)/float64(maxInt(len(bandnameFromSearch), len(bandnameFromPlattentests)))
-		if (calculatedThreshold) < threshold {
-			log.Println(" Levenshtein distance too large")
-			log.Printf(" not adding item %s - %s (%s) since artists don't match (%s != %s)", bandnameFromSearch, item.Name, item.Album.Name, bandnameFromPlattentests, bandnameFromSearch)
-			if record.ReleaseYear == "" {
-				return "", nil
-			}
-		}
-
-		// calculate the levenshtein distance between the trackname from the search and the trackname from the record
-		tracknameFromSearch := normalizeForComparison(item.Name)
-		tracknameFromPlattentests := normalizeForComparison(track)
-		distance = levenshtein.ComputeDistance(tracknameFromSearch, tracknameFromPlattentests)
-
-		calculatedThreshold = 1 - float64(distance)/float64(maxInt(len(tracknameFromSearch), len(tracknameFromPlattentests)))
-		if (calculatedThreshold) < threshold {
-			log.Println(" Levenshtein distance too large")
-			log.Printf(" not adding item %s - %s (%s) since tracknames don't match (%s != %s)", bandnameFromSearch, item.Name, item.Album.Name, tracknameFromPlattentests, tracknameFromSearch)
-			if record.ReleaseYear == "" {
-				return "", nil
-			}
-		}
-
-		log.Printf(" using item: %s - %s (%s) [%s]", bandnameFromSearch, item.Name, item.Album.Name, item.Album.AlbumType)
-		return item.ID, nil
-	}
-
-	if record.Recordname == "" {
-		log.Printf(" nothing found for %s", searchTerm)
-		return "", nil
-	}
-	log.Println(" nothing found, removing recordname and year from search query")
-	newRecord := record
-	newRecord.ReleaseYear = ""
-	newRecord.Recordname = ""
-	return searchSong(client, track, newRecord)
-
-}
-
 // adds tracks to global playlist ID
 func addTracks(client spotify.Client, trackids ...spotify.ID) error {
 	if len(trackids) == 0 {
@@ -522,13 +369,13 @@ func MarkFoundTracks(records []crawler.Record) error {
 				defer wg.Done()
 				defer func() { <-sem }()
 
-				id, searchErr := searchSong(client, track.Trackname, record)
+				outcome, searchErr := searchSong(context.Background(), &client, track.Trackname, record)
 				if searchErr != nil {
 					log.Printf("found-status search failed for %s - %s: %v", record.Band, track.Trackname, searchErr)
 					return
 				}
 
-				found := id != ""
+				found := outcome.ID != ""
 				storeFoundCache(key, found)
 				track.Found = found
 			}(track, record, key)
@@ -583,13 +430,20 @@ func countNewTracksComparedToReference(candidates []spotify.ID, reference map[sp
 	return newTracks, alreadyKnown
 }
 
+var (
+	// bracketFeaturePattern matches "(feat. X)", "[ft. X]", "(featuring X)" or "(with X)" and everything after it.
+	bracketFeaturePattern = regexp.MustCompile(`(?i)\s*[\(\[]\s*(?:feat\.?|ft\.?|featuring|with)\s.*$`)
+	// inlineFeaturePattern matches unbracketed "feat. X", "ft. X" or "featuring X" and everything after it.
+	inlineFeaturePattern = regexp.MustCompile(`(?i)\s+(?:feat\.|ft\.|featuring)\s.*$`)
+)
+
 // removes parts of string that should not be in search term
 func sanitizeTrackname(trackname string) string {
 	sanitizedName := trackname
 
-	// Remove common patterns
-	sanitizedName = strings.Split(sanitizedName, "(feat. ")[0]
-	sanitizedName = strings.Split(sanitizedName, "(with ")[0]
+	// Remove featured-artist annotations and bonus markers
+	sanitizedName = bracketFeaturePattern.ReplaceAllString(sanitizedName, "")
+	sanitizedName = inlineFeaturePattern.ReplaceAllString(sanitizedName, "")
 	sanitizedName = strings.Split(sanitizedName, "(Bonus)")[0]
 
 	// Remove quotes and brackets
