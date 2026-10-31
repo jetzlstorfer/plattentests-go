@@ -8,7 +8,7 @@ on:
       [ main ]
     # paths:
     # - 'webui/**' 
-  pull_request_target:
+  pull_request:
     branches: 
       [ main ]
   # Allow mannually trigger 
@@ -26,8 +26,25 @@ concurrency:
    
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run tests
+        run: go test ./...
+
   build:
     runs-on: ubuntu-latest
+    needs: test
 
     steps:
       - name: Checkout to the branch
@@ -37,16 +54,17 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Log in to container registry
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v4.6.0
         with:
           registry: docker.io
           username: ${{ secrets.PLATTENTESTS_REGISTRY_USERNAME }}
           password: ${{ secrets.PLATTENTESTS_REGISTRY_PASSWORD }}
 
-      - name: Build and push container image to registry
+      - name: Build container image (push only outside PRs)
         uses: docker/build-push-action@v7
         with:
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: jetzlstorfer/plattentests-web:${{ github.sha }}
           file: ./webui/Dockerfile
           build-args: GIT_SHA=${{ github.sha }}
@@ -54,7 +72,7 @@ jobs:
 
 
   deploy:
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: build
     env:
