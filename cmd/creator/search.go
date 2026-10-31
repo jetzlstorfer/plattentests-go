@@ -331,6 +331,7 @@ var (
 	// featurePrefixPattern matches featured-artist annotations, e.g. "feat. Someone".
 	featurePrefixPattern  = regexp.MustCompile(`(?i)^\s*(?:feat\.?|ft\.?|featuring|with)\s`)
 	digitsPattern         = regexp.MustCompile(`\d+`)
+	romanNumeralPattern   = regexp.MustCompile(`(?i)^(M{0,3}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3}))$`)
 	artistCreditSeparator = regexp.MustCompile(`\s+(?:and|feat|ft|featuring|vs|x)\s+`)
 )
 
@@ -372,6 +373,7 @@ func titlesMatch(a, b string) bool {
 	if ca == "" || cb == "" {
 		return false
 	}
+	ca, cb = normalizeRomanNumeralPairs(ca, cb)
 	if ca == cb {
 		return true
 	}
@@ -387,6 +389,46 @@ func titlesMatch(a, b string) bool {
 	}
 
 	return similarity(ca, cb) >= similarityThreshold
+}
+
+func normalizeRomanNumeralPairs(a, b string) (string, string) {
+	aWords, bWords := strings.Fields(a), strings.Fields(b)
+	for i := 0; i < len(aWords) && i < len(bWords); i++ {
+		_, aErr := strconv.Atoi(aWords[i])
+		_, bErr := strconv.Atoi(bWords[i])
+		aIsNumber, bIsNumber := aErr == nil, bErr == nil
+		aRoman, aIsRoman := romanNumeralValue(aWords[i])
+		bRoman, bIsRoman := romanNumeralValue(bWords[i])
+
+		if (aIsNumber && bIsRoman) || (aIsRoman && bIsNumber) || (aIsRoman && bIsRoman) {
+			if aIsRoman {
+				aWords[i] = strconv.Itoa(aRoman)
+			}
+			if bIsRoman {
+				bWords[i] = strconv.Itoa(bRoman)
+			}
+		}
+	}
+	return strings.Join(aWords, " "), strings.Join(bWords, " ")
+}
+
+func romanNumeralValue(s string) (int, bool) {
+	if s == "" || !romanNumeralPattern.MatchString(s) {
+		return 0, false
+	}
+
+	values := map[rune]int{'I': 1, 'V': 5, 'X': 10, 'L': 50, 'C': 100, 'D': 500, 'M': 1000}
+	value, previous := 0, 0
+	for _, numeral := range strings.ToUpper(s) {
+		current := values[numeral]
+		if current < previous {
+			value -= current
+		} else {
+			value += current
+		}
+		previous = current
+	}
+	return value, true
 }
 
 func comparableArtist(s string) string {
