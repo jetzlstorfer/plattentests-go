@@ -44,10 +44,11 @@ crawler.GetRecordsOfTheWeekSafe()
 
 ## Spotify Matching
 
-- Call `sanitizeTrackname()` before constructing Spotify searches. It removes feature annotations, brackets, quotes, accents, and punctuation that degrade search results.
-- Call `normalizeForComparison()` before comparing artists, tracks, or albums. It lowercases, removes diacritics and punctuation, and supports the existing Levenshtein similarity checks.
-- Keep scoring behavior explicit: album releases rank above singles and EPs, then normalized artist, track, and record names determine the best match.
-- Do not silently drop not-found tracks. Creator results feed the web UI's run summary and production-playlist controls.
+- Call `sanitizeTrackname()` on band and track names separately before constructing Spotify searches. It removes feature annotations (feat./ft./featuring/with), brackets, quotes, accents, and punctuation that degrade search results.
+- Track lookups live in `cmd/creator/search.go`. `searchSong()` tries field-filtered queries (`track:"…" artist:"…"`) before free text, a `year:Y-1-Y` range before no year, and finally matches the track within the reviewed album's tracklist. Album tracklists are paginated and cached only after all pages succeed. Search requests use `Limit(10)` and market `DE`; the Spotify client retries rate-limited requests.
+- Compare names with `titlesMatch()` and `artistsMatch()`. They build on `normalizeForComparison()`, ignore same-recording annotations such as remaster, radio edit or feat., and use Levenshtein similarity with digit checks.
+- A candidate must match both artist and title before it is ranked. Ranking prefers the reviewed record's album, then albums over singles over EPs/compilations, then exact titles, then Spotify's order.
+- Do not silently drop not-found tracks. Creator results feed the web UI's run summary and production-playlist controls, and each miss is logged as `MISS band=… track=… reason=… queries=…`.
 
 ## Configuration
 
