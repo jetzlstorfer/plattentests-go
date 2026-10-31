@@ -49,7 +49,7 @@ Do not commit `.env`, Spotify credentials, Azure keys, or OAuth tokens. Active w
 
 - Plattentests responses are ISO-8859-1. Decode them through `newDocumentFromPlattentestsResponse`/`charset.NewReader`; do not parse the raw response body as UTF-8.
 - Prefer `crawler.GetRecordsOfTheWeekSafe()` in code that can report errors. `GetRecordsOfTheWeek()` is the compatibility wrapper that discards errors.
-- Sanitize search terms with `sanitizeTrackname()`. Compare Spotify candidates with `titlesMatch()`/`artistsMatch()` (built on `normalizeForComparison()`); `searchSong()` in `cmd/creator/search.go` must only accept candidates matching both artist and title, and logs a `MISS` line with the reason and queries for each not-found track.
+- Sanitize search terms with `sanitizeTrackname()`. Compare Spotify candidates with `titlesMatch()`/`artistsMatch()` (built on `normalizeForComparison()`); `searchSong()` in `cmd/creator/search.go` must only accept candidates matching both artist and title. Its album fallback reads all tracklist pages before caching; playlist creation logs a `MISS` line with the reason and queries for each unmatched track.
 - Preserve the existing concurrent crawler and creator patterns: bounded work is coordinated with `sync.WaitGroup`, and result ordering matters.
 - Tests use table-driven `t.Run` cases. Crawler HTTP tests use `httptest.NewServer`; web handlers are tested with `httptest` and dependency seams in `webui/main_test.go`.
 - Templates are parsed explicitly with `template.ParseFiles`. When adding a page, update the parse list and route together. Static files are served from `webui/assets/`.

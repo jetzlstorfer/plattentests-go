@@ -2,35 +2,31 @@ package creator
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
-	"sync"
+	"slices"
+	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
 	"github.com/zmb3/spotify/v2"
 )
 
 type fakeSearcher struct {
-	mu           sync.Mutex
 	trackResults map[string][]spotify.FullTrack
 	allTracks    []spotify.FullTrack
 	albumResults map[string][]spotify.SimpleAlbum
 	albumTracks  map[spotify.ID][]spotify.SimpleTrack
-	err          error
 	queries      []string
 }
 
 func (f *fakeSearcher) Search(_ context.Context, query string, t spotify.SearchType, _ ...spotify.RequestOption) (*spotify.SearchResult, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
 	f.queries = append(f.queries, query)
-	if f.err != nil {
-		return nil, f.err
-	}
 	if t == spotify.SearchTypeAlbum {
 		return &spotify.SearchResult{Albums: &spotify.SimpleAlbumPage{Albums: f.albumResults[query]}}, nil
 	}
@@ -58,6 +54,19 @@ func fullTrack(id, name, album, albumType string, artists ...string) spotify.Ful
 		SimpleTrack: spotify.SimpleTrack{ID: spotify.ID(id), Name: name, Artists: artistsOf(artists...)},
 		Album:       spotify.SimpleAlbum{Name: album, AlbumType: albumType},
 	}
+}
+
+func resetAlbumTracksCache(t *testing.T) {
+	t.Helper()
+	albumTracksCacheMu.Lock()
+	original := albumTracksCache
+	albumTracksCache = make(map[spotify.ID][]spotify.SimpleTrack)
+	albumTracksCacheMu.Unlock()
+	t.Cleanup(func() {
+		albumTracksCacheMu.Lock()
+		albumTracksCache = original
+		albumTracksCacheMu.Unlock()
+	})
 }
 
 func TestStripVersionInfo(t *testing.T) {
@@ -97,12 +106,19 @@ func TestTitlesMatch(t *testing.T) {
 		{name: "remaster suffix", a: "Song", b: "Song - Remastered 2011", expected: true},
 		{name: "radio edit", a: "Song", b: "Song (Radio Edit)", expected: true},
 		{name: "featured artist", a: "Song (feat. Guest)", b: "Song", expected: true},
+		{name: "inline featured artist", a: "Song feat. Guest", b: "Song", expected: true},
+		{name: "inline ft", a: "Song ft. Guest", b: "Song", expected: true},
+		{name: "inline featuring", a: "Song featuring Guest", b: "Song", expected: true},
 		{name: "annotation on one side only", a: "Song", b: "Song (Live)", expected: true},
 		{name: "ampersand and and", a: "Freaks & Geeks", b: "Freaks and Geeks", expected: true},
 		{name: "accents", a: "Café", b: "Cafe", expected: true},
 		{name: "small spelling difference", a: "Colour", b: "Color", expected: true},
 		{name: "different parts in parentheses", a: "Part (1)", b: "Part (2)", expected: false},
 		{name: "different numbers", a: "Song 1", b: "Song 2", expected: false},
+		{name: "numbered annotation is significant", a: "Song (Part 2)", b: "Song", expected: false},
+		{name: "numbered dash suffix is significant", a: "Song - Part 2", b: "Song", expected: false},
+		{name: "similarity at threshold", a: "abcde", b: "abcdx", expected: true},
+		{name: "similarity below threshold", a: "abcd", b: "abcx", expected: false},
 		{name: "prefix of a longer title", a: "Love", b: "Love Me Do", expected: false},
 		{name: "different song", a: "Song", b: "Another Tune", expected: false},
 		{name: "empty title", a: "", b: "Song", expected: false},
@@ -156,6 +172,9 @@ func TestYearFilter(t *testing.T) {
 		{input: " 2024 ", expected: "year:2023-2024"},
 		{input: "", expected: ""},
 		{input: "unknown", expected: ""},
+		{input: "0", expected: ""},
+		{input: "1", expected: ""},
+		{input: "-2026", expected: ""},
 	}
 
 	for _, tt := range tests {
@@ -205,19 +224,14 @@ func TestTrackSearchQueries(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := trackSearchQueries(tt.band, tt.track, tt.year)
-			if len(result) != len(tt.expected) {
-				t.Fatalf("trackSearchQueries() = %q, want %q", result, tt.expected)
-			}
-			for i := range result {
-				if result[i] != tt.expected[i] {
-					t.Errorf("trackSearchQueries()[%d] = %q, want %q", i, result[i], tt.expected[i])
-				}
+			if !slices.Equal(result, tt.expected) {
+				t.Errorf("trackSearchQueries() = %q, want %q", result, tt.expected)
 			}
 		})
 	}
 }
 
-func TestSelectBestTrack_MatchingRules(t *testing.T) {
+func TestSelectBestTrack(t *testing.T) {
 	tests := []struct {
 		name       string
 		tracks     []spotify.FullTrack
@@ -225,6 +239,48 @@ func TestSelectBestTrack_MatchingRules(t *testing.T) {
 		record     crawler.Record
 		expectedID spotify.ID
 	}{
+		{name: "empty results"},
+		{
+			name: "prefers album over single independently of record name",
+			tracks: []spotify.FullTrack{
+				fullTrack("single", "Song", "Single", "single", "Band"),
+				fullTrack("album", "Song", "Album", "album", "Band"),
+			},
+			trackName:  "Song",
+			record:     crawler.Record{Band: "Band"},
+			expectedID: "album",
+		},
+		{
+			name: "prefers album over EP independently of record name",
+			tracks: []spotify.FullTrack{
+				fullTrack("ep", "Song", "EP", "ep", "Band"),
+				fullTrack("album", "Song", "Album", "album", "Band"),
+			},
+			trackName:  "Song",
+			record:     crawler.Record{Band: "Band"},
+			expectedID: "album",
+		},
+		{
+			name: "preserves Spotify order for equal matches",
+			tracks: []spotify.FullTrack{
+				fullTrack("first", "Song", "First Album", "album", "Band"),
+				fullTrack("second", "Song", "Second Album", "album", "Band"),
+			},
+			trackName:  "Song",
+			record:     crawler.Record{Band: "Band"},
+			expectedID: "first",
+		},
+		{
+			name: "title track matches reviewed album",
+			tracks: []spotify.FullTrack{
+				fullTrack("wrong", "Other Song", "Album", "album", "Band"),
+				fullTrack("album", "Masterpiece", "Masterpiece", "album", "Band"),
+				fullTrack("single", "Masterpiece", "Masterpiece", "single", "Band"),
+			},
+			trackName:  "Masterpiece",
+			record:     crawler.Record{Band: "Band", Recordname: "Masterpiece"},
+			expectedID: "album",
+		},
 		{
 			name: "skips wrong-artist album ranked first",
 			tracks: []spotify.FullTrack{
@@ -298,7 +354,6 @@ func TestSearchSong(t *testing.T) {
 		expectedID      spotify.ID
 		expectedReason  missReason
 		expectedQueries int
-		expectErr       bool
 	}{
 		{
 			name: "does not accept a mismatched artist when a release year is set",
@@ -362,24 +417,12 @@ func TestSearchSong(t *testing.T) {
 			expectedReason:  missNoResults,
 			expectedQueries: 4,
 		},
-		{
-			name:      "returns search errors",
-			searcher:  &fakeSearcher{err: errors.New("boom")},
-			track:     "Song",
-			record:    crawler.Record{Band: "Band"},
-			expectErr: true,
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			resetAlbumTracksCache(t)
 			outcome, err := searchSong(context.Background(), tt.searcher, tt.track, tt.record)
-			if tt.expectErr {
-				if err == nil {
-					t.Fatal("searchSong() error = nil, want error")
-				}
-				return
-			}
 			if err != nil {
 				t.Fatalf("searchSong() error = %v", err)
 			}
@@ -397,15 +440,21 @@ func TestSearchSong(t *testing.T) {
 }
 
 func TestSearchSong_SendsLimitAndMarket(t *testing.T) {
-	var mu sync.Mutex
-	var path string
-	var params url.Values
-
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		mu.Lock()
-		path = r.URL.Path
-		params = r.URL.Query()
-		mu.Unlock()
+		if r.URL.Path != "/search" {
+			t.Errorf("request path = %q, want /search", r.URL.Path)
+		}
+		expected := map[string]string{
+			"q":      `track:"Song" artist:"Band"`,
+			"type":   "track",
+			"limit":  "10",
+			"market": "DE",
+		}
+		for key, want := range expected {
+			if got := r.URL.Query().Get(key); got != want {
+				t.Errorf("query parameter %s = %q, want %q", key, got, want)
+			}
+		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{"tracks":{"items":[{"id":"abc","name":"Song","artists":[{"name":"Band"}],"album":{"name":"Record","album_type":"album"}}]}}`)
 	}))
@@ -420,20 +469,197 @@ func TestSearchSong_SendsLimitAndMarket(t *testing.T) {
 		t.Fatalf("searchSong() ID = %q, want %q", outcome.ID, "abc")
 	}
 
-	mu.Lock()
-	defer mu.Unlock()
-	if path != "/search" {
-		t.Errorf("request path = %q, want %q", path, "/search")
+}
+
+func TestBestTracklistMatch(t *testing.T) {
+	tracks := []spotify.SimpleTrack{
+		{ID: "fuzzy", Name: "Song (Live)"},
+		{ID: "exact", Name: "Song - Remastered 2020"},
 	}
-	expected := map[string]string{
-		"q":      `track:"Song" artist:"Band"`,
-		"type":   "track",
-		"limit":  "10",
-		"market": "DE",
+	for _, tt := range []struct {
+		name   string
+		tracks []spotify.SimpleTrack
+		want   spotify.ID
+	}{
+		{name: "exact before fuzzy", tracks: tracks, want: "exact"},
+		{name: "fuzzy fallback", tracks: tracks[:1], want: "fuzzy"},
+		{name: "no match", tracks: []spotify.SimpleTrack{{ID: "other", Name: "Another Tune"}}},
+		{name: "empty tracklist"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			match := bestTracklistMatch(tt.tracks, "Song")
+			var got spotify.ID
+			if match != nil {
+				got = match.ID
+			}
+			if got != tt.want {
+				t.Errorf("bestTracklistMatch() = %q, want %q", got, tt.want)
+			}
+		})
 	}
-	for key, want := range expected {
-		if got := params.Get(key); got != want {
-			t.Errorf("query parameter %s = %q, want %q", key, got, want)
-		}
+}
+
+func TestSearchSong_AlbumPaginationAndCache(t *testing.T) {
+	for _, tt := range []struct {
+		name           string
+		failSecondPage bool
+		wantRequests   int32
+	}{
+		{name: "reads and caches all pages", wantRequests: 2},
+		{name: "does not cache incomplete tracklists", failSecondPage: true, wantRequests: 4},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			resetAlbumTracksCache(t)
+			var tracklistRequests atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				if got := r.URL.Query().Get("market"); got != "DE" {
+					t.Errorf("market = %q, want DE", got)
+				}
+				if r.URL.Path == "/search" {
+					if got := r.URL.Query().Get("limit"); got != "10" {
+						t.Errorf("search limit = %q, want 10", got)
+					}
+					if r.URL.Query().Get("type") == "album" {
+						_, _ = io.WriteString(w, `{"albums":{"items":[{"id":"album","name":"Record","artists":[{"name":"Band"}]}]}}`)
+					} else {
+						_, _ = io.WriteString(w, `{"tracks":{"items":[]}}`)
+					}
+					return
+				}
+				if r.URL.Path != "/albums/album/tracks" {
+					t.Errorf("unexpected path: %s", r.URL.Path)
+					http.NotFound(w, r)
+					return
+				}
+				requestNumber := tracklistRequests.Add(1)
+				if got := r.URL.Query().Get("limit"); got != "50" {
+					t.Errorf("album tracks limit = %q, want 50", got)
+				}
+				var page spotify.SimpleTrackPage
+				switch offset := r.URL.Query().Get("offset"); offset {
+				case "", "0":
+					page.Tracks = make([]spotify.SimpleTrack, 50)
+					for i := range page.Tracks {
+						page.Tracks[i] = spotify.SimpleTrack{ID: "intro", Name: "Intro"}
+					}
+					page.Next = "https://api.spotify.com/v1/albums/album/tracks?offset=50"
+				case "50":
+					if tt.failSecondPage && requestNumber == 2 {
+						w.WriteHeader(http.StatusInternalServerError)
+						_, _ = io.WriteString(w, `{"error":{"status":500,"message":"page failure"}}`)
+						return
+					}
+					page.Tracks = []spotify.SimpleTrack{{ID: "last-track", Name: "Song"}}
+				default:
+					t.Errorf("unexpected offset: %q", offset)
+				}
+				if err := json.NewEncoder(w).Encode(page); err != nil {
+					t.Errorf("encode tracks: %v", err)
+				}
+			}))
+			defer server.Close()
+			client := spotify.New(server.Client(), spotify.WithBaseURL(server.URL+"/"))
+			record := crawler.Record{Band: "Band", Recordname: "Record"}
+			if tt.failSecondPage {
+				outcome, err := searchSong(context.Background(), client, "Song", record)
+				if err == nil || !strings.Contains(err.Error(), "page failure") || outcome.ID != "" {
+					t.Fatalf("searchSong() = %q, %v; want page failure without a match", outcome.ID, err)
+				}
+			}
+			for _, lookup := range []struct {
+				title string
+				want  spotify.ID
+			}{{"Song", "last-track"}, {"Intro", "intro"}} {
+				outcome, err := searchSong(context.Background(), client, lookup.title, record)
+				if err != nil || outcome.ID != lookup.want {
+					t.Fatalf("searchSong(%q) = %q, %v; want %q, nil", lookup.title, outcome.ID, err, lookup.want)
+				}
+			}
+			if got := tracklistRequests.Load(); got != tt.wantRequests {
+				t.Errorf("tracklist requests = %d, want %d", got, tt.wantRequests)
+			}
+		})
+	}
+}
+
+func TestSearchSong_Errors(t *testing.T) {
+	for _, tt := range []struct {
+		phase  string
+		prefix string
+	}{
+		{phase: "track search", prefix: "search "},
+		{phase: "album search", prefix: "search album "},
+		{phase: "album tracks", prefix: "get tracks of album "},
+	} {
+		t.Run(tt.phase, func(t *testing.T) {
+			resetAlbumTracksCache(t)
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				switch {
+				case r.URL.Path == "/search" && r.URL.Query().Get("type") == "track" && tt.phase != "track search":
+					_, _ = io.WriteString(w, `{"tracks":{"items":[]}}`)
+				case r.URL.Path == "/search" && r.URL.Query().Get("type") == "album" && tt.phase == "album tracks":
+					_, _ = io.WriteString(w, `{"albums":{"items":[{"id":"album","name":"Record","artists":[{"name":"Band"}]}]}}`)
+				default:
+					w.WriteHeader(http.StatusInternalServerError)
+					_, _ = io.WriteString(w, `{"error":{"status":500,"message":"upstream failure"}}`)
+				}
+			}))
+			defer server.Close()
+			client := spotify.New(server.Client(), spotify.WithBaseURL(server.URL+"/"))
+			outcome, err := searchSong(context.Background(), client, "Song", crawler.Record{Band: "Band", Recordname: "Record"})
+			if err == nil || !strings.HasPrefix(err.Error(), tt.prefix) || !strings.Contains(err.Error(), "upstream failure") {
+				t.Fatalf("searchSong() error = %v, want upstream failure with context %q", err, tt.prefix)
+			}
+			if outcome.ID != "" {
+				t.Errorf("searchSong() returned ID %q on failure", outcome.ID)
+			}
+		})
+	}
+}
+
+func TestSearchSong_RateLimit(t *testing.T) {
+	for _, tt := range []struct {
+		name       string
+		retryAfter string
+		timeout    time.Duration
+		wantErr    error
+		wantCalls  int32
+	}{
+		{name: "retries then succeeds", retryAfter: "0", timeout: 5 * time.Second, wantCalls: 2},
+		{name: "deadline interrupts retry wait", retryAfter: "60", timeout: 250 * time.Millisecond, wantErr: context.DeadlineExceeded, wantCalls: 1},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			var calls atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				if calls.Add(1) == 1 {
+					w.Header().Set("Retry-After", tt.retryAfter)
+					w.WriteHeader(http.StatusTooManyRequests)
+					_, _ = io.WriteString(w, `{"error":{"status":429,"message":"rate limited"}}`)
+					return
+				}
+				_, _ = io.WriteString(w, `{"tracks":{"items":[{"id":"found","name":"Song","artists":[{"name":"Band"}] }]}}`)
+			}))
+			defer server.Close()
+			client := spotify.New(server.Client(), spotify.WithBaseURL(server.URL+"/"), spotify.WithRetry(true))
+			ctx, cancel := context.WithTimeout(context.Background(), tt.timeout)
+			defer cancel()
+			outcome, err := searchSong(ctx, client, "Song", crawler.Record{Band: "Band"})
+			if tt.wantErr == nil && err != nil {
+				t.Fatalf("searchSong() error = %v, want nil", err)
+			}
+			// The SDK returns the last 429 error when cancellation interrupts its retry wait.
+			if tt.wantErr != nil && (err == nil || !errors.Is(ctx.Err(), tt.wantErr)) {
+				t.Fatalf("searchSong() error = %v, context error = %v; want a failed lookup after %v", err, ctx.Err(), tt.wantErr)
+			}
+			if err == nil && outcome.ID != "found" {
+				t.Errorf("searchSong() ID = %q, want found", outcome.ID)
+			}
+			if got := calls.Load(); got != tt.wantCalls {
+				t.Errorf("requests = %d, want %d", got, tt.wantCalls)
+			}
+		})
 	}
 }

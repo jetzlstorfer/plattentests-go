@@ -297,13 +297,23 @@ func albumTracks(ctx context.Context, client spotifySearcher, albumID spotify.ID
 		return cached, nil
 	}
 
-	page, err := client.GetAlbumTracks(ctx, albumID, spotify.Limit(spotifyAlbumTracksLimit), spotify.Market(searchMarket))
-	if err != nil {
-		return nil, fmt.Errorf("get tracks of album %s: %w", albumID, err)
-	}
 	var tracks []spotify.SimpleTrack
-	if page != nil {
-		tracks = page.Tracks
+	for offset := 0; ; {
+		page, err := client.GetAlbumTracks(ctx, albumID, spotify.Limit(spotifyAlbumTracksLimit), spotify.Offset(offset), spotify.Market(searchMarket))
+		if err != nil {
+			return nil, fmt.Errorf("get tracks of album %s: %w", albumID, err)
+		}
+		if page == nil {
+			return nil, fmt.Errorf("get tracks of album %s: missing page", albumID)
+		}
+		tracks = append(tracks, page.Tracks...)
+		if page.Next == "" {
+			break
+		}
+		if len(page.Tracks) == 0 {
+			return nil, fmt.Errorf("get tracks of album %s: empty page with a next page", albumID)
+		}
+		offset += len(page.Tracks)
 	}
 
 	albumTracksCacheMu.Lock()
@@ -341,7 +351,7 @@ func stripVersionInfo(s string) string {
 	if loc := dashSuffixPattern.FindStringSubmatchIndex(s); loc != nil && isVersionInfo(s[loc[2]:loc[3]]) {
 		s = s[:loc[0]]
 	}
-	return strings.TrimSpace(s)
+	return strings.TrimSpace(inlineFeaturePattern.ReplaceAllString(s, ""))
 }
 
 // comparableTitle normalizes a title for comparison, ignoring version annotations.
@@ -366,15 +376,16 @@ func titlesMatch(a, b string) bool {
 		return true
 	}
 
-	// "Song" matches "Song (Live)" or "Song - From the Film", but "Part (1)" never matches "Part (2)".
+	if strings.Join(digitsPattern.FindAllString(ca, -1), " ") != strings.Join(digitsPattern.FindAllString(cb, -1), " ") {
+		return false
+	}
+
+	// Generic annotations may be omitted, but numbered parts must remain distinct.
 	ba, bb := baseTitle(a), baseTitle(b)
 	if ba != "" && ba == bb && (ca == ba || cb == bb) {
 		return true
 	}
 
-	if strings.Join(digitsPattern.FindAllString(ca, -1), " ") != strings.Join(digitsPattern.FindAllString(cb, -1), " ") {
-		return false
-	}
 	return similarity(ca, cb) >= similarityThreshold
 }
 
