@@ -8,7 +8,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.13.0
 
 	// String algorithms
-	github.com/agnivade/levenshtein v1.2.1
+	github.com/agnivade/levenshtein v1.2.2
 
 	// Web framework and HTTP utilities
 	github.com/gin-gonic/gin v1.12.0
@@ -19,7 +19,7 @@ require (
 	// Spotify API
 	github.com/zmb3/spotify/v2 v2.4.3
 	// HTML parsing and HTTP utilities
-	golang.org/x/net v0.61.0
+	golang.org/x/net v0.62.0
 
 	// OAuth2 and text processing
 	golang.org/x/oauth2 v0.37.0
