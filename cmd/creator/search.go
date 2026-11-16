@@ -3,7 +3,7 @@ package creator
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"regexp"
 	"sort"
 	"strconv"
@@ -89,7 +89,7 @@ func searchSong(ctx context.Context, client spotifySearcher, track string, recor
 
 	for _, query := range trackSearchQueries(record.Band, track, record.ReleaseYear) {
 		outcome.Queries = append(outcome.Queries, query)
-		log.Printf(" searching term: %s", query)
+		slog.DebugContext(ctx, "searching Spotify for track", "query", query)
 		results, err := client.Search(ctx, query, spotify.SearchTypeTrack, spotify.Limit(spotifySearchLimit), spotify.Market(searchMarket))
 		if err != nil {
 			return outcome, fmt.Errorf("search %q: %w", query, err)
@@ -103,7 +103,12 @@ func searchSong(ctx context.Context, client spotifySearcher, track string, recor
 		diag.observeTracks(candidates, record.Band)
 
 		if item := selectBestTrack(candidates, track, record); item != nil {
-			log.Printf(" using item: %s - %s (%s) [%s]", joinArtistNames(item.Artists), item.Name, item.Album.Name, item.Album.AlbumType)
+			slog.InfoContext(ctx, "matched Spotify track",
+				"artist", joinArtistNames(item.Artists),
+				"track", item.Name,
+				"album", item.Album.Name,
+				"album_type", item.Album.AlbumType,
+			)
 			outcome.ID = item.ID
 			return outcome, nil
 		}
@@ -181,11 +186,19 @@ func selectBestTrack(tracks []spotify.FullTrack, trackName string, record crawle
 	for i := range tracks {
 		track := &tracks[i]
 		if !artistsMatch(track.Artists, record.Band) {
-			log.Printf(" [Skip] %s - %s: artist does not match %q", joinArtistNames(track.Artists), track.Name, record.Band)
+			slog.Debug("skipped Spotify candidate: artist mismatch",
+				"candidate_artist", joinArtistNames(track.Artists),
+				"candidate_track", track.Name,
+				"expected_artist", record.Band,
+			)
 			continue
 		}
 		if !titlesMatch(track.Name, trackName) {
-			log.Printf(" [Skip] %s - %s: title does not match %q", joinArtistNames(track.Artists), track.Name, trackName)
+			slog.Debug("skipped Spotify candidate: title mismatch",
+				"candidate_artist", joinArtistNames(track.Artists),
+				"candidate_track", track.Name,
+				"expected_track", trackName,
+			)
 			continue
 		}
 
@@ -205,7 +218,13 @@ func selectBestTrack(tracks []spotify.FullTrack, trackName string, record crawle
 		score += len(tracks) - i
 
 		scored = append(scored, scoredTrack{track: track, score: score})
-		log.Printf(" [Score %d] %s - %s (%s) [%s]", score, joinArtistNames(track.Artists), track.Name, track.Album.Name, track.Album.AlbumType)
+		slog.Debug("scored Spotify candidate",
+			"score", score,
+			"artist", joinArtistNames(track.Artists),
+			"track", track.Name,
+			"album", track.Album.Name,
+			"album_type", track.Album.AlbumType,
+		)
 	}
 
 	if len(scored) == 0 {
@@ -235,7 +254,7 @@ func searchAlbumTracklist(ctx context.Context, client spotifySearcher, track str
 	checked := make(map[spotify.ID]bool)
 	for _, query := range queries {
 		outcome.Queries = append(outcome.Queries, "[album] "+query)
-		log.Printf(" searching album: %s", query)
+		slog.DebugContext(ctx, "searching reviewed album", "query", query)
 		results, err := client.Search(ctx, query, spotify.SearchTypeAlbum, spotify.Limit(spotifySearchLimit), spotify.Market(searchMarket))
 		if err != nil {
 			return "", fmt.Errorf("search album %q: %w", query, err)
@@ -260,7 +279,12 @@ func searchAlbumTracklist(ctx context.Context, client spotifySearcher, track str
 				return "", err
 			}
 			if match := bestTracklistMatch(tracks, track); match != nil {
-				log.Printf(" using item from album tracklist: %s - %s (%s) [%s]", joinArtistNames(album.Artists), match.Name, album.Name, album.AlbumType)
+				slog.InfoContext(ctx, "matched track from reviewed album",
+					"artist", joinArtistNames(album.Artists),
+					"track", match.Name,
+					"album", album.Name,
+					"album_type", album.AlbumType,
+				)
 				return match.ID, nil
 			}
 		}
@@ -493,14 +517,25 @@ func logTrackResults(tracks []spotify.FullTrack) {
 		if i >= MaxSearchResults {
 			break
 		}
-		log.Printf(" found item: %s - %s  (%s) [%s]", joinArtistNames(item.Artists), item.Name, item.Album.Name, item.Album.AlbumType)
+		slog.Debug("Spotify search candidate",
+			"artist", joinArtistNames(item.Artists),
+			"track", item.Name,
+			"album", item.Album.Name,
+			"album_type", item.Album.AlbumType,
+		)
 	}
 }
 
 // logMiss records everything needed to replay a failed lookup.
 func logMiss(record crawler.Record, trackName string, outcome searchOutcome) {
-	log.Printf("MISS band=%q track=%q record=%q year=%q reason=%q queries=%q",
-		record.Band, trackName, record.Recordname, record.ReleaseYear, outcome.Reason, outcome.Queries)
+	slog.Warn("Spotify track not found",
+		"artist", record.Band,
+		"track", trackName,
+		"record", record.Recordname,
+		"release_year", record.ReleaseYear,
+		"reason", outcome.Reason,
+		"queries", outcome.Queries,
+	)
 }
 
 func appendUnique(list []string, items ...string) []string {

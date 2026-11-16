@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"regexp"
 	"sort"
@@ -73,14 +73,13 @@ func CreatePlaylist(pid string) (Result, error) {
 		playlistID = spotify.ID(pid)
 	}
 
-	log.Println("Plattentests.de Highlights of the week playlist generator")
-	log.Println()
+	slog.Info("starting playlist creation")
 
 	if playlistID == "" || os.Getenv("SPOTIFY_ID") == "" || os.Getenv("SPOTIFY_SECRET") == "" {
 		return Result{}, fmt.Errorf("PLAYLIST_ID, SPOTIFY_ID, or SPOTIFY_SECRET missing")
 	}
 
-	log.Println("Getting tracks of the week...")
+	slog.Info("fetching records of the week")
 	highlights, err := crawler.GetRecordsOfTheWeekSafe()
 	if err != nil {
 		return Result{}, fmt.Errorf("get records of the week: %w", err)
@@ -92,11 +91,8 @@ func CreatePlaylist(pid string) (Result, error) {
 		highlights = highlights[0:MaxRecordsOfTheWeek]
 	}
 
-	log.Println("Size of records of the week: ", len(highlights))
-
-	log.Println("---")
-	log.Println("Connecting to Spotify")
-	log.Println("---")
+	slog.Info("fetched records of the week", "record_count", len(highlights))
+	slog.Info("connecting to Spotify")
 
 	client, err := myauth.VerifyLogin()
 	if err != nil {
@@ -104,7 +100,7 @@ func CreatePlaylist(pid string) (Result, error) {
 	}
 	ctx := context.Background()
 
-	log.Println("Emptying playlist...")
+	slog.Info("emptying playlist", "playlist_id", playlistID)
 	err = client.ReplacePlaylistTracks(ctx, playlistID)
 	if err != nil {
 		return Result{}, fmt.Errorf("empty playlist: %w", err)
@@ -113,11 +109,11 @@ func CreatePlaylist(pid string) (Result, error) {
 	// put record of the week first, preserve original order for remaining records
 	recordOfTheWeek, rotweErr := crawler.GetRecordOfTheWeekBandNameSafe()
 	if rotweErr != nil {
-		log.Printf("could not determine record of the week: %v", rotweErr)
+		slog.Warn("could not determine record of the week", "error", rotweErr)
 	}
 	highlights = orderRecordsForPlaylist(highlights, recordOfTheWeek)
 
-	log.Println("Adding highlights of the week to playlist...")
+	slog.Info("searching highlighted tracks")
 	type highlightSearchJob struct {
 		recordIdx int
 		trackIdx  int
@@ -144,7 +140,7 @@ func CreatePlaylist(pid string) (Result, error) {
 	var itemsToAddIDs []spotify.ID
 	for i := range highlights {
 		record := &highlights[i]
-		log.Println(record.Band + " - " + record.Recordname + ": " + record.Link)
+		slog.Info("processing record", "artist", record.Band, "record", record.Recordname, "url", record.Link)
 	}
 
 	if len(jobs) > 0 {
@@ -183,13 +179,21 @@ func CreatePlaylist(pid string) (Result, error) {
 			result := results[i]
 
 			if result.err != nil {
-				log.Printf("search failed for %s - %s: %v", track.Band, track.Trackname, result.err)
+				slog.Error("Spotify track search failed",
+					"artist", track.Band,
+					"track", track.Trackname,
+					"error", result.err,
+				)
 				notFound = append(notFound, track.Band+" - "+track.Trackname)
 				continue
 			}
 
 			if result.outcome.ID != "" {
-				log.Println("adding item to collection to be added: " + result.outcome.ID)
+				slog.Debug("adding matched track to playlist",
+					"track_id", result.outcome.ID,
+					"artist", track.Band,
+					"track", track.Trackname,
+				)
 				track.Found = true
 				itemsToAddIDs = append(itemsToAddIDs, result.outcome.ID)
 				continue
@@ -201,29 +205,26 @@ func CreatePlaylist(pid string) (Result, error) {
 	}
 
 	// remove duplicates
-	log.Println("removing duplicates...")
+	slog.Info("removing duplicate Spotify tracks")
 	noDuplicateTracks := removeDuplicates(itemsToAddIDs)
 
 	// sort notfound tracks
 	sort.Strings(notFound)
 
 	// now add tracks to playlist
-	log.Println("adding tracks to playlist...")
+	slog.Info("adding tracks to playlist", "track_count", len(noDuplicateTracks))
 	if err := addTracks(client, noDuplicateTracks...); err != nil {
 		return Result{}, err
 	}
 
-	log.Println()
-	log.Println("--- RESULTS ---")
-	log.Println()
-	log.Println("total tracks:     ", total)
-	log.Println("found tracks:     ", total-len(notFound))
-	log.Println("not found tracks: ", len(notFound))
-	log.Println()
-	log.Println("Not found items: ")
+	slog.Info("playlist creation results",
+		"total_tracks", total,
+		"found_tracks", total-len(notFound),
+		"not_found_tracks", len(notFound),
+	)
 
 	for _, track := range notFound {
-		log.Println(" " + track)
+		slog.Info("unmatched playlist track", "track", track)
 	}
 
 	// out some json with all records that should have been added and the once that have not been added
@@ -246,7 +247,10 @@ func CreatePlaylist(pid string) (Result, error) {
 	if prodPlaylistID != "" && spotify.ID(prodPlaylistID) != playlistID {
 		prodTrackIDs, prodErr := getPlaylistTrackIDs(client, spotify.ID(prodPlaylistID))
 		if prodErr != nil {
-			log.Printf("could not compare against production playlist %s: %v", prodPlaylistID, prodErr)
+			slog.Warn("could not compare against production playlist",
+				"playlist_id", prodPlaylistID,
+				"error", prodErr,
+			)
 		} else {
 			newTracks, alreadyInProd := countNewTracksComparedToReference(noDuplicateTracks, prodTrackIDs)
 			result.ComparedToProd = true
@@ -289,7 +293,7 @@ func orderRecordsForPlaylist(records []crawler.Record, recordOfTheWeek string) [
 // adds tracks to global playlist ID
 func addTracks(client spotify.Client, trackids ...spotify.ID) error {
 	if len(trackids) == 0 {
-		log.Println("no tracks to add")
+		slog.Info("no tracks to add")
 		return nil
 	}
 	_, err := client.AddTracksToPlaylist(context.Background(), playlistID, trackids...)
@@ -371,7 +375,11 @@ func MarkFoundTracks(records []crawler.Record) error {
 
 				outcome, searchErr := searchSong(context.Background(), &client, track.Trackname, record)
 				if searchErr != nil {
-					log.Printf("found-status search failed for %s - %s: %v", record.Band, track.Trackname, searchErr)
+					slog.Error("found-status search failed",
+						"artist", record.Band,
+						"track", track.Trackname,
+						"error", searchErr,
+					)
 					return
 				}
 

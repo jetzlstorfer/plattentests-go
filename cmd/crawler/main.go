@@ -2,7 +2,7 @@ package crawler
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -92,7 +92,7 @@ type Track struct {
 func GetRecordsOfTheWeek() []Record {
 	highlights, err := GetRecordsOfTheWeekSafe()
 	if err != nil {
-		log.Printf("failed to fetch records of the week: %v", err)
+		slog.Error("failed to fetch records of the week", "error", err)
 		return nil
 	}
 	return highlights
@@ -107,7 +107,7 @@ func GetRecordsOfTheWeekSafe() ([]Record, error) {
 	}
 	defer func() {
 		if closeErr := res.Body.Close(); closeErr != nil {
-			log.Printf("failed closing highlights response body: %v", closeErr)
+			slog.Warn("failed closing highlights response body", "error", closeErr)
 		}
 	}()
 	if res.StatusCode != 200 {
@@ -119,8 +119,6 @@ func GetRecordsOfTheWeekSafe() ([]Record, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parse highlights page: %w", err)
 	}
-	//log.Printf(doc.Find("body").Text())
-
 	var highlights []Record
 	// Find the review items
 	newReviews := doc.Find(".neuerezis li")
@@ -186,7 +184,7 @@ func GetRecord(c *gin.Context) {
 func getHighlightsByRecordLink(recordLink string) Record {
 	record, err := getHighlightsByRecordLinkSafe(recordLink)
 	if err != nil {
-		log.Printf("failed to fetch record %s: %v", recordLink, err)
+		slog.Error("failed to fetch record", "url", recordLink, "error", err)
 		return Record{}
 	}
 	return record
@@ -199,7 +197,7 @@ func getHighlightsByRecordLinkSafe(recordLink string) (Record, error) {
 	}
 	defer func() {
 		if closeErr := res.Body.Close(); closeErr != nil {
-			log.Printf("failed closing record response body: %v", closeErr)
+			slog.Warn("failed closing record response body", "error", closeErr)
 		}
 	}()
 	if res.StatusCode != 200 {
@@ -262,7 +260,7 @@ func getHighlightsByRecordLinkSafe(recordLink string) (Record, error) {
 		Headline:    headline,
 		Description: description,
 	}
-	log.Printf("%s - %s\n", bandname, recordname)
+	slog.Info("parsed album review", "artist", bandname, "album", recordname)
 	highlightNames := make(map[string]bool)
 	doc.Find("#rezihighlights li").Each(func(_ int, s *goquery.Selection) {
 		trackname := strings.TrimSpace(s.Text())
@@ -277,7 +275,7 @@ func getHighlightsByRecordLinkSafe(recordLink string) (Record, error) {
 		if trackname == "" || trackname == "-" {
 			return
 		}
-		log.Printf(" Track %d: %s\n", i+1, trackname)
+		slog.Debug("parsed track", "track_number", i+1, "track", trackname)
 		tracks = append(tracks, Track{
 			Band:        bandname,
 			Trackname:   trackname,
@@ -292,7 +290,7 @@ func getHighlightsByRecordLinkSafe(recordLink string) (Record, error) {
 			if trackname == "" || trackname == "-" {
 				return
 			}
-			log.Printf(" Track %d: %s\n", i+1, trackname)
+			slog.Debug("parsed track", "track_number", i+1, "track", trackname)
 			tracks = append(tracks, Track{
 				Band:        bandname,
 				Trackname:   trackname,
@@ -301,7 +299,6 @@ func getHighlightsByRecordLinkSafe(recordLink string) (Record, error) {
 		})
 	}
 	record.Tracks = tracks
-	//log.Println(len(record.Tracks), " highlights found for", record.Name)
 	return record, nil
 }
 
@@ -313,7 +310,7 @@ func normalizeTrackName(track string) string {
 func GetRecordOfTheWeekBandName() string {
 	band, err := GetRecordOfTheWeekBandNameSafe()
 	if err != nil {
-		log.Printf("failed to fetch record of the week: %v", err)
+		slog.Error("failed to fetch record of the week", "error", err)
 		return ""
 	}
 	return band
@@ -328,7 +325,7 @@ func GetRecordOfTheWeekBandNameSafe() (string, error) {
 	}
 	defer func() {
 		if closeErr := res.Body.Close(); closeErr != nil {
-			log.Printf("failed closing record-of-the-week response body: %v", closeErr)
+			slog.Warn("failed closing record-of-the-week response body", "error", closeErr)
 		}
 	}()
 	if res.StatusCode != 200 {
@@ -378,7 +375,7 @@ func searchAt(endpoint, query string) []Record {
 	// (and any future deployment behind a different host) work correctly.
 	base, err := url.Parse(endpoint)
 	if err != nil {
-		log.Printf("invalid search endpoint %q: %v", endpoint, err)
+		slog.Error("invalid search endpoint", "endpoint", endpoint, "error", err)
 		return nil
 	}
 
@@ -388,22 +385,22 @@ func searchAt(endpoint, query string) []Record {
 
 	res, err := http.PostForm(endpoint, form)
 	if err != nil {
-		log.Printf("search request failed: %v", err)
+		slog.Error("search request failed", "error", err)
 		return nil
 	}
 	defer func() {
 		if closeErr := res.Body.Close(); closeErr != nil {
-			log.Printf("failed closing search response body: %v", closeErr)
+			slog.Warn("failed closing search response body", "error", closeErr)
 		}
 	}()
 	if res.StatusCode != 200 {
-		log.Printf("search status code error: %d %s", res.StatusCode, res.Status)
+		slog.Error("search returned unsuccessful status", "status_code", res.StatusCode, "status", res.Status)
 		return nil
 	}
 
 	doc, err := newDocumentFromPlattentestsResponse(res)
 	if err != nil {
-		log.Printf("failed to parse search response: %v", err)
+		slog.Error("failed to parse search response", "error", err)
 		return nil
 	}
 
