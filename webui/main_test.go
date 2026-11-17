@@ -2,7 +2,9 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"html/template"
+	"log/slog"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -11,6 +13,36 @@ import (
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
 	creator "github.com/jetzlstorfer/plattentests-go/cmd/creator"
 )
+
+func TestRequestLoggerEmitsStructuredFieldsWithoutQueryString(t *testing.T) {
+	previous := slog.Default()
+	var logs bytes.Buffer
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&logs, nil)))
+	t.Cleanup(func() {
+		slog.SetDefault(previous)
+	})
+
+	router := gin.New()
+	router.Use(requestLogger())
+	router.GET("/records", func(c *gin.Context) {
+		c.Status(201)
+	})
+
+	response := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/records?token=secret", nil)
+	router.ServeHTTP(response, request)
+
+	var record map[string]any
+	if err := json.Unmarshal(bytes.TrimSpace(logs.Bytes()), &record); err != nil {
+		t.Fatalf("expected request log to be JSON: %v", err)
+	}
+	if record["http.request.method"] != "GET" || record["http.route"] != "/records" || record["http.response.status_code"] != float64(201) {
+		t.Fatalf("unexpected request log fields: %#v", record)
+	}
+	if strings.Contains(logs.String(), "secret") {
+		t.Fatal("request log must not include query-string values")
+	}
+}
 
 func TestCompactPageHeadings(t *testing.T) {
 	tests := []struct {

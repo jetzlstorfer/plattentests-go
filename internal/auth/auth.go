@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net"
 	"strings"
 	"time"
@@ -44,14 +44,14 @@ func VerifyLogin() (spotify.Client, error) {
 		return spotify.Client{}, fmt.Errorf("load auth config: %w", err)
 	}
 
-	log.Println("Connecting to Azure to download token")
+	slog.Info("connecting to Azure to download token")
 
 	buff, err := DownloadBlobToBytes("")
 	if err != nil {
 		return spotify.Client{}, fmt.Errorf("download token from Azure: %w", err)
 	}
 
-	log.Println("Token downloaded from Azure")
+	slog.Info("token downloaded from Azure")
 	token := new(oauth2.Token)
 	if err := json.Unmarshal(buff, token); err != nil {
 		return spotify.Client{}, fmt.Errorf("unmarshal token: %w", err)
@@ -60,19 +60,19 @@ func VerifyLogin() (spotify.Client, error) {
 	// Create a Spotify authenticator with the oauth2 token.
 	// If the token is expired, the oauth2 package will automatically refresh
 	// so the new token is checked against the old one to see if it should be updated.
-	log.Println("Creating Spotify Authenticator")
+	slog.Info("creating Spotify authenticator")
 	ctx := context.Background()
 	httpClient := spotifyauth.New().Client(ctx, token)
 	// Retry rate-limited (429) requests after Spotify's Retry-After delay instead of failing the lookup.
 	client := spotify.New(httpClient, spotify.WithRetry(true))
 
-	log.Println("Creating new Client Token")
+	slog.Info("retrieving Spotify client token")
 	newToken, err := retrieveTokenWithRetry(client)
 	if err != nil {
 		return spotify.Client{}, fmt.Errorf("retrieve token from client: %w", err)
 	}
 	if newToken.AccessToken != token.AccessToken {
-		log.Println("Got refreshed token, saving it")
+		slog.Info("refreshed Spotify token; saving it")
 	}
 
 	persistedToken, err := json.Marshal(newToken)
@@ -85,14 +85,14 @@ func VerifyLogin() (spotify.Client, error) {
 		return spotify.Client{}, fmt.Errorf("upload token to Azure: %w", err)
 	}
 
-	log.Println("Token uploaded.")
+	slog.Info("token uploaded")
 
 	// use the client to make calls that require authorization
 	user, err := client.CurrentUser(ctx)
 	if err != nil {
 		return spotify.Client{}, fmt.Errorf("identify current user: %w", err)
 	}
-	log.Printf("Logged in as: %v", user.ID)
+	slog.Info("authenticated Spotify user", "user_id", user.ID)
 
 	return *client, nil
 }
@@ -114,7 +114,12 @@ func retrieveTokenWithRetry(client *spotify.Client) (*oauth2.Token, error) {
 		}
 
 		delay := time.Duration(attempt) * baseDelay
-		log.Printf("temporary Spotify OAuth error while retrieving token (attempt %d/%d): %v; retrying in %s", attempt, maxAttempts, err, delay)
+		slog.Warn("temporary Spotify OAuth error; retrying",
+			"attempt", attempt,
+			"max_attempts", maxAttempts,
+			"error", err,
+			"retry_delay", delay,
+		)
 		time.Sleep(delay)
 	}
 
@@ -165,7 +170,10 @@ func DownloadBlobToBytes(string) ([]byte, error) {
 	const maxAttempts = 4
 	const baseDelay = 2 * time.Second
 
-	azrKey, accountName, _, container := GetAccountInfo()
+	azrKey, accountName, _, container, err := GetAccountInfo()
+	if err != nil {
+		return nil, fmt.Errorf("load Azure account info: %w", err)
+	}
 	serviceURL := fmt.Sprintf("https://%s.blob.core.windows.net/", accountName)
 
 	cred, err := azblob.NewSharedKeyCredential(accountName, azrKey)
@@ -186,7 +194,7 @@ func DownloadBlobToBytes(string) ([]byte, error) {
 			blobData, readErr := io.ReadAll(response.Body)
 			closeErr := response.Body.Close()
 			if closeErr != nil {
-				log.Printf("failed closing blob download response body: %v", closeErr)
+				slog.Warn("failed closing blob download response body", "error", closeErr)
 			}
 			if readErr == nil {
 				return blobData, nil
@@ -200,7 +208,12 @@ func DownloadBlobToBytes(string) ([]byte, error) {
 		}
 
 		delay := retryDelay(attempt, baseDelay)
-		log.Printf("temporary Azure Blob error while downloading token (attempt %d/%d): %v; retrying in %s", attempt, maxAttempts, err, delay)
+		slog.Warn("temporary Azure Blob error while downloading token; retrying",
+			"attempt", attempt,
+			"max_attempts", maxAttempts,
+			"error", err,
+			"retry_delay", delay,
+		)
 		time.Sleep(delay)
 	}
 
@@ -212,7 +225,10 @@ func UploadBytesToBlob(b []byte) (string, error) {
 	const maxAttempts = 4
 	const baseDelay = 2 * time.Second
 
-	azrKey, accountName, _, container := GetAccountInfo()
+	azrKey, accountName, _, container, err := GetAccountInfo()
+	if err != nil {
+		return "", fmt.Errorf("load Azure account info: %w", err)
+	}
 	serviceURL := fmt.Sprintf("https://%s.blob.core.windows.net/", accountName)
 
 	cred, err := azblob.NewSharedKeyCredential(accountName, azrKey)
@@ -242,7 +258,12 @@ func UploadBytesToBlob(b []byte) (string, error) {
 		}
 
 		delay := retryDelay(attempt, baseDelay)
-		log.Printf("temporary Azure Blob error while uploading token (attempt %d/%d): %v; retrying in %s", attempt, maxAttempts, err, delay)
+		slog.Warn("temporary Azure Blob error while uploading token; retrying",
+			"attempt", attempt,
+			"max_attempts", maxAttempts,
+			"error", err,
+			"retry_delay", delay,
+		)
 		time.Sleep(delay)
 	}
 
@@ -250,11 +271,11 @@ func UploadBytesToBlob(b []byte) (string, error) {
 }
 
 // GetAccountInfo returns Azure Storage credentials and endpoints from environment configuration.
-func GetAccountInfo() (string, string, string, string) {
+func GetAccountInfo() (string, string, string, string, error) {
 	// making sure all config variables are set
 	err := envconfig.Process("", &config)
 	if err != nil {
-		log.Fatal(err.Error())
+		return "", "", "", "", fmt.Errorf("load auth config: %w", err)
 	}
 
 	azrKey := config.AzAccountKey
@@ -262,5 +283,5 @@ func GetAccountInfo() (string, string, string, string) {
 	azrPrimaryBlobServiceEndpoint := fmt.Sprintf("https://%s.blob.core.windows.net/", azrBlobAccountName)
 	azrBlobContainer := config.AzContainerName
 
-	return azrKey, azrBlobAccountName, azrPrimaryBlobServiceEndpoint, azrBlobContainer
+	return azrKey, azrBlobAccountName, azrPrimaryBlobServiceEndpoint, azrBlobContainer, nil
 }

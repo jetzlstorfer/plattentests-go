@@ -2,7 +2,7 @@ package main
 
 import (
 	"html/template"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -11,10 +11,12 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	crawler "github.com/jetzlstorfer/plattentests-go/cmd/crawler"
 	creator "github.com/jetzlstorfer/plattentests-go/cmd/creator"
+	"github.com/jetzlstorfer/plattentests-go/internal/observability"
 )
 
 //const RecordEndPoint = "https://plattentests-go.azurewebsites.net/api/records/"
@@ -48,8 +50,17 @@ type Highlights struct {
 }
 
 func main() {
-	// Create a new Gin router
-	r := gin.Default()
+	observability.ConfigureLogging("plattentests-web")
+
+	r := gin.New()
+	r.Use(requestLogger())
+	r.Use(gin.CustomRecovery(func(c *gin.Context, recovered any) {
+		slog.ErrorContext(c.Request.Context(), "request panic recovered",
+			"error", recovered,
+			"stack", string(debug.Stack()),
+		)
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}))
 	r.Static("./assets", "./assets")
 	r.StaticFile("./favicon.ico", "./assets/favicon.ico")
 	r.StaticFile("/manifest.json", "./assets/manifest.json")
@@ -59,7 +70,7 @@ func main() {
 
 		records, err := crawler.GetRecordsOfTheWeekSafe()
 		if err != nil {
-			log.Printf("failed to load records of the week: %v", err)
+			slog.ErrorContext(c.Request.Context(), "failed to load records of the week", "error", err)
 			tmpl, tmplErr := template.ParseFiles("templates/utils.tmpl")
 			if tmplErr != nil {
 				c.String(http.StatusInternalServerError, "Could not load records of the week")
@@ -79,7 +90,7 @@ func main() {
 			// put record of the week on top of the playlist
 			recordOfTheWeek, err := crawler.GetRecordOfTheWeekBandNameSafe()
 			if err != nil {
-				log.Printf("could not load record of the week: %v", err)
+				slog.WarnContext(c.Request.Context(), "could not load record of the week", "error", err)
 				recordOfTheWeek = ""
 			}
 			recordOfTheWeek = strings.Trim(recordOfTheWeek, " ")
@@ -87,19 +98,24 @@ func main() {
 			// put record of the week on top of the playlist
 			for i, record := range records {
 				if record.Band == recordOfTheWeek {
-					log.Println("record of the week found: " + recordOfTheWeek)
+					slog.DebugContext(c.Request.Context(), "record of the week found", "artist", recordOfTheWeek)
 					records[i].IsRecordOfTheWeek = true
 					records[0], records[i] = records[i], records[0]
 					break
 				}
-				log.Println("record of the week not found: " + record.Band + " vs " + recordOfTheWeek)
+				slog.DebugContext(c.Request.Context(), "record is not the record of the week",
+					"artist", record.Band,
+					"record_of_the_week", recordOfTheWeek,
+				)
 			}
 		}
 
 		// Load the template file
 		tmpl, err := template.ParseFiles("templates/records.tmpl", "templates/utils.tmpl")
 		if err != nil {
-			log.Fatalf("Error parsing template: %v", err)
+			slog.ErrorContext(c.Request.Context(), "failed to parse records template", "error", err)
+			c.String(http.StatusInternalServerError, "Could not load records")
+			return
 		}
 
 		data := commonTemplateData(c)
@@ -107,7 +123,7 @@ func main() {
 
 		// Execute the template with the record data
 		if err := tmpl.Execute(c.Writer, data); err != nil {
-			log.Fatalf("Error executing template: %v", err)
+			slog.ErrorContext(c.Request.Context(), "failed to render records template", "error", err)
 		}
 
 	})
@@ -126,7 +142,9 @@ func main() {
 
 		tmpl, err := template.ParseFiles("templates/search.tmpl", "templates/utils.tmpl")
 		if err != nil {
-			log.Fatalf("Error parsing search templates: %v", err)
+			slog.ErrorContext(c.Request.Context(), "failed to parse search templates", "error", err)
+			c.String(http.StatusInternalServerError, "Could not load search")
+			return
 		}
 
 		data := commonTemplateData(c)
@@ -134,7 +152,7 @@ func main() {
 		data["Records"] = records
 
 		if err := tmpl.Execute(c.Writer, data); err != nil {
-			log.Fatalf("Error executing search template: %v", err)
+			slog.ErrorContext(c.Request.Context(), "failed to render search template", "error", err)
 		}
 	})
 
@@ -143,14 +161,16 @@ func main() {
 
 		tmpl, err := template.ParseFiles("templates/playlist.tmpl", "templates/utils.tmpl")
 		if err != nil {
-			log.Fatalf("Error parsing playlist templates: %v", err)
+			slog.ErrorContext(c.Request.Context(), "failed to parse playlist templates", "error", err)
+			c.String(http.StatusInternalServerError, "Could not load playlist")
+			return
 		}
 
 		data := commonTemplateData(c)
 		data["PlaylistID"] = playlistID
 
 		if err := tmpl.Execute(c.Writer, data); err != nil {
-			log.Fatalf("Error executing playlist template: %v", err)
+			slog.ErrorContext(c.Request.Context(), "failed to render playlist template", "error", err)
 		}
 	})
 
@@ -163,14 +183,14 @@ func main() {
 		requireEasyAuth := easyAuthEnabled(c.Request)
 		if requireEasyAuth && principal == "" {
 			loginURL := easyAuthLoginURL(c.Request)
-			log.Printf("unauthenticated request to /createPlaylist, redirecting to Easy Auth login: %s", loginURL)
+			slog.InfoContext(c.Request.Context(), "unauthenticated request; redirecting to Easy Auth login")
 			c.Redirect(http.StatusTemporaryRedirect, loginURL)
 			return
 		}
 		if requireEasyAuth {
-			log.Printf("user authenticated via Easy Auth: %s", principal)
+			slog.InfoContext(c.Request.Context(), "user authenticated via Easy Auth")
 		} else {
-			log.Printf("Easy Auth disabled for this request, allowing local access to /createPlaylist")
+			slog.DebugContext(c.Request.Context(), "Easy Auth disabled; allowing local playlist creation")
 		}
 
 		playlist := c.DefaultQuery("playlist", "")
@@ -181,7 +201,9 @@ func main() {
 
 		tmpl, err := template.ParseFiles("templates/createPlaylist.tmpl", "templates/utils.tmpl")
 		if err != nil {
-			log.Fatalf("Error parsing template: %v", err)
+			slog.ErrorContext(c.Request.Context(), "failed to parse create-playlist template", "error", err)
+			c.String(http.StatusInternalServerError, "Could not load playlist creation page")
+			return
 		}
 
 		data := commonTemplateData(c)
@@ -189,11 +211,11 @@ func main() {
 
 		results, err := creator.CreatePlaylist(playlistID)
 		if err != nil {
-			log.Printf("failed to create playlist: %v", err)
+			slog.ErrorContext(c.Request.Context(), "failed to create playlist", "error", err)
 			data["CreatePlaylistError"] = friendlyCreatePlaylistError(err)
 			c.Status(http.StatusServiceUnavailable)
 			if execErr := tmpl.Execute(c.Writer, data); execErr != nil {
-				log.Fatalf("Error executing template: %v", execErr)
+				slog.ErrorContext(c.Request.Context(), "failed to render create-playlist error", "error", execErr)
 			}
 			return
 		}
@@ -211,7 +233,7 @@ func main() {
 			// put record of the week on top of the playlist
 			recordOfTheWeek, err := crawler.GetRecordOfTheWeekBandNameSafe()
 			if err != nil {
-				log.Printf("could not load record of the week: %v", err)
+				slog.WarnContext(c.Request.Context(), "could not load record of the week", "error", err)
 				recordOfTheWeek = ""
 			}
 
@@ -229,13 +251,32 @@ func main() {
 
 		// Execute the template with the record data
 		if err := tmpl.Execute(c.Writer, data); err != nil {
-			log.Fatalf("Error executing template: %v", err)
+			slog.ErrorContext(c.Request.Context(), "failed to render create-playlist template", "error", err)
 		}
 	})
 
 	// Start the server
 	if err := r.Run(":8081"); err != nil {
-		log.Fatalf("Error starting server: %v", err)
+		slog.Error("failed to start web server", "error", err)
+		os.Exit(1)
+	}
+}
+
+func requestLogger() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		c.Next()
+
+		route := c.FullPath()
+		if route == "" {
+			route = "unmatched"
+		}
+		slog.InfoContext(c.Request.Context(), "http request",
+			"http.request.method", c.Request.Method,
+			"http.route", route,
+			"http.response.status_code", c.Writer.Status(),
+			"duration_ms", time.Since(start).Milliseconds(),
+		)
 	}
 }
 
@@ -270,7 +311,7 @@ func easyAuthEnabled(r *http.Request) bool {
 		if err == nil {
 			return enabled
 		}
-		log.Printf("invalid EASY_AUTH_ENABLED value %q, falling back to host-based default", configured)
+		slog.Warn("invalid EASY_AUTH_ENABLED value; using host-based default", "value", configured)
 	}
 
 	return !isLocalHostRequest(r)
@@ -307,7 +348,7 @@ func commonTemplateData(c *gin.Context) map[string]interface{} {
 }
 
 func getCommitInfo() string {
-	log.Println("get commit info: " + os.Getenv("GIT_SHA"))
+	slog.Debug("reading commit info", "git_sha", os.Getenv("GIT_SHA"))
 	if os.Getenv("GIT_SHA") != "" {
 		return os.Getenv("GIT_SHA")
 	}
